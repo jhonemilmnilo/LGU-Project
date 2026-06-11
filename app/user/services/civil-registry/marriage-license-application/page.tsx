@@ -8,9 +8,10 @@ import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, FileText, Eye, Heart, ShieldCheck, AlertCircle } from "lucide-react";
+import { Home, User, Search, CheckCircle2, Check, Loader2, FileText, Eye, Heart, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,6 @@ import { submitMarriageLicenseTransaction } from "@/app/admin/transactions/marri
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { supabase } from "@/lib/supabase";
-import { compressImage } from "@/lib/image-compression";
 
 const checkIsPdf = (file: any, url: string | null) => {
 	if (file && file instanceof File) {
@@ -522,66 +522,49 @@ export default function MarriageLicenseApplicationPage() {
 
 
 
-	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-		const file = e.target.files?.[0] || null;
-		if (file) {
-			if (file && file.size > 5 * 1024 * 1024) {
-				toast.error("File size exceeds 5MB limit.");
-				if (e && e.target && e.target.parentElement) {
-					const parent = e.target.parentElement;
-					let errEl = parent.querySelector('.file-error-msg');
-					if (!errEl) {
-						errEl = document.createElement('div');
-						errEl.className = 'file-error-msg text-[9px] font-black uppercase text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-center animate-pulse mt-2 z-50';
-						parent.appendChild(errEl);
-					}
-					errEl.textContent = 'LIMIT UPLOAD ERROR: MAX 5MB ALLOWED';
-					setTimeout(() => errEl && errEl.remove(), 4000);
-				}
-				if (e && e.target) e.target.value = "";
-				return;
-			}
 
-			let fileToProcess = file;
+	const handlePremiumFileSelect = async (file: File, key: string) => {
+		// Save raw/compressed file to IndexedDB
+		saveDraftFile(STORAGE_KEY, key, file).catch(err => {
+			console.error("Failed to save draft file to IndexedDB:", err);
+		});
+		try {
+			toast.loading("Uploading and preparing document preview...", { id: `file-upload-${key}` });
+			const userId = resident?.id || "anonymous";
+			const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+			const publicUrl = await uploadFileClientSide(file, sanitizedKey, userId);
+
+			setForm((prev: any) => ({
+				...prev,
+				files: { ...prev.files, [key]: file },
+				previews: { ...prev.previews, [key]: publicUrl }
+			}));
+			setMissingFiles((m) => ({ ...m, [key]: false }));
+			toast.success("Document uploaded & preview ready!", { id: `file-upload-${key}` });
+		} catch (uploadErr) {
+			console.error(`[ClientUpload] Failed to upload ${key} on-the-fly:`, uploadErr);
+			toast.error("Upload failed. Local copy stored (preview limited).", { id: `file-upload-${key}` });
+			
+			// Fallback to local preview behavior if instant upload fails
 			if (file.type.startsWith("image/")) {
-				try {
-					toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-					fileToProcess = await compressImage(file);
-					toast.success("Image optimized successfully!", { id: "image-compress-toast" });
-				} catch (err) {
-					console.error("Compression error:", err);
-					toast.dismiss("image-compress-toast");
-				}
-			}
-
-			// Save raw/compressed file to IndexedDB
-			saveDraftFile(STORAGE_KEY, key, fileToProcess).catch(err => {
-				console.error("Failed to save draft file to IndexedDB:", err);
-			});
-
-			// Read image files as data URL so previews persist across reloads
-			if (fileToProcess.type.startsWith("image/")) {
 				const reader = new FileReader();
 				reader.onload = () => {
 					const dataUrl = reader.result as string | null;
-					if (!dataUrl) return;
-					// set File reference
 					setForm((prev: any) => ({
 						...prev,
-						files: { ...prev.files, [key]: fileToProcess },
+						files: { ...prev.files, [key]: file },
 						previews: { ...prev.previews, [key]: dataUrl }
 					}));
-					setMissingFiles((m) => ({ ...m, [key]: false }));
 				};
-				reader.readAsDataURL(fileToProcess);
+				reader.readAsDataURL(file);
 			} else {
 				setForm((prev: any) => ({
 					...prev,
-					files: { ...prev.files, [key]: fileToProcess },
+					files: { ...prev.files, [key]: file },
 					previews: { ...prev.previews, [key]: null }
 				}));
-				setMissingFiles((m) => ({ ...m, [key]: false }));
 			}
+			setMissingFiles((m) => ({ ...m, [key]: false }));
 		}
 	};
 
@@ -734,10 +717,24 @@ export default function MarriageLicenseApplicationPage() {
 			const userId = resident?.id || "anonymous";
 			const fileUrls: Record<string, string> = {};
 
+			// First, copy any existing public URLs from previews
+			Object.entries(form.previews || {}).forEach(([key, url]) => {
+				if (url && typeof url === "string" && url.startsWith("http")) {
+					fileUrls[key] = url;
+				}
+			});
+
 			const fileEntries = Object.entries(finalFiles);
 			for (let i = 0; i < fileEntries.length; i++) {
 				const [key, file] = fileEntries[i];
 				const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+				// Reuse already uploaded files/URLs
+				if (fileUrls[key]) {
+					console.log(`[ClientUpload] Reusing existing public URL for ${key}:`, fileUrls[key]);
+					continue;
+				}
+
 				try {
 					const url = await uploadFileClientSide(file, sanitizedKey, userId);
 					fileUrls[key] = url;
@@ -1355,62 +1352,18 @@ export default function MarriageLicenseApplicationPage() {
 										</div>
 									</div>
 									<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-										{app1Docs.map((d) => {
-											const id = `doc-${encodeURIComponent(d)}`;
-											return (
-												<div key={d} className="space-y-3">
-													<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-														{formatDocLabel(d, form.app1Gender)}
-													</Label>
-													<div
-														onClick={() => document.getElementById(id)?.click()}
-														className={cn(
-															"aspect-video relative rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden",
-															(form.files?.[d] || form.previews?.[d]) ? "border-amber-500 bg-amber-500/5" : missingFiles[d] ? "border-red-500 bg-red-50 dark:bg-red-900/10" : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-														)}
-													>
-														{(form.files?.[d] || form.previews?.[d]) ? (
-															<div className="relative w-full h-full group/preview">
-																{checkIsPdf(form.files?.[d], form.previews?.[d]) ? (
-																	<div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-[#151b2b] p-4 text-center">
-																		<FileText className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
-																		<span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 max-w-[80%] truncate">
-																			{form.files?.[d] ? form.files[d].name : `${d}.pdf`}
-																		</span>
-																	</div>
-																) : (
-																	<img src={form.previews?.[d] || undefined} alt="Document preview" className="absolute inset-0 w-full h-full object-cover" />
-																)}
-																<div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
-																	<Button
-																		type="button"
-																		size="sm"
-																		onClick={(e) => {
-																			e.stopPropagation();
-																			handleViewFile(form.files?.[d] || null, form.previews?.[d] || null, d);
-																		}}
-																		className="font-black italic uppercase tracking-widest text-[9px] px-4 h-8 rounded-xl bg-white text-slate-900 hover:bg-slate-100 shadow-lg flex items-center gap-1.5 transition-all"
-																	>
-																		<Eye className="w-4 h-4 text-amber-500" />
-																		View Document
-																	</Button>
-																	<span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside button to change</span>
-																</div>
-															</div>
-														) : (
-															<>
-																<Upload className="w-8 h-8 text-slate-300 group-hover:text-amber-500 transition-colors" />
-																<span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
-															</>
-														)}
-														<input id={id} type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={(e) => handleFileChange(e, d)} />
-														{missingFiles[d] && !form.files?.[d] && (
-															<div className="absolute -bottom-6 left-4 text-xs text-red-600 font-bold">Required</div>
-														)}
-													</div>
-												</div>
-											);
-										})}
+										{app1Docs.map((d) => (
+											<PremiumDocumentUpload
+												key={d}
+												label={formatDocLabel(d, form.app1Gender)}
+												required={form.requiredDocs?.[d]}
+												file={form.files?.[d] || null}
+												previewUrl={form.previews?.[d]}
+												onFileSelect={(file) => handlePremiumFileSelect(file, d)}
+												onView={() => handleViewFile(form.files?.[d] || null, form.previews?.[d] || null, d)}
+												error={missingFiles[d] && !form.files?.[d] && !form.previews?.[d]}
+											/>
+										))}
 									</div>
 								</Card>
 
@@ -1426,62 +1379,18 @@ export default function MarriageLicenseApplicationPage() {
 										</div>
 									</div>
 									<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-										{app2Docs.map((d) => {
-											const id = `doc-${encodeURIComponent(d)}`;
-											return (
-												<div key={d} className="space-y-3">
-													<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-														{formatDocLabel(d, form.app1Gender)}
-													</Label>
-													<div
-														onClick={() => document.getElementById(id)?.click()}
-														className={cn(
-															"aspect-video relative rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden",
-															(form.files?.[d] || form.previews?.[d]) ? "border-amber-500 bg-amber-500/5" : missingFiles[d] ? "border-red-500 bg-red-50 dark:bg-red-900/10" : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-														)}
-													>
-														{(form.files?.[d] || form.previews?.[d]) ? (
-															<div className="relative w-full h-full group/preview">
-																{checkIsPdf(form.files?.[d], form.previews?.[d]) ? (
-																	<div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-[#151b2b] p-4 text-center">
-																		<FileText className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
-																		<span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 max-w-[80%] truncate">
-																			{form.files?.[d] ? form.files[d].name : `${d}.pdf`}
-																		</span>
-																	</div>
-																) : (
-																	<img src={form.previews?.[d] || undefined} alt="Document preview" className="absolute inset-0 w-full h-full object-cover" />
-																)}
-																<div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
-																	<Button
-																		type="button"
-																		size="sm"
-																		onClick={(e) => {
-																			e.stopPropagation();
-																			handleViewFile(form.files?.[d] || null, form.previews?.[d] || null, d);
-																		}}
-																		className="font-black italic uppercase tracking-widest text-[9px] px-4 h-8 rounded-xl bg-white text-slate-900 hover:bg-slate-100 shadow-lg flex items-center gap-1.5 transition-all"
-																	>
-																		<Eye className="w-4 h-4 text-amber-500" />
-																		View Document
-																	</Button>
-																	<span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside button to change</span>
-																</div>
-															</div>
-														) : (
-															<>
-																<Upload className="w-8 h-8 text-slate-300 group-hover:text-amber-500 transition-colors" />
-																<span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
-															</>
-														)}
-														<input id={id} type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={(e) => handleFileChange(e, d)} />
-														{missingFiles[d] && !form.files?.[d] && (
-															<div className="absolute -bottom-6 left-4 text-xs text-red-600 font-bold">Required</div>
-														)}
-													</div>
-												</div>
-											);
-										})}
+										{app2Docs.map((d) => (
+											<PremiumDocumentUpload
+												key={d}
+												label={formatDocLabel(d, form.app1Gender)}
+												required={form.requiredDocs?.[d]}
+												file={form.files?.[d] || null}
+												previewUrl={form.previews?.[d]}
+												onFileSelect={(file) => handlePremiumFileSelect(file, d)}
+												onView={() => handleViewFile(form.files?.[d] || null, form.previews?.[d] || null, d)}
+												error={missingFiles[d] && !form.files?.[d] && !form.previews?.[d]}
+											/>
+										))}
 									</div>
 								</Card>
 
@@ -1495,60 +1404,18 @@ export default function MarriageLicenseApplicationPage() {
 										</div>
 									</div>
 									<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-										{generalDocs.map((d) => {
-											const id = `doc-${encodeURIComponent(d)}`;
-											return (
-												<div key={d} className="space-y-3">
-													<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{d}</Label>
-													<div
-														onClick={() => document.getElementById(id)?.click()}
-														className={cn(
-															"aspect-video relative rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden",
-															(form.files?.[d] || form.previews?.[d]) ? "border-amber-500 bg-amber-500/5" : missingFiles[d] ? "border-red-500 bg-red-50 dark:bg-red-900/10" : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-														)}
-													>
-														{(form.files?.[d] || form.previews?.[d]) ? (
-															<div className="relative w-full h-full group/preview">
-																{checkIsPdf(form.files?.[d], form.previews?.[d]) ? (
-																	<div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-[#151b2b] p-4 text-center">
-																		<FileText className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
-																		<span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 max-w-[80%] truncate">
-																			{form.files?.[d] ? form.files[d].name : `${d}.pdf`}
-																		</span>
-																	</div>
-																) : (
-																	<img src={form.previews?.[d] || undefined} alt="Document preview" className="absolute inset-0 w-full h-full object-cover" />
-																)}
-																<div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
-																	<Button
-																		type="button"
-																		size="sm"
-																		onClick={(e) => {
-																			e.stopPropagation();
-																			handleViewFile(form.files?.[d] || null, form.previews?.[d] || null, d);
-																		}}
-																		className="font-black italic uppercase tracking-widest text-[9px] px-4 h-8 rounded-xl bg-white text-slate-900 hover:bg-slate-100 shadow-lg flex items-center gap-1.5 transition-all"
-																	>
-																		<Eye className="w-4 h-4 text-amber-500" />
-																		View Document
-																	</Button>
-																	<span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside button to change</span>
-																</div>
-															</div>
-														) : (
-															<>
-																<Upload className="w-8 h-8 text-slate-300 group-hover:text-amber-500 transition-colors" />
-																<span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
-															</>
-														)}
-														<input id={id} type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" className="hidden" onChange={(e) => handleFileChange(e, d)} />
-														{missingFiles[d] && !form.files?.[d] && (
-															<div className="absolute -bottom-6 left-4 text-xs text-red-600 font-bold">Required</div>
-														)}
-													</div>
-												</div>
-											);
-										})}
+										{generalDocs.map((d) => (
+											<PremiumDocumentUpload
+												key={d}
+												label={d}
+												required={form.requiredDocs?.[d]}
+												file={form.files?.[d] || null}
+												previewUrl={form.previews?.[d]}
+												onFileSelect={(file) => handlePremiumFileSelect(file, d)}
+												onView={() => handleViewFile(form.files?.[d] || null, form.previews?.[d] || null, d)}
+												error={missingFiles[d] && !form.files?.[d] && !form.previews?.[d]}
+											/>
+										))}
 									</div>
 								</Card>
 							</div>
