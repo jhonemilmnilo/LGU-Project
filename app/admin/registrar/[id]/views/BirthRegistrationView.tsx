@@ -166,7 +166,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
             if (!finalEvidenceDocs.some(d => d.url === additional.supportingEvidence1)) {
                 finalEvidenceDocs.push({
                     url: additional.supportingEvidence1,
-                    label: `Evidence 1: ${EVIDENCE_LABELS[additional.supportingEvidence1Type as string] || "Supporting Evidence"}`
+                    label: EVIDENCE_LABELS[additional.supportingEvidence1Type as string] || "Supporting Evidence"
                 });
             }
         }
@@ -174,7 +174,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
             if (!finalEvidenceDocs.some(d => d.url === additional.supportingEvidence2)) {
                 finalEvidenceDocs.push({
                     url: additional.supportingEvidence2,
-                    label: `Evidence 2: ${EVIDENCE_LABELS[additional.supportingEvidence2Type as string] || "Supporting Evidence"}`
+                    label: EVIDENCE_LABELS[additional.supportingEvidence2Type as string] || "Supporting Evidence"
                 });
             }
         }
@@ -876,21 +876,21 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                         </div>
 
                         {/* Evidence Uploads & Attachments */}
-                        <div className="bg-[#111827] border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                        <div className="bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-[0_2px_40px_rgba(0,0,0,0.02)] dark:shadow-2xl">
                             <div
                                 className="flex items-center justify-between p-8 md:p-10 cursor-pointer select-none group"
                                 onClick={() => setIsEvidenceOpen(!isEvidenceOpen)}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-white/10 rounded-xl text-white">
+                                    <div className="p-2.5 bg-slate-100 dark:bg-white/10 rounded-xl text-slate-800 dark:text-white">
                                         <Eye className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-white">Evidence & Required Dossier</h3>
-                                        <p className="text-[8px] font-bold uppercase tracking-widest text-slate-500 italic mt-0.5">Uploaded verification materials</p>
+                                        <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-800 dark:text-white">Evidence & Required Dossier</h3>
+                                        <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 italic mt-0.5">Uploaded verification materials</p>
                                     </div>
                                 </div>
-                                <div className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center text-slate-400 group-hover:border-white/20 group-hover:text-white transition-all shrink-0">
+                                <div className="w-9 h-9 rounded-full border border-slate-100 dark:border-white/10 flex items-center justify-center text-slate-400 group-hover:border-slate-300 dark:group-hover:border-white/20 group-hover:text-slate-700 dark:group-hover:text-white transition-all shrink-0">
                                     {isEvidenceOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                 </div>
                             </div>
@@ -917,16 +917,16 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             <div
                                                 key={i}
                                                 onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, validDocs, validIndex)}
-                                                className="relative aspect-[4/3] rounded-2xl bg-[#1f2937]/20 border border-slate-800 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
+                                                className="relative aspect-[4/3] rounded-2xl bg-[#f8fafc] dark:bg-[#1f2937]/20 border border-slate-100 dark:border-slate-800 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
                                             >
                                                 {isImg ? (
                                                     <>
                                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                                         <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
-                                                        <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
+                                                        <div className="absolute bottom-2 left-2 right-2 bg-slate-900/80 dark:bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
                                                             {doc.label}
                                                         </div>
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                                        <div className="absolute inset-0 bg-slate-900/40 dark:bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
                                                             <div
                                                                 style={{ backgroundColor: themeColor }}
                                                                 className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
@@ -937,31 +937,31 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <div className="absolute inset-0 bg-gradient-to-br from-[#1f2937]/10 to-[#111827]" />
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200/50 dark:from-[#1f2937]/10 dark:to-[#111827]" />
                                                         <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 p-6">
-                                                            <div className="w-14 h-14 rounded-2xl bg-[#1f2937]/50 border border-slate-800 shadow-sm flex items-center justify-center text-primary">
+                                                            <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#1f2937]/50 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-center text-primary">
                                                                 <FileText className="w-7 h-7" />
                                                             </div>
                                                             <div className="text-center min-w-0">
-                                                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
                                                                     Document File
-                                                                </p>
-                                                                <p className="mt-1 text-sm font-black italic uppercase tracking-tight text-white truncate max-w-[220px]">
+                                                                 </p>
+                                                                <p className="mt-1 text-sm font-black italic uppercase tracking-tight text-slate-800 dark:text-white truncate max-w-[220px]">
                                                                     {doc.label}
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-950/75 backdrop-blur-md px-3 py-2 text-center text-white font-black italic uppercase tracking-widest text-[9px] opacity-90 group-hover:opacity-100 transition-opacity">
+                                                        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-900/85 dark:bg-slate-950/75 backdrop-blur-md px-3 py-2 text-center text-white font-black italic uppercase tracking-widest text-[9px] opacity-90 group-hover:opacity-100 transition-opacity">
                                                             Open Document
                                                         </div>
                                                     </>
                                                 )}
                                             </div>
                                         ) : (
-                                            <div key={i} className="relative aspect-[4/3] rounded-2xl bg-[#1f2937]/10 border border-dashed border-slate-800 overflow-hidden flex flex-col items-center justify-center text-slate-500 gap-1.5 p-4 select-none">
-                                                <Camera className="w-6 h-6 mx-auto" />
+                                            <div key={i} className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-[#1f2937]/10 border border-dashed border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-1.5 p-4 select-none">
+                                                <Camera className="w-6 h-6 mx-auto text-slate-300 dark:text-slate-600" />
                                                 <span className="text-[8px] font-black uppercase text-center tracking-widest leading-none">{doc.label}</span>
-                                                <span className="text-[7px] italic text-slate-600 uppercase">Pending Attachment</span>
+                                                <span className="text-[7px] italic text-slate-400 dark:text-slate-600 uppercase">Pending Attachment</span>
                                             </div>
                                         );
                                     })}
