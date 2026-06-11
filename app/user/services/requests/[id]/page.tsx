@@ -654,6 +654,9 @@ export default function RequestHubPage() {
             case "FOR_REVISION":
                 return { label: "NEEDS REVISION", color: "bg-amber-500 text-white border-amber-500", icon: AlertCircle };
             case "FOR_REQUESTING":
+                if (request?.type?.code?.startsWith("LCR_") || request?.type?.code?.startsWith("CIVIL_REGISTRY")) {
+                    return { label: "AWAITING TREASURY CONFIRMATION", color: "bg-amber-500 text-white border-amber-500", icon: Clock };
+                }
                 return { label: "FOR EVALUATION", color: "bg-primary text-white border-transparent", icon: Clock };
             case "FOR_INSPECTION":
                 return { label: "UNDER INSPECTION", color: "bg-blue-600 text-white border-blue-600", icon: Search };
