@@ -663,7 +663,7 @@ export default function DeathCertificateRequestPage() {
                     border-color: ${themeColor}80 !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
-                    color: #0f172a !important;
+                    color: #314158 !important;
                 }
                 .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
                     color: #f8fafc !important;
@@ -699,19 +699,36 @@ export default function DeathCertificateRequestPage() {
                     </BreadcrumbList>
                 </Breadcrumb>
 
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none">
-                    <div className="space-y-2">
+                {/* Premium Header/Banner with Ambient Gradient Backdrop */}
+                <div className="relative overflow-hidden bg-white dark:bg-[#0c1017] p-6 md:p-10 rounded-2xl md:rounded-[2rem] border border-slate-100 dark:border-white/5 text-slate-800 dark:text-white shadow-xl dark:shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                    <div
+                        className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-10 dark:opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700"
+                        style={{ backgroundColor: themeColor }}
+                    />
+
+                    <div className="space-y-3 md:space-y-4 max-w-2xl relative z-10">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-slate-500/10 rounded-xl">
-                                <FileText className="w-6 h-6 text-slate-500" />
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center backdrop-blur-md">
+                                <FileText className="w-4 h-4" style={{ color: themeColor }} />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">Local Civil Registry</span>
+                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-white/70 italic">Local Civil Registry</span>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-                            Request <span className="text-slate-500">Death Certificate</span>
+
+                        <h1 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter leading-none">
+                            Request <span style={{ color: themeColor }}>Death Certificate</span>
                         </h1>
-                        <p className="text-slate-500 font-medium text-sm italic">Request a certified true copy of an official death certificate.</p>
+
+                        <p className="text-slate-600 dark:text-slate-300 font-medium text-xs leading-relaxed max-w-xl italic">
+                            Request a certified true copy of an official death certificate. Complete the form and upload required identifications to verify your request.
+                        </p>
+                    </div>
+
+                    <div className="hidden md:block relative z-10 shrink-0">
+                        <div className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500">
+                            <div className="absolute inset-0 bg-gradient-to-tr opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundImage: `linear-gradient(to top right, ${themeColor}, transparent)` }} />
+                            <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
+                            <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-tight">Secure Filing</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -775,7 +792,7 @@ export default function DeathCertificateRequestPage() {
             )}
 
             {/* Form Wizards */}
-            <Card className="p-8 rounded-[2.5rem] border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0f1117] shadow-xl shadow-slate-200/40 dark:shadow-none min-h-[400px]">
+            <Card className="p-8 rounded-[2.5rem] border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0f1117] shadow-xl dark:shadow-2xl min-h-[400px]">
                 <AnimatePresence mode="wait">
 
                     {/* STEP 1: IDENTITY (REQUESTER DETAILS) */}

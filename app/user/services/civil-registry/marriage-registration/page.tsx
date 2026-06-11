@@ -604,7 +604,7 @@ export default function MarriageRegistrationPage() {
                     border-color: ${themeColor}80 !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
-                    color: #0f172a !important;
+                    color: #314158 !important;
                 }
                 .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
                     color: #f8fafc !important;
@@ -652,32 +652,50 @@ export default function MarriageRegistrationPage() {
                 </Breadcrumb>
 
                 <div className="space-y-6">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none">
-                        <div className="space-y-2">
+                    {/* Premium Header/Banner with Ambient Gradient Backdrop */}
+                    <div className="relative overflow-hidden bg-white dark:bg-[#0c1017] p-6 md:p-10 rounded-2xl md:rounded-[2rem] border border-slate-100 dark:border-white/5 text-slate-800 dark:text-white shadow-xl dark:shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                        <div
+                            className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-10 dark:opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700"
+                            style={{ backgroundColor: themeColor }}
+                        />
+
+                        <div className="space-y-3 md:space-y-4 max-w-2xl relative z-10">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-rose-500/10 rounded-xl">
-                                    <Heart className="w-6 h-6 text-rose-500" />
+                                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center backdrop-blur-md">
+                                    <Heart className="w-4 h-4 text-rose-500" style={{ color: themeColor }} />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-rose-500">Local Civil Registry</span>
+                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-white/70 italic">Local Civil Registry</span>
                             </div>
-                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-                                Marriage <span className="text-rose-500">Registration</span>
+
+                            <h1 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter leading-none">
+                                Marriage <span style={{ color: themeColor }}>Registration</span>
                             </h1>
-                            <p className="text-slate-500 font-medium text-sm italic">File a request for official marriage records or register a new marriage.</p>
+
+                            <p className="text-slate-600 dark:text-slate-300 font-medium text-xs leading-relaxed max-w-xl italic">
+                                File a request for official marriage records or register a new marriage. Complete all sections and upload required documents.
+                            </p>
                         </div>
-                        {hasDraft && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    localStorage.removeItem(STORAGE_KEY);
-                                    window.location.reload();
-                                }}
-                                className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-colors"
-                            >
-                                Reset Form
-                            </Button>
-                        )}
+
+                        <div className="flex flex-col items-end gap-2 relative z-10 shrink-0">
+                            <div className="hidden md:block w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500 mb-2">
+                                <div className="absolute inset-0 bg-gradient-to-tr opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundImage: `linear-gradient(to top right, ${themeColor}, transparent)` }} />
+                                <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
+                                <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-tight">Secure Filing</p>
+                            </div>
+                            {hasDraft && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        localStorage.removeItem(STORAGE_KEY);
+                                        window.location.reload();
+                                    }}
+                                    className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-colors"
+                                >
+                                    Reset Form
+                                </Button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Progress Stepper */}
@@ -748,7 +766,7 @@ export default function MarriageRegistrationPage() {
                             {currentStep === "IDENTITY" && (
                                 <div className="space-y-8">
                                     {/* Applicant 1 */}
-                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                         <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                                             Applicant 1
                                         </h3>
@@ -798,7 +816,7 @@ export default function MarriageRegistrationPage() {
                                     </Card>
 
                                     {/* Applicant 2 */}
-                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                             <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
                                                 Applicant 2
@@ -877,7 +895,7 @@ export default function MarriageRegistrationPage() {
 
                             {currentStep === "DETAILS" && (
                                 <div className="space-y-8">
-                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                         <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
                                             Marriage Details
                                         </h3>
@@ -936,7 +954,7 @@ export default function MarriageRegistrationPage() {
                                         </div>
                                     </Card>
 
-                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-8">
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-8">
                                         <div className="space-y-2">
                                             <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
                                                 Required Documents
@@ -1186,7 +1204,7 @@ export default function MarriageRegistrationPage() {
 
                             {currentStep === "CONFIRM" && (
                                 <div className="space-y-8">
-                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-8">
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-8">
                                         <div className="bg-rose-500/5 p-6 rounded-3xl border border-rose-500/10 flex items-start gap-4">
                                             <AlertCircle className="w-6 h-6 text-rose-500 mt-1" />
                                             <div className="space-y-1">
