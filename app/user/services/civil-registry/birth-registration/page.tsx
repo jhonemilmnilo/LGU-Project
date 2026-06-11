@@ -60,8 +60,34 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
+import { supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "lcr_birth_registration_draft";
+
+// --- UPLOAD FILE CLIENT-SIDE TO SUPABASE STORAGE (bypasses Vercel 4.5MB limit) ---
+async function uploadFileClientSide(file: File, fieldName: string, userId: string): Promise<string> {
+    const fileExt = file.name.split('.').pop() || 'bin';
+    const fileName = `${userId}/${fieldName}_${Date.now()}.${fileExt}`;
+    const filePath = `services/lcr/birth_registration/${fileName}`;
+
+    const { error } = await supabase.storage
+        .from("system-assets")
+        .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true
+        });
+
+    if (error) {
+        console.error(`[ClientUpload] Upload error for ${fieldName}:`, error);
+        throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+        .from("system-assets")
+        .getPublicUrl(filePath);
+
+    return publicUrl;
+}
 
 const EVIDENCE_LABELS: Record<string, string> = {
     A: "Baptismal Certificate",
@@ -599,15 +625,32 @@ export default function BirthRegistrationPage() {
                 required
                 file={file}
                 previewUrl={preview}
-                onFileSelect={(newFile) => {
+                onFileSelect={async (newFile) => {
                     saveDraftFile(STORAGE_KEY, doc.key, newFile).catch(err => {
                         console.error("Failed to save draft file to IndexedDB:", err);
                     });
-                    setForm(prev => ({
-                        ...prev,
-                        files: { ...prev.files, [doc.key]: newFile },
-                        previews: { ...prev.previews, [doc.key]: newFile.type.startsWith("image/") ? URL.createObjectURL(newFile) : null }
-                    }));
+                    try {
+                        toast.loading("Uploading and preparing document preview...", { id: `file-upload-${doc.key}` });
+                        const userId = resident?.id || "anonymous";
+                        const sanitizedKey = doc.key.replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const publicUrl = await uploadFileClientSide(newFile, sanitizedKey, userId);
+
+                        setForm(prev => ({
+                            ...prev,
+                            files: { ...prev.files, [doc.key]: newFile },
+                            previews: { ...prev.previews, [doc.key]: publicUrl }
+                        }));
+                        toast.success("Document uploaded & preview ready!", { id: `file-upload-${doc.key}` });
+                    } catch (uploadErr) {
+                        console.error(`[ClientUpload] Failed to upload ${doc.key} on-the-fly:`, uploadErr);
+                        toast.error("Upload failed. Local copy stored (preview limited).", { id: `file-upload-${doc.key}` });
+
+                        setForm(prev => ({
+                            ...prev,
+                            files: { ...prev.files, [doc.key]: newFile },
+                            previews: { ...prev.previews, [doc.key]: newFile.type.startsWith("image/") ? URL.createObjectURL(newFile) : null }
+                        }));
+                    }
                     setErrors(prev => {
                         if (!prev.documents) return prev;
                         const copy = { ...prev };
@@ -915,43 +958,47 @@ export default function BirthRegistrationPage() {
 
 
 
-            formData.append("additionalData", JSON.stringify(baseAdditionalData));
+            const fileUrls: Record<string, string> = {};
 
-            // Helper function to convert base64 to File object
-            const dataURLtoFile = (dataurl: string, filenameWithoutExt: string): File | null => {
-                try {
-                    const arr = dataurl.split(',');
-                    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
-                    const ext = mime.includes('pdf') ? 'pdf' : (mime.split('/')[1] || 'png');
-                    const filename = `${filenameWithoutExt}.${ext}`;
-                    const bstr = atob(arr[1]);
-                    let n = bstr.length;
-                    const u8arr = new Uint8Array(n);
-                    while (n--) {
-                        u8arr[n] = bstr.charCodeAt(n);
-                    }
-                    return new File([u8arr], filename, { type: mime });
-                } catch (e) {
-                    console.error("Failed to convert dataURL to File:", e);
-                    return null;
+            // First, copy any existing public URLs from previews
+            Object.entries(form.previews || {}).forEach(([key, url]) => {
+                if (url && typeof url === "string" && url.startsWith("http")) {
+                    fileUrls[key] = url;
                 }
+            });
+
+            const finalFiles = { ...form.files };
+            const fileEntries = Object.entries(finalFiles);
+            for (let i = 0; i < fileEntries.length; i++) {
+                const [key, file] = fileEntries[i];
+                if (!file) continue;
+                const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                if (fileUrls[key]) {
+                    console.log(`[ClientUpload] Reusing existing public URL for ${key}:`, fileUrls[key]);
+                    continue;
+                }
+
+                try {
+                    toast.loading(`Uploading document ${i + 1}/${fileEntries.length}...`, { id: "birth-upload-toast" });
+                    const userId = resident?.id || "anonymous";
+                    const url = await uploadFileClientSide(file, sanitizedKey, userId);
+                    fileUrls[key] = url;
+                } catch (uploadErr) {
+                    console.error(`[ClientUpload] Failed to upload ${key}:`, uploadErr);
+                    toast.error(`Failed to upload document: ${key}. Please try again.`, { id: "birth-upload-toast" });
+                    setSubmitting(false);
+                    return;
+                }
+            }
+            toast.dismiss("birth-upload-toast");
+
+            const updatedAdditionalData = {
+                ...baseAdditionalData,
+                ...fileUrls
             };
 
-            // Reconstruct any missing files from data URL previews (so reloads/drafts survive!)
-            const finalFiles = { ...form.files };
-            Object.entries(form.previews).forEach(([key, previewUrl]) => {
-                if (previewUrl && previewUrl.startsWith("data:") && !finalFiles[key]) {
-                    const reconstructedFile = dataURLtoFile(previewUrl, key);
-                    if (reconstructedFile) {
-                        finalFiles[key] = reconstructedFile;
-                    }
-                }
-            });
-
-            // Append files
-            Object.entries(finalFiles).forEach(([key, file]) => {
-                if (file) formData.append(key, file);
-            });
+            formData.append("additionalData", JSON.stringify(updatedAdditionalData));
 
             console.log("Submitting with typeId:", form.typeId);
             const res = await submitCivilRegistryTransaction(formData);

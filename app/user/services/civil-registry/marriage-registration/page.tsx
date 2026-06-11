@@ -65,6 +65,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { compressImage } from "@/lib/image-compression";
+import { supabase } from "@/lib/supabase";
+import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 
 
 
@@ -138,6 +140,31 @@ const STEPS: { id: Step; label: string; icon: any }[] = [
 ];
 
 const STORAGE_KEY = "lcr_marriage_registration_draft";
+
+// --- UPLOAD FILE CLIENT-SIDE TO SUPABASE STORAGE (bypasses Vercel 4.5MB limit) ---
+async function uploadFileClientSide(file: File, fieldName: string, userId: string): Promise<string> {
+    const fileExt = file.name.split('.').pop() || 'bin';
+    const fileName = `${userId}/${fieldName}_${Date.now()}.${fileExt}`;
+    const filePath = `services/lcr/marriage_registration/${fileName}`;
+
+    const { error } = await supabase.storage
+        .from("system-assets")
+        .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true
+        });
+
+    if (error) {
+        console.error(`[ClientUpload] Upload error for ${fieldName}:`, error);
+        throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+        .from("system-assets")
+        .getPublicUrl(filePath);
+
+    return publicUrl;
+}
 
 export default function MarriageRegistrationPage() {
     const router = useRouter();
@@ -391,6 +418,65 @@ export default function MarriageRegistrationPage() {
         }
     };
 
+    const handlePremiumFileSelect = async (file: File, key: string) => {
+        saveDraftFile(STORAGE_KEY, key, file).catch(err => {
+            console.error("Failed to save draft file to IndexedDB:", err);
+        });
+        try {
+            toast.loading("Uploading and preparing document preview...", { id: `file-upload-${key}` });
+            const userId = resident?.id || "anonymous";
+            const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const publicUrl = await uploadFileClientSide(file, sanitizedKey, userId);
+
+            setForm((prev: any) => ({
+                ...prev,
+                files: { ...prev.files, [key]: file },
+                previews: { ...prev.previews, [key]: publicUrl }
+            }));
+            toast.success("Document uploaded & preview ready!", { id: `file-upload-${key}` });
+        } catch (uploadErr) {
+            console.error(`[ClientUpload] Failed to upload ${key} on-the-fly:`, uploadErr);
+            toast.error("Upload failed. Local copy stored (preview limited).", { id: `file-upload-${key}` });
+
+            if (file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const dataUrl = reader.result as string | null;
+                    setForm((prev: any) => ({
+                        ...prev,
+                        files: { ...prev.files, [key]: file },
+                        previews: { ...prev.previews, [key]: dataUrl }
+                    }));
+                };
+                reader.readAsDataURL(file);
+            } else {
+                setForm((prev: any) => ({
+                    ...prev,
+                    files: { ...prev.files, [key]: file },
+                    previews: { ...prev.previews, [key]: null }
+                }));
+            }
+        }
+    };
+
+    const handleRemoveFile = (key: string) => {
+        setForm((prev: any) => {
+            const nextFiles = { ...prev.files };
+            const nextPreviews = { ...prev.previews };
+            delete nextFiles[key];
+            delete nextPreviews[key];
+            return {
+                ...prev,
+                files: nextFiles,
+                previews: nextPreviews
+            };
+        });
+        saveDraftFile(STORAGE_KEY, key, null).catch(err => {
+            console.error("Failed to delete draft file in IndexedDB:", err);
+        });
+        toast.success("File removed successfully.");
+    };
+
     const handleSubmit = async () => {
         if (submitting) return;
         // Require privacy terms acceptance before allowing submit
@@ -434,39 +520,47 @@ export default function MarriageRegistrationPage() {
             console.log("[LCR Submit] additionalData:", additionalData);
             formData.append("additionalData", JSON.stringify(additionalData));
 
-            // Helper function to convert base64 to File object
-            const dataURLtoFile = (dataurl: string, filename: string): File | null => {
-                try {
-                    const arr = dataurl.split(',');
-                    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
-                    const bstr = atob(arr[1]);
-                    let n = bstr.length;
-                    const u8arr = new Uint8Array(n);
-                    while (n--) {
-                        u8arr[n] = bstr.charCodeAt(n);
-                    }
-                    return new File([u8arr], filename, { type: mime });
-                } catch (e) {
-                    console.error("Failed to convert dataURL to File:", e);
-                    return null;
+            const fileUrls: Record<string, string> = {};
+
+            // First, copy any existing public URLs from previews
+            Object.entries(form.previews || {}).forEach(([key, url]) => {
+                if (url && typeof url === "string" && url.startsWith("http")) {
+                    fileUrls[key] = url;
                 }
+            });
+
+            const finalFiles = { ...form.files };
+            const fileEntries = Object.entries(finalFiles);
+            for (let i = 0; i < fileEntries.length; i++) {
+                const [key, file] = fileEntries[i];
+                if (!file) continue;
+                const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                if (fileUrls[key]) {
+                    console.log(`[ClientUpload] Reusing existing public URL for ${key}:`, fileUrls[key]);
+                    continue;
+                }
+
+                try {
+                    toast.loading(`Uploading document ${i + 1}/${fileEntries.length}...`, { id: "marriage-upload-toast" });
+                    const userId = resident?.id || "anonymous";
+                    const url = await uploadFileClientSide(file, sanitizedKey, userId);
+                    fileUrls[key] = url;
+                } catch (uploadErr) {
+                    console.error(`[ClientUpload] Failed to upload ${key}:`, uploadErr);
+                    toast.error(`Failed to upload document: ${key}. Please try again.`, { id: "marriage-upload-toast" });
+                    setSubmitting(false);
+                    return;
+                }
+            }
+            toast.dismiss("marriage-upload-toast");
+
+            const updatedAdditionalData = {
+                ...additionalData,
+                ...fileUrls
             };
 
-            // Reconstruct any missing files from data URL previews (so reloads survive!)
-            const finalFiles = { ...form.files };
-            Object.entries(form.previews).forEach(([key, previewUrl]) => {
-                if (previewUrl && previewUrl.startsWith("data:") && !finalFiles[key]) {
-                    const reconstructedFile = dataURLtoFile(previewUrl, `${key}.png`);
-                    if (reconstructedFile) {
-                        finalFiles[key] = reconstructedFile;
-                    }
-                }
-            });
-
-            // Append files based on registration type
-            Object.entries(finalFiles).forEach(([key, file]) => {
-                if (file) formData.append(key, file);
-            });
+            formData.set("additionalData", JSON.stringify(updatedAdditionalData));
 
             const result = await submitMarriageRegistrationTransaction(formData);
             if (result.success) {
@@ -1001,215 +1095,51 @@ export default function MarriageRegistrationPage() {
                                                     </div>
                                                 </div>
                                             ) : form.registrationType === "STANDARD" ? (
-                                                <div className="space-y-4">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Accomplished Certificate of Marriage <span className="text-rose-500">*</span></Label>
-                                                    <div
-                                                        onClick={() => document.getElementById('marriageCert')?.click()}
-                                                        className={cn(
-                                                            "aspect-video relative rounded-3xl border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-all group overflow-hidden",
-                                                            (form.files.marriageCert || form.previews.marriageCert) ? "border-rose-500 bg-rose-500/5" : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                                                        )}
-                                                    >
-                                                        {(form.files.marriageCert || form.previews.marriageCert) ? (
-                                                            <div className="relative w-full h-full group/preview">
-                                                                {checkIsPdf(form.files.marriageCert, form.previews.marriageCert) ? (
-                                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-[#151b2b] p-4 text-center">
-                                                                        <FileText className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
-                                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 max-w-[80%] truncate">
-                                                                            {form.files.marriageCert ? form.files.marriageCert.name : "marriage_certificate.pdf"}
-                                                                        </span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <img src={form.previews.marriageCert!} alt="Marriage certificate preview" className="absolute inset-0 w-full h-full object-cover" />
-                                                                )}
-                                                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
-                                                                    <Button
-                                                                        type="button"
-                                                                        size="sm"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleViewFile(form.files.marriageCert || null, form.previews.marriageCert || null, "Certificate of Marriage");
-                                                                        }}
-                                                                        className="font-black italic uppercase tracking-widest text-[9px] px-4 h-8 rounded-xl bg-white text-slate-900 hover:bg-slate-100 shadow-lg flex items-center gap-1.5 transition-all"
-                                                                    >
-                                                                        <Eye className="w-4 h-4 text-rose-500" />
-                                                                        View Document
-                                                                    </Button>
-                                                                    <span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside button to change</span>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <Upload className="w-8 h-8 text-slate-300 group-hover:text-rose-500 transition-colors" />
-                                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
-                                                            </>
-                                                        )}
-                                                        <input type="file" id="marriageCert" className="hidden" onChange={e => handleFileChange(e, 'marriageCert')} accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" />
-                                                    </div>
-                                                    {!(form.files.marriageCert || form.previews.marriageCert) && showDetailsErrors && (
-                                                        <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
-                                                            <AlertCircle className="w-4 h-4 shrink-0" />
-                                                            <span className="text-[10px] font-black uppercase tracking-wider italic">Certificate of Marriage is required</span>
-                                                        </div>
-                                                    )}
+                                                <div className="col-span-1 md:col-span-2">
+                                                    <PremiumDocumentUpload
+                                                        label="Accomplished Certificate of Marriage"
+                                                        required
+                                                        file={form.files.marriageCert}
+                                                        previewUrl={form.previews.marriageCert}
+                                                        onFileSelect={(newFile) => handlePremiumFileSelect(newFile, 'marriageCert')}
+                                                        onClear={() => handleRemoveFile('marriageCert')}
+                                                        onView={() => handleViewFile(form.files.marriageCert, form.previews.marriageCert, "Certificate of Marriage")}
+                                                        error={!form.files.marriageCert && !form.previews.marriageCert && showDetailsErrors}
+                                                    />
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className="space-y-4">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Negative Certificate from PSA <span className="text-rose-500">*</span></Label>
-                                                        <div
-                                                            onClick={() => document.getElementById('psaNeg')?.click()}
-                                                            className={cn(
-                                                                "aspect-video relative rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden",
-                                                                (form.files.psaNeg || form.previews.psaNeg) ? "border-rose-500 bg-rose-500/5" : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                                                            )}
-                                                        >
-                                                            {(form.files.psaNeg || form.previews.psaNeg) ? (
-                                                                <div className="relative w-full h-full group/preview">
-                                                                    {checkIsPdf(form.files.psaNeg, form.previews.psaNeg) ? (
-                                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-[#151b2b] p-4 text-center">
-                                                                            <FileText className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
-                                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 max-w-[80%] truncate">
-                                                                                {form.files.psaNeg ? form.files.psaNeg.name : "psa_negative_certificate.pdf"}
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <img src={form.previews.psaNeg!} alt="PSA negative certificate preview" className="absolute inset-0 w-full h-full object-cover" />
-                                                                    )}
-                                                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
-                                                                        <Button
-                                                                            type="button"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                handleViewFile(form.files.psaNeg || null, form.previews.psaNeg || null, "Negative Certificate from PSA");
-                                                                            }}
-                                                                            className="font-black italic uppercase tracking-widest text-[9px] px-4 h-8 rounded-xl bg-white text-slate-900 hover:bg-slate-100 shadow-lg flex items-center gap-1.5 transition-all"
-                                                                        >
-                                                                            <Eye className="w-4 h-4 text-rose-500" />
-                                                                            View Document
-                                                                        </Button>
-                                                                        <span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside button to change</span>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <Upload className="w-6 h-6 text-slate-300" />
-                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
-                                                                </>
-                                                            )}
-                                                            <input type="file" id="psaNeg" className="hidden" onChange={e => handleFileChange(e, 'psaNeg')} accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" />
-                                                        </div>
-                                                        {!(form.files.psaNeg || form.previews.psaNeg) && showDetailsErrors && (
-                                                            <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
-                                                                <AlertCircle className="w-4 h-4 shrink-0" />
-                                                                <span className="text-[10px] font-black uppercase tracking-wider italic">PSA Negative Certificate is required</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="space-y-4">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Affidavit of Delayed Registration <span className="text-rose-500">*</span></Label>
-                                                        <div
-                                                            onClick={() => document.getElementById('affidavitDelay')?.click()}
-                                                            className={cn(
-                                                                "aspect-video relative rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden",
-                                                                (form.files.affidavitDelay || form.previews.affidavitDelay) ? "border-rose-500 bg-rose-500/5" : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                                                            )}
-                                                        >
-                                                            {(form.files.affidavitDelay || form.previews.affidavitDelay) ? (
-                                                                <div className="relative w-full h-full group/preview">
-                                                                    {checkIsPdf(form.files.affidavitDelay, form.previews.affidavitDelay) ? (
-                                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-[#151b2b] p-4 text-center">
-                                                                            <FileText className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
-                                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 max-w-[80%] truncate">
-                                                                                {form.files.affidavitDelay ? form.files.affidavitDelay.name : "affidavit_of_delayed_registration.pdf"}
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <img src={form.previews.affidavitDelay!} alt="Affidavit preview" className="absolute inset-0 w-full h-full object-cover" />
-                                                                    )}
-                                                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
-                                                                        <Button
-                                                                            type="button"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                handleViewFile(form.files.affidavitDelay || null, form.previews.affidavitDelay || null, "Affidavit of Delayed Registration");
-                                                                            }}
-                                                                            className="font-black italic uppercase tracking-widest text-[9px] px-4 h-8 rounded-xl bg-white text-slate-900 hover:bg-slate-100 shadow-lg flex items-center gap-1.5 transition-all"
-                                                                        >
-                                                                            <Eye className="w-4 h-4 text-rose-500" />
-                                                                            View Document
-                                                                        </Button>
-                                                                        <span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside button to change</span>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <Upload className="w-6 h-6 text-slate-300" />
-                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
-                                                                </>
-                                                            )}
-                                                            <input type="file" id="affidavitDelay" className="hidden" onChange={e => handleFileChange(e, 'affidavitDelay')} accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" />
-                                                        </div>
-                                                        {!(form.files.affidavitDelay || form.previews.affidavitDelay) && showDetailsErrors && (
-                                                            <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
-                                                                <AlertCircle className="w-4 h-4 shrink-0" />
-                                                                <span className="text-[10px] font-black uppercase tracking-wider italic">Affidavit of Delayed Registration is required</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="space-y-4 md:col-span-2">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Certified Copy of Marriage License <span className="text-rose-500">*</span></Label>
-                                                        <div
-                                                            onClick={() => document.getElementById('marriageLicense')?.click()}
-                                                            className={cn(
-                                                                "aspect-video max-w-md mx-auto relative rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden",
-                                                                (form.files.marriageLicense || form.previews.marriageLicense) ? "border-rose-500 bg-rose-500/5" : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                                                            )}
-                                                        >
-                                                            {(form.files.marriageLicense || form.previews.marriageLicense) ? (
-                                                                <div className="relative w-full h-full group/preview">
-                                                                    {checkIsPdf(form.files.marriageLicense, form.previews.marriageLicense) ? (
-                                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-[#151b2b] p-4 text-center">
-                                                                            <FileText className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
-                                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 max-w-[80%] truncate">
-                                                                                {form.files.marriageLicense ? form.files.marriageLicense.name : "certified_copy_of_marriage_license.pdf"}
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <img src={form.previews.marriageLicense!} alt="Marriage license preview" className="absolute inset-0 w-full h-full object-cover" />
-                                                                    )}
-                                                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
-                                                                        <Button
-                                                                            type="button"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                handleViewFile(form.files.marriageLicense || null, form.previews.marriageLicense || null, "Certified Copy of Marriage License");
-                                                                            }}
-                                                                            className="font-black italic uppercase tracking-widest text-[9px] px-4 h-8 rounded-xl bg-white text-slate-900 hover:bg-slate-100 shadow-lg flex items-center gap-1.5 transition-all"
-                                                                        >
-                                                                            <Eye className="w-4 h-4 text-rose-500" />
-                                                                            View Document
-                                                                        </Button>
-                                                                        <span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside button to change</span>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <Upload className="w-6 h-6 text-slate-300" />
-                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
-                                                                </>
-                                                            )}
-                                                            <input type="file" id="marriageLicense" className="hidden" onChange={e => handleFileChange(e, 'marriageLicense')} accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" />
-                                                        </div>
-                                                        {!(form.files.marriageLicense || form.previews.marriageLicense) && showDetailsErrors && (
-                                                            <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
-                                                                <AlertCircle className="w-4 h-4 shrink-0" />
-                                                                <span className="text-[10px] font-black uppercase tracking-wider italic">Certified Copy of Marriage License is required</span>
-                                                            </div>
-                                                        )}
+                                                    <PremiumDocumentUpload
+                                                        label="Negative Certificate from PSA"
+                                                        required
+                                                        file={form.files.psaNeg}
+                                                        previewUrl={form.previews.psaNeg}
+                                                        onFileSelect={(newFile) => handlePremiumFileSelect(newFile, 'psaNeg')}
+                                                        onClear={() => handleRemoveFile('psaNeg')}
+                                                        onView={() => handleViewFile(form.files.psaNeg, form.previews.psaNeg, "Negative Certificate from PSA")}
+                                                        error={!form.files.psaNeg && !form.previews.psaNeg && showDetailsErrors}
+                                                    />
+                                                    <PremiumDocumentUpload
+                                                        label="Affidavit of Delayed Registration"
+                                                        required
+                                                        file={form.files.affidavitDelay}
+                                                        previewUrl={form.previews.affidavitDelay}
+                                                        onFileSelect={(newFile) => handlePremiumFileSelect(newFile, 'affidavitDelay')}
+                                                        onClear={() => handleRemoveFile('affidavitDelay')}
+                                                        onView={() => handleViewFile(form.files.affidavitDelay, form.previews.affidavitDelay, "Affidavit of Delayed Registration")}
+                                                        error={!form.files.affidavitDelay && !form.previews.affidavitDelay && showDetailsErrors}
+                                                    />
+                                                    <div className="col-span-1 md:col-span-2">
+                                                        <PremiumDocumentUpload
+                                                            label="Certified Copy of Marriage License"
+                                                            required
+                                                            file={form.files.marriageLicense}
+                                                            previewUrl={form.previews.marriageLicense}
+                                                            onFileSelect={(newFile) => handlePremiumFileSelect(newFile, 'marriageLicense')}
+                                                            onClear={() => handleRemoveFile('marriageLicense')}
+                                                            onView={() => handleViewFile(form.files.marriageLicense, form.previews.marriageLicense, "Certified Copy of Marriage License")}
+                                                            error={!form.files.marriageLicense && !form.previews.marriageLicense && showDetailsErrors}
+                                                        />
                                                     </div>
                                                 </>
                                             )}

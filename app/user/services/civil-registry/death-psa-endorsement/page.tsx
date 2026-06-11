@@ -56,6 +56,33 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { compressImage } from "@/lib/image-compression";
+import { supabase } from "@/lib/supabase";
+import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
+
+// --- UPLOAD FILE CLIENT-SIDE TO SUPABASE STORAGE ---
+async function uploadFileClientSide(file: File, fieldName: string, userId: string): Promise<string> {
+    const fileExt = file.name.split('.').pop() || 'bin';
+    const fileName = `${userId}/${fieldName}_${Date.now()}.${fileExt}`;
+    const filePath = `services/lcr/death_psa_endorsement/${fileName}`;
+
+    const { error } = await supabase.storage
+        .from("system-assets")
+        .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true
+        });
+
+    if (error) {
+        console.error(`[ClientUpload] Upload error for ${fieldName}:`, error);
+        throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+        .from("system-assets")
+        .getPublicUrl(filePath);
+
+    return publicUrl;
+}
 
 const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
     const [src, setSrc] = React.useState(fallbackUrl || "");
@@ -113,10 +140,11 @@ export default function DeathPsaEndorsementPage() {
     const [viewerFile, setViewerFile] = useState<File | null>(null);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerTitle, setViewerTitle] = useState("");
+    const [previews, setPreviews] = useState<Record<string, string | null>>({});
 
-    const handleOpenViewer = (file: File | null, title: string) => {
+    const handleOpenViewer = (file: File | null, title: string, url: string | null = null) => {
         setViewerFile(file);
-        setViewerUrl(null);
+        setViewerUrl(url);
         setViewerTitle(title);
         setViewerOpen(true);
     };
@@ -176,6 +204,13 @@ export default function DeathPsaEndorsementPage() {
                 const draftFiles = await getDraftFiles(STORAGE_KEY);
                 if (draftFiles && Object.keys(draftFiles).length > 0) {
                     setFiles(prev => ({ ...prev, ...draftFiles }));
+                    const localPreviews: Record<string, string> = {};
+                    Object.entries(draftFiles).forEach(([key, file]) => {
+                        if (file) {
+                            localPreviews[key] = URL.createObjectURL(file);
+                        }
+                    });
+                    setPreviews(prev => ({ ...prev, ...localPreviews }));
                     toast.info("Progress restored. Uploaded document drafts recovered.", { duration: 6000 });
                 }
             } catch (error) {
@@ -319,6 +354,7 @@ export default function DeathPsaEndorsementPage() {
                             const file = new File([blob], filename, { type: blob.type });
 
                             setFiles(prev => ({ ...prev, form2a: file }));
+                            setPreviews(prev => ({ ...prev, form2a: docUrl }));
                             await saveDraftFile(STORAGE_KEY, "form2a", file);
                             toast.success("Latest Form 2A found and automatically attached from your transactions!");
                         } catch (err) {
@@ -335,165 +371,63 @@ export default function DeathPsaEndorsementPage() {
         }
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            if (file && file.size > 5 * 1024 * 1024) {
-                toast.error("File size exceeds 5MB limit.");
-                if (e && e.target && e.target.parentElement) {
-                    const parent = e.target.parentElement;
-                    let errEl = parent.querySelector('.file-error-msg');
-                    if (!errEl) {
-                        errEl = document.createElement('div');
-                        errEl.className = 'file-error-msg text-[9px] font-black uppercase text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-center animate-pulse mt-2 z-50';
-                        parent.appendChild(errEl);
-                    }
-                    errEl.textContent = 'LIMIT UPLOAD ERROR: MAX 5MB ALLOWED';
-                    setTimeout(() => errEl && errEl.remove(), 4000);
-                }
-                // Clear the file input
-                if (e && e.target) e.target.value = "";
-                return;
-            }
-
-            let fileToProcess = file;
-            if (file.type.startsWith("image/")) {
-                try {
-                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-                    fileToProcess = await compressImage(file);
-                    toast.success("Image optimized successfully!", { id: "image-compress-toast" });
-                } catch (err) {
-                    console.error("Compression error:", err);
-                    toast.dismiss("image-compress-toast");
-                }
-            }
-
-            setFiles(prev => ({ ...prev, [key]: fileToProcess }));
-
-            // Save raw/compressed file to IndexedDB
-            saveDraftFile(STORAGE_KEY, key, fileToProcess).catch(err => {
-                console.error("Failed to save draft file to IndexedDB:", err);
-            });
-        }
-    };
-
-    const renderDocCard = (label: string, fileKey: string, uploadId: string, required: boolean = true) => {
-        const file = files[fileKey];
-        const formatFileSize = (bytes?: number) => {
-            if (!bytes) return "";
-            const mb = bytes / (1024 * 1024);
-            return `${mb.toFixed(2)} MB`;
-        };
-        const isImage = file?.type.startsWith("image/");
+    const renderDocCard = (label: string, fileKey: string, required: boolean = true) => {
+        const file = files[fileKey] || null;
+        const preview = previews[fileKey] || null;
 
         return (
-            <div className="p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 bg-slate-50/30 dark:bg-white/5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col gap-3 relative overflow-hidden group">
-                <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-0.5">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 italic block">{required ? "Required Document" : "Optional Document"}</span>
-                        <h4 className="text-[10px] font-black uppercase tracking-tight text-slate-700 dark:text-slate-200 leading-tight">
-                            {label} {required && <span className="text-red-500">*</span>}
-                        </h4>
-                    </div>
-                    {file ? (
-                        <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full shrink-0">
-                            <Check className="w-2.5 h-2.5" /> Added
-                        </span>
-                    ) : (
-                        <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full animate-pulse shrink-0">
-                            {required ? "Pending" : "Optional"}
-                        </span>
-                    )}
-                </div>
+            <PremiumDocumentUpload
+                key={fileKey}
+                label={label}
+                required={required}
+                file={file}
+                previewUrl={preview}
+                error={showErrors && required && !file && !preview}
+                onFileSelect={async (newFile) => {
+                    if (newFile.size > 5 * 1024 * 1024) {
+                        toast.error("File size exceeds 5MB limit.");
+                        return;
+                    }
 
-                {file ? (
-                    <div className="flex items-center gap-3 bg-white dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-100 dark:border-white/5">
-                        {isImage ? (
-                            <div
-                                onClick={() => handleOpenViewer(file, label)}
-                                className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 relative bg-slate-100 dark:bg-slate-900 group/thumb cursor-pointer"
-                            >
-                                <PreviewImage
-                                    file={file}
-                                    alt="Preview"
-                                    className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-300"
-                                />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-                                    <Eye className="w-3.5 h-3.5 text-white" />
-                                </div>
-                            </div>
-                        ) : (
-                            <div
-                                onClick={() => handleOpenViewer(file, label)}
-                                className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition-all relative group/thumb"
-                            >
-                                <FileText className="w-5 h-5 text-red-500 animate-pulse" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                                    <Eye className="w-3.5 h-3.5 text-white" />
-                                </div>
-                            </div>
-                        )}
+                    let fileToProcess = newFile;
+                    if (newFile.type.startsWith("image/")) {
+                        try {
+                            toast.loading("Compressing and optimizing document...", { id: `file-compress-${fileKey}` });
+                            fileToProcess = await compressImage(newFile);
+                            toast.success("Image optimized successfully!", { id: `file-compress-${fileKey}` });
+                        } catch (err) {
+                            console.error("Compression error:", err);
+                            toast.dismiss(`file-compress-${fileKey}`);
+                        }
+                    }
 
-                        <div onClick={() => handleOpenViewer(file, label)} className="flex-1 min-w-0 cursor-pointer hover:opacity-80">
-                            <p className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate pr-2 uppercase italic">
-                                {file.name}
-                            </p>
-                            <p className="text-[8px] text-slate-400 dark:text-slate-500 italic mt-0.5">
-                                {formatFileSize(file.size)} <span className="text-emerald-500 font-bold ml-1 select-none">(Click to Preview)</span>
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-1">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleOpenViewer(file, label);
-                                    }}
-                                    className="h-5 px-2 rounded-md text-[7px] font-black uppercase tracking-widest border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-1 text-slate-600 dark:text-slate-300"
-                                >
-                                    <Eye className="w-2 h-2" /> Inspect
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={async (e) => {
-                                        e.stopPropagation();
-                                        setFiles(prev => ({ ...prev, [fileKey]: null }));
-                                        await saveDraftFile(STORAGE_KEY, fileKey, null);
-                                    }}
-                                    className="h-5 px-2 rounded-md text-[7px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-1"
-                                >
-                                    <Trash2 className="w-2 h-2" /> Remove
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <Label
-                        htmlFor={uploadId}
-                        className="flex flex-col items-center justify-center py-4 px-3 rounded-xl border border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:border-emerald-500/50 dark:hover:border-emerald-500/50 transition-all duration-300 cursor-pointer group/upload text-center animate-fade-in"
-                    >
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center group-hover/upload:scale-110 transition-transform duration-300 mb-1.5">
-                            <Upload className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                            Upload File
-                        </span>
-                        <span className="text-[7px] text-slate-400 dark:text-slate-500 italic mt-0.5">
-                            PDF, JPG, PNG up to 5MB
-                        </span>
-                        <Input
-                            id={uploadId}
-                            type="file"
-                            className="hidden"
-                            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-                            onChange={(e) => handleFileChange(e, fileKey)}
-                        />
-                    </Label>
-                )}
-            </div>
+                    try {
+                        toast.loading("Uploading and preparing document preview...", { id: `file-upload-${fileKey}` });
+                        const userId = resident?.id || "anonymous";
+                        const sanitizedKey = fileKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const publicUrl = await uploadFileClientSide(fileToProcess, sanitizedKey, userId);
+
+                        setFiles(prev => ({ ...prev, [fileKey]: fileToProcess }));
+                        setPreviews(prev => ({ ...prev, [fileKey]: publicUrl }));
+                        await saveDraftFile(STORAGE_KEY, fileKey, fileToProcess);
+                        toast.success("Document uploaded & preview ready!", { id: `file-upload-${fileKey}` });
+                    } catch (uploadErr) {
+                        console.error(`[ClientUpload] Failed to upload ${fileKey} on-the-fly:`, uploadErr);
+                        toast.error("Upload failed. Local copy stored (preview limited).", { id: `file-upload-${fileKey}` });
+
+                        setFiles(prev => ({ ...prev, [fileKey]: fileToProcess }));
+                        setPreviews(prev => ({ ...prev, [fileKey]: fileToProcess.type.startsWith("image/") ? URL.createObjectURL(fileToProcess) : null }));
+                        await saveDraftFile(STORAGE_KEY, fileKey, fileToProcess);
+                    }
+                }}
+                onClear={async () => {
+                    setFiles(prev => ({ ...prev, [fileKey]: null }));
+                    setPreviews(prev => ({ ...prev, [fileKey]: null }));
+                    await saveDraftFile(STORAGE_KEY, fileKey, null);
+                    toast.success("File removed successfully.");
+                }}
+                onView={() => handleOpenViewer(file, label, preview)}
+            />
         );
     };
 
@@ -531,18 +465,47 @@ export default function DeathPsaEndorsementPage() {
             };
             data.append("residentSnapshot", JSON.stringify(residentSnapshot));
 
+            const fileUrls: Record<string, string> = {};
+
+            // First, copy any existing public URLs from previews
+            Object.entries(previews || {}).forEach(([key, url]) => {
+                if (url && typeof url === "string" && url.startsWith("http")) {
+                    fileUrls[key] = url;
+                }
+            });
+
+            const fileEntries = Object.entries(files);
+            for (let i = 0; i < fileEntries.length; i++) {
+                const [key, file] = fileEntries[i];
+                if (!file) continue;
+                const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                if (fileUrls[key]) {
+                    console.log(`[ClientUpload] Reusing existing public URL for ${key}:`, fileUrls[key]);
+                    continue;
+                }
+
+                try {
+                    toast.loading(`Uploading document ${i + 1}/${fileEntries.length}...`, { id: "upload-toast" });
+                    const userId = resident?.id || "anonymous";
+                    const url = await uploadFileClientSide(file, sanitizedKey, userId);
+                    fileUrls[key] = url;
+                } catch (uploadErr) {
+                    console.error(`[ClientUpload] Failed to upload ${key}:`, uploadErr);
+                    toast.error(`Failed to upload document: ${key}. Please try again.`, { id: "upload-toast" });
+                    setSubmitting(false);
+                    return;
+                }
+            }
+            toast.dismiss("upload-toast");
+
             const additionalData = {
                 ...formData,
                 subjectName: formData.subjectFullName,
                 psaEndorsementFee: 200,
+                ...fileUrls
             };
             data.append("additionalData", JSON.stringify(additionalData));
-
-            Object.entries(files).forEach(([key, file]) => {
-                if (file) {
-                    data.append(key, file);
-                }
-            });
 
             const res = await submitCivilRegistryTransaction(data);
 
@@ -1023,8 +986,8 @@ export default function DeathPsaEndorsementPage() {
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {renderDocCard("PSA Negative Certification", "psaNegativeCert", "doc-upload-psa-neg", true)}
-                                            {renderDocCard("Form 2A (Local Registry Copy)", "form2a", "doc-upload-form2a", false)}
+                                            {renderDocCard("PSA Negative Certification", "psaNegativeCert", true)}
+                                            {renderDocCard("Form 2A (Local Registry Copy)", "form2a", false)}
                                         </div>
                                     </div>
 
