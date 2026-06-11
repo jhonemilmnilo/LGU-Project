@@ -482,7 +482,7 @@ export default function CedulaApplicationPage() {
                 e.target.value = ""; // Reset the input element
                 return;
             }
-            
+
             let fileToProcess = file;
             if (file.type.startsWith("image/")) {
                 try {

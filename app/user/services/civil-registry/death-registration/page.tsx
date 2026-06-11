@@ -964,17 +964,6 @@ export default function DeathRegistrationPage() {
                         </div>
                     </div>
 
-                    {revisionTx?.rejectionRemarks && (
-                        <div className="p-5 rounded-[2rem] bg-amber-500/10 border border-amber-500/20 flex items-start gap-4 text-amber-500 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 animate-pulse" />
-                            <div className="text-left space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-wider italic">Revision Instructions from Registry Office</p>
-                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                                    &ldquo;{revisionTx.rejectionRemarks}&rdquo;
-                                </p>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Progress Stepper */}
                     <div className="relative px-2 py-4">
@@ -1054,6 +1043,18 @@ export default function DeathRegistrationPage() {
                                         <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Informant Information</h2>
                                         <p className="text-xs text-slate-500 font-medium italic">Details of the person registering the death</p>
                                     </div>
+
+                                    {revisionTx && (
+                                        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-500 animate-in fade-in duration-300">
+                                            <AlertCircle className="w-5 h-5 shrink-0 animate-pulse mt-0.5" />
+                                            <div className="text-left space-y-1">
+                                                <p className="text-[10px] font-black uppercase tracking-wider italic">Attention: Revision Needed</p>
+                                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                                    &ldquo;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&rdquo;
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="space-y-6">
                                         <div className="space-y-2">
