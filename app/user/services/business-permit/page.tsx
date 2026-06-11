@@ -453,7 +453,14 @@ export default function BusinessPermitWizardPage() {
                                     businessArea: addData.businessArea ? addData.businessArea.toString() : "",
                                     fulfillmentType: addData.fulfillmentType || "E_COPY",
                                     deliveryAddress: addData.deliveryAddress || prev.deliveryAddress,
-                                    deliveryPhone: addData.deliveryPhone || prev.deliveryPhone
+                                    deliveryPhone: addData.deliveryPhone || prev.deliveryPhone,
+                                    tinNumber: addData.tinNumber || "",
+                                    philhealthNumber: addData.philhealthNumber || "",
+                                    pagibigNumber: addData.pagibigNumber || "",
+                                    sssNumber: addData.sssNumber || "",
+                                    dtiSecDate: addData.dtiSecDate || "",
+                                    registrationType: addData.registrationType || "DTI",
+                                    businessBranch: addData.businessBranch || "MAIN"
                                 }));
                             }
                         }
@@ -986,7 +993,7 @@ export default function BusinessPermitWizardPage() {
     const onSubmit = async () => {
         setSubmitting(true);
         try {
-            toast.loading("Submitting application...", { id: "bp-upload-toast" });
+            toast.loading(<span style={{ color: "var(--primary-theme)" }} className="font-black uppercase tracking-widest text-[10px]">Submitting application...</span>, { id: "bp-upload-toast" });
 
             // Process residentSnapshot base64 files if present (e.g. webcam selfie or scanned IDs)
             const updatedResidentData = { ...formData.residentData };
@@ -1444,7 +1451,16 @@ export default function BusinessPermitWizardPage() {
                                                     id="resident-contactNumber"
                                                     ref={contactInputRef}
                                                     value={formData.residentData?.contactNumber || ""}
-                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, contactNumber: e.target.value } }))}
+                                                    onChange={(e) => {
+                                                        const cleanVal = e.target.value.replace(/[^0-9+]/g, "");
+                                                        setFormData(p => ({
+                                                            ...p,
+                                                            residentData: {
+                                                                ...p.residentData,
+                                                                contactNumber: cleanVal
+                                                            }
+                                                        }));
+                                                    }}
                                                     className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm"
                                                     placeholder="09xx xxx xxxx"
                                                 />
@@ -1701,7 +1717,10 @@ export default function BusinessPermitWizardPage() {
                                                     id="profile-capitalInvestment"
                                                     type="text"
                                                     value={formData.capitalInvestment}
-                                                    onChange={e => handleInputChange("capitalInvestment", e.target.value)}
+                                                    onChange={e => {
+                                                        const cleanVal = e.target.value.replace(/[^0-9.,]/g, "");
+                                                        handleInputChange("capitalInvestment", cleanVal);
+                                                    }}
                                                     placeholder="e.g. 250,000"
                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
                                                 />
@@ -1713,7 +1732,10 @@ export default function BusinessPermitWizardPage() {
                                                     id="profile-grossSales"
                                                     type="text"
                                                     value={formData.grossSales}
-                                                    onChange={e => handleInputChange("grossSales", e.target.value)}
+                                                    onChange={e => {
+                                                        const cleanVal = e.target.value.replace(/[^0-9.,]/g, "");
+                                                        handleInputChange("grossSales", cleanVal);
+                                                    }}
                                                     placeholder="e.g. 1,200,000"
                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
                                                 />
