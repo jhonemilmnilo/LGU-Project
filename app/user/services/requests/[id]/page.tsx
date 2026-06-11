@@ -1362,10 +1362,10 @@ export default function RequestHubPage() {
                         </div>
                     ) : (
                         <Tabs defaultValue="overview" className="space-y-8 md:space-y-12">
-                            <TabsList className="bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-[1.25rem] md:rounded-[1.5rem] h-auto md:h-16 w-full md:w-fit border border-slate-200 dark:border-white/10 shadow-inner flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                                <TabsTrigger value="overview" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Overview</TabsTrigger>
-                                <TabsTrigger value="records" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Records</TabsTrigger>
-                                <TabsTrigger value="logistics" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Logistics</TabsTrigger>
+                            <TabsList className="bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-[1.25rem] md:rounded-[1.5rem] h-auto md:h-16 w-full md:w-fit border border-slate-200 dark:border-white/10 shadow-inner flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap whitespace-nowrap">
+                                <TabsTrigger value="overview" className="flex-grow md:flex-none shrink-0 whitespace-nowrap rounded-xl md:rounded-[1rem] px-3 md:px-10 py-3 md:py-0 h-full font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Application</TabsTrigger>
+                                <TabsTrigger value="records" className="flex-grow md:flex-none shrink-0 whitespace-nowrap rounded-xl md:rounded-[1rem] px-3 md:px-10 py-3 md:py-0 h-full font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Submitted Details</TabsTrigger>
+                                <TabsTrigger value="logistics" className="flex-grow md:flex-none shrink-0 whitespace-nowrap rounded-xl md:rounded-[1rem] px-3 md:px-10 py-3 md:py-0 h-full font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Issuance & Receipts</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="overview" className="mt-0 space-y-3 md:space-y-4">
@@ -1740,7 +1740,7 @@ export default function RequestHubPage() {
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
                                     <div className="space-y-6">
                                         <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Requirements</h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-2 gap-2 sm:gap-4">
                                             {documentList.length > 0 ? documentList.map((doc, i) => {
                                                 const isPdf = checkIsPdf(doc.url);
                                                 if (isPdf) {
