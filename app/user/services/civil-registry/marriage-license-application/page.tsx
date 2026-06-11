@@ -603,7 +603,7 @@ export default function MarriageLicenseApplicationPage() {
 		} else if (currentStep === "DETAILS") {
 			// Validate that for each selected required doc, a file was uploaded
 			const selectedDocs = Object.keys(form.requiredDocs || {}).filter((k) => (form.requiredDocs || {})[k]);
-			const missing = selectedDocs.filter((d) => !form.files?.[d]);
+			const missing = selectedDocs.filter((d) => !form.files?.[d] && !form.previews?.[d]);
 			if (missing.length > 0) {
 				// mark missing files to show inline alerts
 				const markers: Record<string, boolean> = {};
