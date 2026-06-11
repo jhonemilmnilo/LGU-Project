@@ -60,7 +60,31 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { supabase } from "@/lib/supabase";
-import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
+
+// --- UPLOAD FILE CLIENT-SIDE TO SUPABASE STORAGE ---
+async function uploadFileClientSide(file: File, fieldName: string, userId: string): Promise<string> {
+    const fileExt = file.name.split('.').pop() || 'bin';
+    const fileName = `${userId}/${fieldName}_${Date.now()}.${fileExt}`;
+    const filePath = `services/lcr/birth_certificate_request/${fileName}`;
+
+    const { error } = await supabase.storage
+        .from("system-assets")
+        .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true
+        });
+
+    if (error) {
+        console.error(`[ClientUpload] Upload error for ${fieldName}:`, error);
+        throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+        .from("system-assets")
+        .getPublicUrl(filePath);
+
+    return publicUrl;
+}
 
 type Step = "STATUS" | "IDENTITY" | "DETAILS" | "PARENTS" | "CONFIRM";
 
@@ -278,80 +302,6 @@ export default function CivilRegistryPage() {
         setViewerTitle(title);
         setViewerOpen(true);
     };
-
-    const renderIdCard = (label: string, fileKey: string) => {
-        const file = form.files[fileKey] || null;
-        const defaultUrl = fileKey === "validIdFront" ? resident?.idFrontUrl : resident?.idBackUrl;
-        const preview = form.previews[fileKey] || defaultUrl || null;
-
-        return (
-            <PremiumDocumentUpload
-                key={fileKey}
-                label={label}
-                required
-                file={file}
-                previewUrl={preview}
-                error={showErrors && !file && !preview}
-                onFileSelect={async (newFile) => {
-                    if (newFile.size > 5 * 1024 * 1024) {
-                        toast.error("File size exceeds 5MB limit.");
-                        return;
-                    }
-
-                    let fileToProcess = newFile;
-                    if (newFile.type.startsWith("image/")) {
-                        try {
-                            toast.loading("Compressing and optimizing document...", { id: `file-compress-${fileKey}` });
-                            fileToProcess = await compressImage(newFile);
-                            toast.success("Image optimized successfully!", { id: `file-compress-${fileKey}` });
-                        } catch (err) {
-                            console.error("Compression error:", err);
-                            toast.dismiss(`file-compress-${fileKey}`);
-                        }
-                    }
-
-                    try {
-                        toast.loading("Uploading and preparing document preview...", { id: `file-upload-${fileKey}` });
-                        const userId = resident?.id || "anonymous";
-                        const sanitizedKey = fileKey.replace(/[^a-zA-Z0-9_-]/g, '_');
-                        const publicUrl = await uploadFileClientSide(fileToProcess, sanitizedKey, userId);
-
-                        setForm(prev => ({
-                            ...prev,
-                            files: { ...prev.files, [fileKey]: fileToProcess },
-                            previews: { ...prev.previews, [fileKey]: publicUrl }
-                        }));
-                        toast.success("Document uploaded & preview ready!", { id: `file-upload-${fileKey}` });
-                    } catch (uploadErr) {
-                        console.error(`[ClientUpload] Failed to upload ${fileKey} on-the-fly:`, uploadErr);
-                        toast.error("Upload failed. Local copy stored (preview limited).", { id: `file-upload-${fileKey}` });
-
-                        setForm(prev => ({
-                            ...prev,
-                            files: { ...prev.files, [fileKey]: fileToProcess },
-                            previews: { ...prev.previews, [fileKey]: fileToProcess.type.startsWith("image/") ? URL.createObjectURL(fileToProcess) : null }
-                        }));
-                    }
-                }}
-                onClear={async () => {
-                    setForm(prev => {
-                        const nextFiles = { ...prev.files };
-                        const nextPreviews = { ...prev.previews };
-                        delete nextFiles[fileKey];
-                        delete nextPreviews[fileKey];
-                        return {
-                            ...prev,
-                            files: nextFiles,
-                            previews: nextPreviews
-                        };
-                    });
-                    toast.success("File removed successfully.");
-                }}
-                onView={() => handleViewFile(file, preview, label)}
-            />
-        );
-    };
-
     // Persist progress to session storage
     useEffect(() => {
         const savedStep = sessionStorage.getItem("civil-registry-step");
@@ -407,10 +357,10 @@ export default function CivilRegistryPage() {
             }));
         } else {
             setForm(prev => {
-                const matchesResident = 
+                const matchesResident =
                     prev.certFirstName === resident.firstName &&
                     prev.certLastName === resident.lastName;
-                
+
                 if (matchesResident) {
                     return {
                         ...prev,
@@ -777,23 +727,23 @@ export default function CivilRegistryPage() {
                     </Breadcrumb>
                 </div>
 
-				{/* Premium Header/Banner with Ambient Gradient Backdrop */}
-				<div className="relative overflow-hidden bg-white dark:bg-[#0c1017] p-6 md:p-10 rounded-2xl md:rounded-[2rem] border border-slate-100 dark:border-white/5 text-slate-800 dark:text-white shadow-xl dark:shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-					<div
-						className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-10 dark:opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700"
-						style={{ backgroundColor: themeColor }}
-					/>
+                {/* Premium Header/Banner with Ambient Gradient Backdrop */}
+                <div className="relative overflow-hidden bg-white dark:bg-[#0c1017] p-6 md:p-10 rounded-2xl md:rounded-[2rem] border border-slate-100 dark:border-white/5 text-slate-800 dark:text-white shadow-xl dark:shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                    <div
+                        className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-10 dark:opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700"
+                        style={{ backgroundColor: themeColor }}
+                    />
 
-					<div className="space-y-3 md:space-y-4 max-w-2xl relative z-10">
-						<h1 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter leading-none">
-							Request <span style={{ color: themeColor }}>Birth Certificate</span>
-						</h1>
+                    <div className="space-y-3 md:space-y-4 max-w-2xl relative z-10">
+                        <h1 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter leading-none">
+                            Request <span style={{ color: themeColor }}>Birth Certificate</span>
+                        </h1>
 
-						<p className="text-slate-600 dark:text-slate-300 font-medium text-xs leading-relaxed max-w-xl italic">
-							Request a certified true copy of your Birth Certificate. Complete the form and upload required identifications to verify your request.
-						</p>
-					</div>
-				</div>
+                        <p className="text-slate-600 dark:text-slate-300 font-medium text-xs leading-relaxed max-w-xl italic">
+                            Request a certified true copy of your Birth Certificate. Complete the form and upload required identifications to verify your request.
+                        </p>
+                    </div>
+                </div>
 
                 <div className="space-y-6">
 
@@ -1476,139 +1426,139 @@ export default function CivilRegistryPage() {
                                         </div>
                                     </div>
 
-                                        <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Certificate Type</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic">
+                                                {form.registryType === "BIRTH" ? "Birth Certificate" :
+                                                    form.registryType === "MARRIAGE" ? "Marriage Certificate" :
+                                                        form.registryType === "DEATH" ? "Death Certificate" :
+                                                            "Marriage License Application"}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Subject Name</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">{`${form.certFirstName} ${form.certMiddleName} ${form.certLastName} ${form.certSuffix}`.trim()}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Relationship</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic">{form.relationship}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Sex</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.sex || "N/A"}</p>
+                                        </div>
+                                        {form.spouseName && (
                                             <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Certificate Type</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">
-                                                    {form.registryType === "BIRTH" ? "Birth Certificate" :
-                                                        form.registryType === "MARRIAGE" ? "Marriage Certificate" :
-                                                            form.registryType === "DEATH" ? "Death Certificate" :
-                                                                "Marriage License Application"}
-                                                </p>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Spouse Name</span>
+                                                <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.spouseName}</p>
                                             </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Subject Name</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic uppercase">{`${form.certFirstName} ${form.certMiddleName} ${form.certLastName} ${form.certSuffix}`.trim()}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Relationship</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">{form.relationship}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Sex</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.sex || "N/A"}</p>
-                                            </div>
-                                            {form.spouseName && (
+                                        )}
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Occurrence Date</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic">{form.dateOfEvent}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Target Contact</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic">{form.contactNumber}</p>
+                                        </div>
+                                        {/* Parents Info Summary */}
+                                        {form.registryType !== "MARRIAGE" && form.registryType !== "MARRIAGE_LICENSE" && (
+                                            <>
                                                 <div className="space-y-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Spouse Name</span>
-                                                    <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.spouseName}</p>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Father&apos;s Name</span>
+                                                    <p className="font-black text-slate-900 dark:text-white italic uppercase">
+                                                        {`${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.trim() || form.fatherName || "N/A"}
+                                                    </p>
                                                 </div>
-                                            )}
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Occurrence Date</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">{form.dateOfEvent}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Target Contact</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">{form.contactNumber}</p>
-                                            </div>
-                                            {/* Parents Info Summary */}
-                                            {form.registryType !== "MARRIAGE" && form.registryType !== "MARRIAGE_LICENSE" && (
-                                                <>
-                                                    <div className="space-y-1">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Father&apos;s Name</span>
-                                                        <p className="font-black text-slate-900 dark:text-white italic uppercase">
-                                                            {`${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.trim() || form.fatherName || "N/A"}
-                                                        </p>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Mother&apos;s Name</span>
-                                                        <p className="font-black text-slate-900 dark:text-white italic uppercase">
-                                                            {`${form.motherFirstName} ${form.motherMiddleName} ${form.motherLastName}`.trim() || form.motherName || "N/A"}
-                                                        </p>
-                                                    </div>
-                                                </>
-                                            )}
+                                                <div className="space-y-1">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Mother&apos;s Name</span>
+                                                    <p className="font-black text-slate-900 dark:text-white italic uppercase">
+                                                        {`${form.motherFirstName} ${form.motherMiddleName} ${form.motherLastName}`.trim() || form.motherName || "N/A"}
+                                                    </p>
+                                                </div>
+                                            </>
+                                        )}
 
+                                    </div>
+
+                                    {/* ID Submission Section */}
+                                    <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                                                <Upload className="w-3.5 h-3.5 text-blue-500" />
+                                            </div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Document Verification</span>
                                         </div>
 
-                                        {/* ID Submission Section */}
-                                        <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className="p-1.5 bg-blue-500/10 rounded-lg">
-                                                    <Upload className="w-3.5 h-3.5 text-blue-500" />
-                                                </div>
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Document Verification</span>
+                                        <div className="space-y-4">
+                                            <div className="space-y-1.5 max-w-md">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-blue-500/70 ml-1 flex items-center justify-between">
+                                                    <span>Select ID Type <span className="text-red-500">*</span></span>
+                                                </Label>
+                                                <Select
+                                                    value={form.idTypeOverride || resident?.idType || ""}
+                                                    onValueChange={(value) => setForm(prev => ({
+                                                        ...prev,
+                                                        idTypeOverride: value
+                                                    }))}
+                                                >
+                                                    <SelectTrigger className="h-10 w-full rounded-xl border-slate-950 dark:border-white focus:ring-blue-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold">
+                                                        <SelectValue>
+                                                            {form.idTypeOverride || resident?.idType || "Select type of government ID"}
+                                                        </SelectValue>
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
+                                                        <SelectItem value="UMID">Unified Multi-Purpose ID (UMID)</SelectItem>
+                                                        <SelectItem value="DRIVERS_LICENSE">Driver&apos;s License</SelectItem>
+                                                        <SelectItem value="PASSPORT">Passport</SelectItem>
+                                                        <SelectItem value="POSTAL_ID">Postal ID</SelectItem>
+                                                        <SelectItem value="VOTERS_ID">Voter&apos;s ID</SelectItem>
+                                                        <SelectItem value="PRC_ID">PRC ID</SelectItem>
+                                                        <SelectItem value="NATIONAL_ID">National ID (PhilSys)</SelectItem>
+                                                        <SelectItem value="SENIOR_CITIZEN">Senior Citizen ID</SelectItem>
+                                                        <SelectItem value="PWD_ID">PWD ID</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
 
-                                            <div className="space-y-4">
-                                                <div className="space-y-1.5 max-w-md">
-                                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-blue-500/70 ml-1 flex items-center justify-between">
-                                                        <span>Select ID Type <span className="text-red-500">*</span></span>
-                                                    </Label>
-                                                    <Select
-                                                        value={form.idTypeOverride || resident?.idType || ""}
-                                                        onValueChange={(value) => setForm(prev => ({
-                                                            ...prev,
-                                                            idTypeOverride: value
-                                                        }))}
-                                                    >
-                                                        <SelectTrigger className="h-10 w-full rounded-xl border-slate-950 dark:border-white focus:ring-blue-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold">
-                                                            <SelectValue>
-                                                                {form.idTypeOverride || resident?.idType || "Select type of government ID"}
-                                                            </SelectValue>
-                                                        </SelectTrigger>
-                                                        <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
-                                                            <SelectItem value="UMID">Unified Multi-Purpose ID (UMID)</SelectItem>
-                                                            <SelectItem value="DRIVERS_LICENSE">Driver&apos;s License</SelectItem>
-                                                            <SelectItem value="PASSPORT">Passport</SelectItem>
-                                                            <SelectItem value="POSTAL_ID">Postal ID</SelectItem>
-                                                            <SelectItem value="VOTERS_ID">Voter&apos;s ID</SelectItem>
-                                                            <SelectItem value="PRC_ID">PRC ID</SelectItem>
-                                                            <SelectItem value="NATIONAL_ID">National ID (PhilSys)</SelectItem>
-                                                            <SelectItem value="SENIOR_CITIZEN">Senior Citizen ID</SelectItem>
-                                                            <SelectItem value="PWD_ID">PWD ID</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="w-full">
+                                                    <PremiumDocumentUpload
+                                                        label="Valid Government ID (Front)"
+                                                        required
+                                                        file={form.files["validIdFront"]}
+                                                        existingUrl={resident?.idFrontUrl}
+                                                        onFileSelect={(file) => {
+                                                            setForm(prev => ({
+                                                                ...prev,
+                                                                files: { ...prev.files, validIdFront: file }
+                                                            }));
+                                                        }}
+                                                        onView={() => handleViewFile(form.files["validIdFront"] || null, resident?.idFrontUrl || null, "Valid Government ID (Front)")}
+                                                        error={showErrors && !form.files["validIdFront"] && !resident?.idFrontUrl}
+                                                    />
                                                 </div>
 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="w-full">
-                                                        <PremiumDocumentUpload
-                                                            label="Valid Government ID (Front)"
-                                                            required
-                                                            file={form.files["validIdFront"]}
-                                                            existingUrl={resident?.idFrontUrl}
-                                                            onFileSelect={(file) => {
-                                                                setForm(prev => ({
-                                                                    ...prev,
-                                                                    files: { ...prev.files, validIdFront: file }
-                                                                }));
-                                                            }}
-                                                            onView={() => handleViewFile(form.files["validIdFront"] || null, resident?.idFrontUrl || null, "Valid Government ID (Front)")}
-                                                            error={showErrors && !form.files["validIdFront"] && !resident?.idFrontUrl}
-                                                        />
-                                                    </div>
-
-                                                    <div className="w-full">
-                                                        <PremiumDocumentUpload
-                                                            label="Valid Government ID (Back)"
-                                                            required
-                                                            file={form.files["validIdBack"]}
-                                                            existingUrl={resident?.idBackUrl}
-                                                            onFileSelect={(file) => {
-                                                                setForm(prev => ({
-                                                                    ...prev,
-                                                                    files: { ...prev.files, validIdBack: file }
-                                                                }));
-                                                            }}
-                                                            onView={() => handleViewFile(form.files["validIdBack"] || null, resident?.idBackUrl || null, "Valid Government ID (Back)")}
-                                                            error={showErrors && !form.files["validIdBack"] && !resident?.idBackUrl}
-                                                        />
-                                                    </div>
+                                                <div className="w-full">
+                                                    <PremiumDocumentUpload
+                                                        label="Valid Government ID (Back)"
+                                                        required
+                                                        file={form.files["validIdBack"]}
+                                                        existingUrl={resident?.idBackUrl}
+                                                        onFileSelect={(file) => {
+                                                            setForm(prev => ({
+                                                                ...prev,
+                                                                files: { ...prev.files, validIdBack: file }
+                                                            }));
+                                                        }}
+                                                        onView={() => handleViewFile(form.files["validIdBack"] || null, resident?.idBackUrl || null, "Valid Government ID (Back)")}
+                                                        error={showErrors && !form.files["validIdBack"] && !resident?.idBackUrl}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
 
                                     <div className="space-y-4">
                                         <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
