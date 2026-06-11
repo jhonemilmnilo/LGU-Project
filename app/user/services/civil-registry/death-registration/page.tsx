@@ -883,10 +883,22 @@ export default function DeathRegistrationPage() {
                     border-color: ${themeColor}80 !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
-                    color: #314158 !important;
+                    color: #0f172a !important;
+                }
+                input:not([type="button"]):not([type="submit"]):disabled, select:disabled, textarea:disabled,
+                input:not([type="button"]):not([type="submit"])[readonly], select[readonly], textarea[readonly] {
+                    color: #1e293b !important;
+                    -webkit-text-fill-color: #1e293b !important;
+                    opacity: 0.9 !important;
                 }
                 .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
                     color: #f8fafc !important;
+                }
+                .dark input:not([type="button"]):not([type="submit"]):disabled, .dark select:disabled, .dark textarea:disabled,
+                .dark input:not([type="button"]):not([type="submit"])[readonly], .dark select[readonly], .dark textarea[readonly] {
+                    color: #cbd5e1 !important;
+                    -webkit-text-fill-color: #cbd5e1 !important;
+                    opacity: 0.8 !important;
                 }
                 `
             }} />
@@ -1045,11 +1057,11 @@ export default function DeathRegistrationPage() {
                                     </div>
 
                                     {revisionTx && (
-                                        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-500 animate-in fade-in duration-300">
+                                        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-800 dark:text-red-400 animate-in fade-in duration-300">
                                             <AlertCircle className="w-5 h-5 shrink-0 animate-pulse mt-0.5" />
                                             <div className="text-left space-y-1">
                                                 <p className="text-[10px] font-black uppercase tracking-wider italic">Attention: Revision Needed</p>
-                                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                                <p className="text-xs font-bold text-slate-900 dark:text-slate-300 leading-relaxed italic">
                                                     &ldquo;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&rdquo;
                                                 </p>
                                             </div>
