@@ -188,6 +188,10 @@ export default function MarriageRegistrationPage() {
     const [resident, setResident] = useState<any>(null);
     const [showDetailsErrors, setShowDetailsErrors] = useState(false);
 
+    const isApp1Male = resident?.gender ? resident.gender.toUpperCase() === "MALE" : true;
+    const app1Label = resident?.gender ? (isApp1Male ? "Groom" : "Wife") : "Applicant 1";
+    const app2Label = resident?.gender ? (isApp1Male ? "Wife" : "Groom") : "Applicant 2";
+
     const [form, setForm] = useState({
         typeId: "",
         registryType: "MARRIAGE_REG",
@@ -205,6 +209,7 @@ export default function MarriageRegistrationPage() {
         app2BirthDate: "",
         app2BirthPlace: "",
         app2Citizenship: "FILIPINO",
+        app2Address: "",
 
         // Marriage Details
         dateOfMarriage: "",
@@ -421,14 +426,17 @@ export default function MarriageRegistrationPage() {
                     fullName: form.app1FullName,
                     birthDate: form.app1BirthDate,
                     birthPlace: form.app1BirthPlace,
-                    citizenship: form.app1Citizenship
+                    citizenship: form.app1Citizenship,
+                    gender: isApp1Male ? "MALE" : "FEMALE"
                 },
                 applicant2: {
                     isResident: form.app2IsResident,
                     fullName: form.app2FullName,
                     birthDate: form.app2BirthDate,
                     birthPlace: form.app2BirthPlace,
-                    citizenship: form.app2Citizenship
+                    citizenship: form.app2Citizenship,
+                    address: form.app2Address,
+                    gender: isApp1Male ? "FEMALE" : "MALE"
                 },
                 dateOfMarriage: form.dateOfMarriage,
                 placeOfMarriage: form.placeOfMarriage,
@@ -516,12 +524,12 @@ export default function MarriageRegistrationPage() {
         if (currentStep === "IDENTITY") {
             // Validate Applicant 1
             if (!form.app1FullName || !form.app1BirthDate || !form.app1BirthPlace || !form.app1Citizenship) {
-                toast.error("Please fill in all Applicant 1 details");
+                toast.error(`Please fill in all ${app1Label} details`);
                 return;
             }
             // Validate Applicant 2
-            if (!form.app2FullName || !form.app2BirthDate || !form.app2BirthPlace || !form.app2Citizenship) {
-                toast.error("Please fill in all Applicant 2 details");
+            if (!form.app2FullName || !form.app2BirthDate || !form.app2BirthPlace || !form.app2Citizenship || !form.app2Address) {
+                toast.error(`Please fill in all ${app2Label} details`);
                 return;
             }
             setCurrentStep("DETAILS");
@@ -566,15 +574,60 @@ export default function MarriageRegistrationPage() {
         const result = await getResidentDataById(res.id);
         if (result.success && result.data) {
             const r = result.data;
+            const parts = [
+                r.houseNumber && `#${r.houseNumber}`,
+                r.street && `${r.street} St.`,
+                r.purok && `Purok ${r.purok}`,
+                r.sitio && `Sitio ${r.sitio}`,
+                r.barangay && `Brgy. ${r.barangay}`,
+                r.municipality || "Mapandan",
+                r.province || "Pangasinan"
+            ].filter(Boolean);
+            const constructedAddr = parts.join(", ").toUpperCase();
+
             setForm(prev => ({
                 ...prev,
                 app2FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
                 app2BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
                 app2BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
-                app2Citizenship: (r.citizenship || "FILIPINO").toUpperCase()
+                app2Citizenship: (r.citizenship || "FILIPINO").toUpperCase(),
+                app2Address: constructedAddr
             }));
             toast.success(`Fetched details for ${r.firstName} ${r.lastName}`);
         }
+    };
+
+    const handleDateOfMarriageChange = (val: string) => {
+        if (!val) {
+            setForm(prev => ({
+                ...prev,
+                dateOfMarriage: "",
+                registrationType: ""
+            }));
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const [year, month, day] = val.split("-").map(Number);
+        const chosenDate = new Date(year, month - 1, day);
+        chosenDate.setHours(0, 0, 0, 0);
+
+        if (chosenDate > today) {
+            toast.error("Date of marriage cannot be in the future");
+            return;
+        }
+
+        const timeDiff = today.getTime() - chosenDate.getTime();
+        const diffDays = Math.round(timeDiff / (1000 * 3600 * 24));
+
+        const isLate = diffDays > 15;
+        setForm(prev => ({
+            ...prev,
+            dateOfMarriage: val,
+            registrationType: isLate ? "LATE" : "STANDARD"
+        }));
     };
 
     return (
@@ -811,7 +864,7 @@ export default function MarriageRegistrationPage() {
                                     {/* Applicant 1 */}
                                     <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                         <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                                            Applicant 1
+                                            {app1Label}
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-1.5">
@@ -847,6 +900,14 @@ export default function MarriageRegistrationPage() {
                                                     value={form.app1Citizenship}
                                                 />
                                             </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sex</Label>
+                                                <Input
+                                                    disabled
+                                                    className="bg-slate-100 dark:bg-white/5 border-none font-bold uppercase cursor-not-allowed opacity-75"
+                                                    value={isApp1Male ? "MALE" : "FEMALE"}
+                                                />
+                                            </div>
                                             <div className="space-y-1.5 col-span-1 md:col-span-2">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Informant Address</Label>
                                                 <Input
@@ -862,7 +923,7 @@ export default function MarriageRegistrationPage() {
                                     <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                             <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
-                                                Applicant 2
+                                                {app2Label}
                                             </h3>
                                             <div className="flex items-center space-x-2">
                                                 <Checkbox
@@ -871,7 +932,7 @@ export default function MarriageRegistrationPage() {
                                                     onCheckedChange={(checked) => setForm({ ...form, app2IsResident: !!checked })}
                                                 />
                                                 <label htmlFor="app2Resident" className="text-xs font-bold italic text-slate-500 cursor-pointer">
-                                                    Applicant 2 is a resident of Mapandan
+                                                    {app2Label} is a resident of Mapandan
                                                 </label>
                                             </div>
                                         </div>
@@ -922,6 +983,23 @@ export default function MarriageRegistrationPage() {
                                                     onChange={e => setForm({ ...form, app2Citizenship: e.target.value.toUpperCase() })}
                                                 />
                                             </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sex</Label>
+                                                <Input
+                                                    disabled
+                                                    className="bg-slate-100 dark:bg-white/5 border-none font-bold uppercase cursor-not-allowed opacity-75"
+                                                    value={isApp1Male ? "FEMALE" : "MALE"}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5 col-span-1 md:col-span-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Address <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    placeholder="ENTER ADDRESS"
+                                                    className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                    value={form.app2Address}
+                                                    onChange={e => setForm({ ...form, app2Address: e.target.value.toUpperCase() })}
+                                                />
+                                            </div>
                                         </div>
                                     </Card>
 
@@ -948,6 +1026,7 @@ export default function MarriageRegistrationPage() {
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Registration Type <span className="text-rose-500">*</span></Label>
                                                 <Select 
                                                     value={form.registrationType} 
+                                                    disabled={true}
                                                     onValueChange={(val: any) => setForm({...form, registrationType: val})}
                                                 >
                                                     <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl">
@@ -969,9 +1048,10 @@ export default function MarriageRegistrationPage() {
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Marriage <span className="text-rose-500">*</span></Label>
                                                 <Input
                                                     type="date"
+                                                    max={new Date().toISOString().split("T")[0]}
                                                     className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl"
                                                     value={form.dateOfMarriage}
-                                                    onChange={e => setForm({ ...form, dateOfMarriage: e.target.value })}
+                                                    onChange={e => handleDateOfMarriageChange(e.target.value)}
                                                 />
                                                 {!form.dateOfMarriage && showDetailsErrors && (
                                                     <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -1019,7 +1099,7 @@ export default function MarriageRegistrationPage() {
                                                     </div>
                                                 </div>
                                             ) : form.registrationType === "STANDARD" ? (
-                                                <div className="col-span-1 md:col-span-2">
+                                                <div className="col-span-1">
                                                     <PremiumDocumentUpload
                                                         label="Accomplished Certificate of Marriage"
                                                         required
@@ -1100,16 +1180,28 @@ export default function MarriageRegistrationPage() {
                                                 <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b pb-2">Contracting Parties</h5>
                                                 <div className="space-y-4">
                                                     <div className="flex justify-between items-center text-xs">
-                                                        <span className="font-bold text-slate-400 italic">Party 1:</span>
+                                                        <span className="font-bold text-slate-400 italic">{app1Label}:</span>
                                                         <span className="font-black uppercase italic">{form.app1FullName}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center text-xs">
-                                                        <span className="font-bold text-slate-400 italic">Party 1 Address:</span>
+                                                        <span className="font-bold text-slate-400 italic">{app1Label} Sex:</span>
+                                                        <span className="font-black uppercase italic">{isApp1Male ? "MALE" : "FEMALE"}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">{app1Label} Address:</span>
                                                         <span className="font-black uppercase italic">{form.informantAddress || "N/A"}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center text-xs">
-                                                        <span className="font-bold text-slate-400 italic">Party 2:</span>
+                                                        <span className="font-bold text-slate-400 italic">{app2Label}:</span>
                                                         <span className="font-black uppercase italic">{form.app2FullName}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">{app2Label} Sex:</span>
+                                                        <span className="font-black uppercase italic">{isApp1Male ? "FEMALE" : "MALE"}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">{app2Label} Address:</span>
+                                                        <span className="font-black uppercase italic">{form.app2Address || "N/A"}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center text-xs text-rose-500">
                                                         <span className="font-bold italic">Type:</span>
