@@ -262,15 +262,18 @@ export function Sidebar({
 
     if (role === "ADMIN") {
         if (department) {
-            if (department.toUpperCase() === "BPLO") {
+            const deptUpper = department.toUpperCase();
+            if (deptUpper === "BPLO") {
                 menuItems = [
                     { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
                 ];
-            } else if (department.toUpperCase() === "REGISTRAR" || department.toUpperCase() === "CIVIL_REGISTRY") {
+            } else if (deptUpper === "REGISTRAR" || deptUpper === "CIVIL_REGISTRY") {
                 const registrarHubItem = allMenuItems.find(item => item.label === "Registrar Hub");
                 menuItems = [
                     ...(registrarHubItem ? [registrarHubItem] : [])
                 ];
+            } else if (deptUpper === "LGU") {
+                menuItems = allMenuItems;
             } else {
                 menuItems = [
                     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }

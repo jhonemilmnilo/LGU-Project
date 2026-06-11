@@ -1887,7 +1887,26 @@ export default function RequestHubPage() {
                                                             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><CreditCard className="w-5 h-5 text-white" /></div>
                                                             <div>
                                                                 <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Financial Record Secured</p>
-                                                                <p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1">Official Receipt (OR)</p>
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    <p className="text-xs font-bold italic tracking-tight uppercase leading-none">Official Receipt (OR)</p>
+                                                                    {(request.orSeriesNumber || additionalData.orSeriesNumber) && (
+                                                                        <span className="text-xs font-mono font-black text-slate-400 bg-white/5 px-2 py-0.5 rounded flex items-center gap-1.5 select-all">
+                                                                            #{request.orSeriesNumber || additionalData.orSeriesNumber}
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={async (e) => {
+                                                                                    e.stopPropagation();
+                                                                                    await navigator.clipboard.writeText(String(request.orSeriesNumber || additionalData.orSeriesNumber));
+                                                                                    toast.success("OR number copied!");
+                                                                                }}
+                                                                                className="hover:text-primary transition-colors text-slate-500"
+                                                                                title="Copy OR Number"
+                                                                            >
+                                                                                <Copy className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-3">
