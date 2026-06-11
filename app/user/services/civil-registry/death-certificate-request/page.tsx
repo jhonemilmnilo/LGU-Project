@@ -16,8 +16,10 @@ import {
     CheckCircle2,
     Heart,
     MapPin,
-    Eye
+    Eye,
+    Home
 } from "lucide-react";
+import Link from "next/link";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 
 const checkIsPdf = (file: any, url: string | null) => {
@@ -698,49 +700,70 @@ export default function DeathCertificateRequestPage() {
                 themeColor="var(--primary-theme)"
             />
             {/* Breadcrumbs */}
-            <div className="space-y-4">
+            <div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
                 <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem><BreadcrumbLink href="/">Home</BreadcrumbLink></BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem><BreadcrumbLink href="/user/services">Services</BreadcrumbLink></BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem><BreadcrumbLink href="/user/services/civil-registry">Civil Registry</BreadcrumbLink></BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem><BreadcrumbPage>Death Certificate Request</BreadcrumbPage></BreadcrumbItem>
+                    <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200/60 dark:border-white/5 w-fit shadow-sm">
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                    <Home className="w-3.5 h-3.5 mb-0.5" />
+                                    Home
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/user/services" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                    Services
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/user/services/civil-registry" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                    Civil Registry
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                        <BreadcrumbItem>
+                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic text-emerald-700 dark:text-emerald-400">Death Certificate Request</BreadcrumbPage>
+                        </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
+            </div>
 
-                {/* Premium Header/Banner with Ambient Gradient Backdrop */}
-                <div className="relative overflow-hidden bg-white dark:bg-[#0c1017] p-6 md:p-10 rounded-2xl md:rounded-[2rem] border border-slate-100 dark:border-white/5 text-slate-800 dark:text-white shadow-xl dark:shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-                    <div
-                        className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-10 dark:opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700"
-                        style={{ backgroundColor: themeColor }}
-                    />
+            {/* Premium Header/Banner with Ambient Gradient Backdrop */}
+            <div className="relative overflow-hidden bg-white dark:bg-[#0c1017] p-6 md:p-10 rounded-2xl md:rounded-[2rem] border border-slate-100 dark:border-white/5 text-slate-800 dark:text-white shadow-xl dark:shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                <div
+                    className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-10 dark:opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700"
+                    style={{ backgroundColor: themeColor }}
+                />
 
-                    <div className="space-y-3 md:space-y-4 max-w-2xl relative z-10">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center backdrop-blur-md">
-                                <FileText className="w-4 h-4" style={{ color: themeColor }} />
-                            </div>
-                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-white/70 italic">Local Civil Registry</span>
+                <div className="space-y-3 md:space-y-4 max-w-2xl relative z-10">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center backdrop-blur-md">
+                            <FileText className="w-4 h-4" style={{ color: themeColor }} />
                         </div>
-
-                        <h1 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter leading-none">
-                            Request <span style={{ color: themeColor }}>Death Certificate</span>
-                        </h1>
-
-                        <p className="text-slate-600 dark:text-slate-300 font-medium text-xs leading-relaxed max-w-xl italic">
-                            Request a certified true copy of an official death certificate. Complete the form and upload required identifications to verify your request.
-                        </p>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-white/70 italic">Local Civil Registry</span>
                     </div>
 
-                    <div className="hidden md:block relative z-10 shrink-0">
-                        <div className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500">
-                            <div className="absolute inset-0 bg-gradient-to-tr opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundImage: `linear-gradient(to top right, ${themeColor}, transparent)` }} />
-                            <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
-                            <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-tight">Secure Filing</p>
-                        </div>
+                    <h1 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter leading-none">
+                        Request <span style={{ color: themeColor }}>Death Certificate</span>
+                    </h1>
+
+                    <p className="text-slate-600 dark:text-slate-300 font-medium text-xs leading-relaxed max-w-xl italic">
+                        Request a certified true copy of an official death certificate. Complete the form and upload required identifications to verify your request.
+                    </p>
+                </div>
+
+                <div className="hidden md:block relative z-10 shrink-0">
+                    <div className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500">
+                        <div className="absolute inset-0 bg-gradient-to-tr opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundImage: `linear-gradient(to top right, ${themeColor}, transparent)` }} />
+                        <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
+                        <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-tight">Secure Filing</p>
                     </div>
                 </div>
             </div>

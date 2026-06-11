@@ -919,26 +919,40 @@ export default function MarriageLicenseApplicationPage() {
 				themeColor="var(--primary-theme)"
 			/>
 			<div className="container max-w-4xl mx-auto px-4 pt-0 pb-0">
-				<Breadcrumb className="mb-4">
-					<BreadcrumbList>
-						<BreadcrumbItem>
-							<BreadcrumbLink asChild>
-								<Link href="/user" className="flex items-center gap-1.5 font-bold italic text-[11px] uppercase tracking-wider">
-									<Home className="w-3.5 h-3.5" />
-									Home
-								</Link>
-							</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator />
-						<BreadcrumbItem>
-							<BreadcrumbLink href="/user/services">Services</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator />
-						<BreadcrumbItem>
-							<BreadcrumbPage className="font-black italic text-[11px] uppercase tracking-wider text-amber-500">Marriage License Application</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>				{/* Premium Header/Banner with Ambient Gradient Backdrop */}
+				<div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0 mb-4">
+					<Breadcrumb>
+						<BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200/60 dark:border-white/5 w-fit shadow-sm">
+							<BreadcrumbItem>
+								<BreadcrumbLink asChild>
+									<Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+										<Home className="w-3.5 h-3.5 mb-0.5" />
+										Home
+									</Link>
+								</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+							<BreadcrumbItem>
+								<BreadcrumbLink asChild>
+									<Link href="/user/services" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+										Services
+									</Link>
+								</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+							<BreadcrumbItem>
+								<BreadcrumbLink asChild>
+									<Link href="/user/services/civil-registry" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+										Civil Registry
+									</Link>
+								</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+							<BreadcrumbItem>
+								<BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic text-emerald-700 dark:text-emerald-400">Marriage License Application</BreadcrumbPage>
+							</BreadcrumbItem>
+						</BreadcrumbList>
+					</Breadcrumb>
+				</div>				{/* Premium Header/Banner with Ambient Gradient Backdrop */}
 				<div className="relative overflow-hidden bg-white dark:bg-[#0c1017] p-6 md:p-10 rounded-2xl md:rounded-[2rem] border border-slate-100 dark:border-white/5 text-slate-800 dark:text-white shadow-xl dark:shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
 					<div
 						className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-10 dark:opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700"
