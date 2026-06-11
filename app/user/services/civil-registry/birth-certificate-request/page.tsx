@@ -59,6 +59,8 @@ import {
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
+import { supabase } from "@/lib/supabase";
+import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 
 type Step = "STATUS" | "IDENTITY" | "DETAILS" | "PARENTS" | "CONFIRM";
 
@@ -95,6 +97,7 @@ interface FormState {
     deliveryType: "PICK_UP" | "DELIVERY" | "E_COPY";
     paymentType: "WALK_IN";
     files: Record<string, File | null>;
+    previews: Record<string, string | null>;
     idTypeOverride?: string;
     email: string;
     contactNumber: string;
@@ -249,6 +252,7 @@ export default function CivilRegistryPage() {
         deliveryType: "PICK_UP",
         paymentType: "WALK_IN",
         files: {},
+        previews: {},
         idTypeOverride: "",
         email: "",
         contactNumber: "",
@@ -273,6 +277,79 @@ export default function CivilRegistryPage() {
         setViewerUrl(existingUrl);
         setViewerTitle(title);
         setViewerOpen(true);
+    };
+
+    const renderIdCard = (label: string, fileKey: string) => {
+        const file = form.files[fileKey] || null;
+        const defaultUrl = fileKey === "validIdFront" ? resident?.idFrontUrl : resident?.idBackUrl;
+        const preview = form.previews[fileKey] || defaultUrl || null;
+
+        return (
+            <PremiumDocumentUpload
+                key={fileKey}
+                label={label}
+                required
+                file={file}
+                previewUrl={preview}
+                error={showErrors && !file && !preview}
+                onFileSelect={async (newFile) => {
+                    if (newFile.size > 5 * 1024 * 1024) {
+                        toast.error("File size exceeds 5MB limit.");
+                        return;
+                    }
+
+                    let fileToProcess = newFile;
+                    if (newFile.type.startsWith("image/")) {
+                        try {
+                            toast.loading("Compressing and optimizing document...", { id: `file-compress-${fileKey}` });
+                            fileToProcess = await compressImage(newFile);
+                            toast.success("Image optimized successfully!", { id: `file-compress-${fileKey}` });
+                        } catch (err) {
+                            console.error("Compression error:", err);
+                            toast.dismiss(`file-compress-${fileKey}`);
+                        }
+                    }
+
+                    try {
+                        toast.loading("Uploading and preparing document preview...", { id: `file-upload-${fileKey}` });
+                        const userId = resident?.id || "anonymous";
+                        const sanitizedKey = fileKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const publicUrl = await uploadFileClientSide(fileToProcess, sanitizedKey, userId);
+
+                        setForm(prev => ({
+                            ...prev,
+                            files: { ...prev.files, [fileKey]: fileToProcess },
+                            previews: { ...prev.previews, [fileKey]: publicUrl }
+                        }));
+                        toast.success("Document uploaded & preview ready!", { id: `file-upload-${fileKey}` });
+                    } catch (uploadErr) {
+                        console.error(`[ClientUpload] Failed to upload ${fileKey} on-the-fly:`, uploadErr);
+                        toast.error("Upload failed. Local copy stored (preview limited).", { id: `file-upload-${fileKey}` });
+
+                        setForm(prev => ({
+                            ...prev,
+                            files: { ...prev.files, [fileKey]: fileToProcess },
+                            previews: { ...prev.previews, [fileKey]: fileToProcess.type.startsWith("image/") ? URL.createObjectURL(fileToProcess) : null }
+                        }));
+                    }
+                }}
+                onClear={async () => {
+                    setForm(prev => {
+                        const nextFiles = { ...prev.files };
+                        const nextPreviews = { ...prev.previews };
+                        delete nextFiles[fileKey];
+                        delete nextPreviews[fileKey];
+                        return {
+                            ...prev,
+                            files: nextFiles,
+                            previews: nextPreviews
+                        };
+                    });
+                    toast.success("File removed successfully.");
+                }}
+                onView={() => handleViewFile(file, preview, label)}
+            />
+        );
     };
 
     // Persist progress to session storage
@@ -466,7 +543,9 @@ export default function CivilRegistryPage() {
         }
 
         // Validate ID uploads
-        if ((!form.files["validIdFront"] && !resident?.idFrontUrl) || (!form.files["validIdBack"] && !resident?.idBackUrl)) {
+        const hasIdFront = form.files["validIdFront"] || resident?.idFrontUrl || form.previews["validIdFront"];
+        const hasIdBack = form.files["validIdBack"] || resident?.idBackUrl || form.previews["validIdBack"];
+        if (!hasIdFront || !hasIdBack) {
             toast.error("Please upload both Front and Back of your Government ID.");
             return;
         }
@@ -501,6 +580,40 @@ export default function CivilRegistryPage() {
                 province: resident.province
             }));
 
+            const fileUrls: Record<string, string> = {};
+
+            // First, copy any existing public URLs from previews
+            Object.entries(form.previews || {}).forEach(([key, url]) => {
+                if (url && typeof url === "string" && url.startsWith("http")) {
+                    fileUrls[key] = url;
+                }
+            });
+
+            const fileEntries = Object.entries(form.files);
+            for (let i = 0; i < fileEntries.length; i++) {
+                const [key, file] = fileEntries[i];
+                if (!file) continue;
+                const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                if (fileUrls[key]) {
+                    console.log(`[ClientUpload] Reusing existing public URL for ${key}:`, fileUrls[key]);
+                    continue;
+                }
+
+                try {
+                    toast.loading(`Uploading document ${i + 1}/${fileEntries.length}...`, { id: "req-upload-toast" });
+                    const userId = resident?.id || "anonymous";
+                    const url = await uploadFileClientSide(file, sanitizedKey, userId);
+                    fileUrls[key] = url;
+                } catch (uploadErr) {
+                    console.error(`[ClientUpload] Failed to upload ${key}:`, uploadErr);
+                    toast.error(`Failed to upload document: ${key}. Please try again.`, { id: "req-upload-toast" });
+                    setSubmitting(false);
+                    return;
+                }
+            }
+            toast.dismiss("req-upload-toast");
+
             const additionalData = {
                 subjectName: form.fullName,
                 dateOfEvent: form.dateOfEvent,
@@ -509,7 +622,7 @@ export default function CivilRegistryPage() {
                 motherName: `${form.motherFirstName || ""} ${form.motherMiddleName || ""} ${form.motherLastName || ""}`.replace(/\s+/g, ' ').trim() || form.motherName || "N/A",
                 spouseName: form.spouseName,
                 relationship: form.relationship,
-                fulfillmentType: null, // No method selected yet upon upload
+                fulfillmentType: null,
                 email: form.email,
                 contactNumber: form.contactNumber,
                 idType: form.idTypeOverride || resident?.idType,
@@ -520,11 +633,6 @@ export default function CivilRegistryPage() {
             };
 
             formData.append("additionalData", JSON.stringify(additionalData));
-
-            // Append files
-            Object.entries(form.files).forEach(([key, file]) => {
-                if (file) formData.append(key, file);
-            });
 
             const res = await submitCivilRegistryTransaction(formData);
             if (res.success && res.data) {
@@ -594,10 +702,22 @@ export default function CivilRegistryPage() {
                     border-color: ${themeColor}80 !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
-                    color: #314158 !important;
+                    color: #0f172a !important;
+                }
+                input:not([type="button"]):not([type="submit"]):disabled, select:disabled, textarea:disabled,
+                input:not([type="button"]):not([type="submit"])[readonly], select[readonly], textarea[readonly] {
+                    color: #1e293b !important;
+                    -webkit-text-fill-color: #1e293b !important;
+                    opacity: 0.9 !important;
                 }
                 .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
                     color: #f8fafc !important;
+                }
+                .dark input:not([type="button"]):not([type="submit"]):disabled, .dark select:disabled, .dark textarea:disabled,
+                .dark input:not([type="button"]):not([type="submit"])[readonly], .dark select[readonly], .dark textarea[readonly] {
+                    color: #cbd5e1 !important;
+                    -webkit-text-fill-color: #cbd5e1 !important;
+                    opacity: 0.8 !important;
                 }
                 `
             }} />
@@ -619,7 +739,7 @@ export default function CivilRegistryPage() {
             <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-0 space-y-12">
                 <div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
                     <Breadcrumb>
-                        <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
+                        <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200/60 dark:border-white/5 w-fit shadow-sm">
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
                                     <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
@@ -646,7 +766,7 @@ export default function CivilRegistryPage() {
                             </BreadcrumbItem>
                             <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic" style={{ color: themeColor }}>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic text-emerald-700 dark:text-emerald-400">
                                     {form.registryType === "BIRTH" ? "Request Birth Certificate" :
                                         form.registryType === "MARRIAGE" ? "Request Marriage Certificate" :
                                             form.registryType === "DEATH" ? "Request Death Certificate" :

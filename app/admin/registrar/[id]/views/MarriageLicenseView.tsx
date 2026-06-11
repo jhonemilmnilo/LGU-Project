@@ -18,7 +18,8 @@ import {
     ChevronDown,
     ChevronUp,
     Copy,
-    Hash
+    Hash,
+    Home
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,14 @@ import ResidentIdentityProfile from "@/app/admin/treasury/[id]/components/Reside
 import TransactionInfoCard from "@/app/admin/treasury/[id]/components/TransactionInfoCard";
 import RejectionRevisionControls from "@/app/admin/treasury/[id]/components/RejectionRevisionControls";
 import { cn } from "@/lib/utils";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export default function MarriageLicenseView(props: TreasuryViewProps) {
     const {
@@ -132,10 +141,10 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
 
     const groomDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url && (d.label === groomBirthCertLabel || d.label === groomIdLabel)) : [];
     const brideDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url && (d.label === brideBirthCertLabel || d.label === brideIdLabel)) : [];
-    const sharedDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url && 
-        d.label !== groomBirthCertLabel && 
-        d.label !== groomIdLabel && 
-        d.label !== brideBirthCertLabel && 
+    const sharedDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url &&
+        d.label !== groomBirthCertLabel &&
+        d.label !== groomIdLabel &&
+        d.label !== brideBirthCertLabel &&
         d.label !== brideIdLabel
     ) : [];
 
@@ -219,13 +228,30 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
 
                 {/* Back Button & Navigation */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-in fade-in duration-300">
-                    <Link
-                        href={backUrl}
-                        className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors group"
-                    >
-                        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                        Back to Requests
-                    </Link>
+                    <Breadcrumb>
+                        <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200/60 dark:border-white/5 w-fit shadow-sm">
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link href="/admin" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                        <Home className="w-3.5 h-3.5 mb-0.5" />
+                                        Home
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link href={backUrl} className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                        Registrar
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic text-emerald-700 dark:text-emerald-400">Marriage License View</BreadcrumbPage>
+                            </BreadcrumbItem>
+                        </BreadcrumbList>
+                    </Breadcrumb>
                     <div className="flex items-center gap-2">
                         <Badge variant="outline" className="px-3 py-1 text-[9px] font-black uppercase tracking-widest border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 rounded-full">
                             ID: {transaction.id}
@@ -557,34 +583,6 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-8 border-t border-slate-100 dark:border-slate-800/50">
-                                <div className="space-y-6">
-                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic font-bold">Registry Info</h4>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">License No.</span>
-                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                {transaction.marriageLicenseApplication?.registryNumber || "PENDING"}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Expiry Date</span>
-                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                {transaction.marriageLicenseApplication?.expiryDate ? safeFormatDate(transaction.marriageLicenseApplication.expiryDate) : "PENDING"}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {(transaction.marriageLicenseApplication?.issuedBy || additional.issuedBy) && (
-                                    <div className="space-y-1.5 flex flex-col justify-end">
-                                        <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Issued By</span>
-                                        <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                            {transaction.marriageLicenseApplication?.issuedBy || additional.issuedBy}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 

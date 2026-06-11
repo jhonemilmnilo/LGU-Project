@@ -42,6 +42,13 @@ export default function PremiumDocumentUpload({
                 return;
             }
 
+            const extension = selectedFile.name.split(".").pop()?.toLowerCase();
+            if (extension === "docx" || extension === "doc" || selectedFile.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || selectedFile.type === "application/msword") {
+                toast.error("Word documents (.doc, .docx) are not accepted. Please upload PDF or image files.");
+                e.target.value = "";
+                return;
+            }
+
             let fileToProcess = selectedFile;
             if (selectedFile.type.startsWith("image/")) {
                 try {
@@ -85,7 +92,7 @@ export default function PremiumDocumentUpload({
                 ref={inputRef}
                 onChange={handleFileChange}
                 className="hidden"
-                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                accept=".pdf,.png,.jpg,.jpeg"
             />
 
             {/* Header info row */}
