@@ -147,7 +147,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                         />
 
                         {/* MAIN ASSESSMENT CARD */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12 animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-12 animate-in fade-in duration-300">
                             {/* IDENTIFIER / ACCORDION HEADER */}
                             <div
                                 className="flex justify-between items-center cursor-pointer select-none"
@@ -309,7 +309,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                         />
 
                         {/* Primary LCR Specific Details Panel */}
-                        <div className="bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl space-y-8 animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-xl dark:shadow-2xl space-y-8 animate-in fade-in duration-300">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 bg-primary rounded-xl text-white shadow-lg shadow-primary/20">
                                     <FileText className="w-5 h-5" />
@@ -378,14 +378,14 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                     <div className="space-y-6">
                                         <div className="space-y-1.5">
                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">{"Father's Full Name"}</span>
-                                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                 {additional.fatherName || "—"}
                                             </div>
                                         </div>
 
                                         <div className="space-y-1.5">
                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">{"Mother's Full Name"}</span>
-                                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                 {additional.motherName || "—"}
                                             </div>
                                         </div>
@@ -396,7 +396,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
 
                         {/* ATTACHMENT CARD FOR EVIDENCE */}
                         {evidenceDocs && evidenceDocs.length > 0 && (
-                            <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
+                            <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1e293b] dark:text-white leading-none">
                                     Submitted Identifications & Requirements
                                 </h3>
@@ -437,7 +437,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                     {/* Right Column: Workflow Actions Controls */}
                     <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-8 animate-in fade-in duration-300">
                         {/* PHASE TRACKER STEPPER */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8">
+                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-8">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-[#1e293b] dark:text-slate-400">
                                 Service Request Progress
                             </h3>
@@ -513,7 +513,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                         )}
 
                         {transaction.status === "FOR_REQUESTING" && (
-                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center animate-in fade-in duration-300">
+                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-4 text-center animate-in fade-in duration-300">
                                 <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
                                     <Clock className="w-6 h-6 animate-pulse" />
                                 </div>
@@ -540,7 +540,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                     if (!refNo) return null;
 
                                     return (
-                                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4">
+                                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
                                                     <Hash className="w-4 h-4" />
@@ -583,7 +583,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                     if (!orNo && !orDocUrl) return null;
 
                                     return (
-                                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4">
+                                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 rounded-xl bg-green-500/10 text-green-500">
                                                     <FileText className="w-4 h-4" />
@@ -696,7 +696,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
 
                         {/* AWAITING CITIZEN PAYMENT NOTICE */}
                         {transaction.status === "EVALUATED" && (
-                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center">
+                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-4 text-center">
                                 <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
                                     <Clock className="w-6 h-6 animate-pulse" />
                                 </div>
@@ -710,7 +710,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                         {/* REGISTRAR UPLOAD E-COPY AND OR RELEASE ACTION */}
                         {(transaction.status === "FOR_PROCESSING" || transaction.status === "FOR_REINSPECTION") && (
                             <div className="space-y-6">
-                                <div className="bg-[#111827] border border-slate-800 rounded-[2rem] p-8 shadow-2xl space-y-6">
+                                <div className="bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800 rounded-[2rem] p-8 shadow-xl dark:shadow-2xl space-y-6">
                                     <div className="space-y-1">
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#10b981] italic">Upload & Release Document</h4>
                                         <p className="text-xs font-bold text-slate-500 italic">Verify registry book, attach records, and release e-copy.</p>
@@ -752,7 +752,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                                 onClick={() => setRegistryBookVerification?.(opt.id)}
                                                                 className={cn(
                                                                     "flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-300 active:scale-98 select-none w-full",
-                                                                    isSelected ? `${themeColor} bg-[#1f2937]/10 border-primary shadow-md font-bold text-white` : "border-slate-800 text-slate-400 bg-[#1f2937]/30 hover:bg-[#1f2937]/50"
+                                                                    isSelected ? `${themeColor} bg-slate-100/50 dark:bg-[#1f2937]/10 border-primary shadow-md font-bold text-slate-800 dark:text-white` : "border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#1f2937]/30 hover:bg-slate-100 dark:hover:bg-[#1f2937]/50"
                                                                 )}
                                                             >
                                                                 <div className="flex flex-col">
@@ -761,7 +761,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                                 </div>
                                                                 <div className={cn(
                                                                     "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                    isSelected ? "border-current bg-current/15" : "border-slate-700"
+                                                                    isSelected ? "border-current bg-current/15" : "border-slate-300 dark:border-slate-700"
                                                                 )}>
                                                                     {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-current" />}
                                                                 </div>
@@ -773,7 +773,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
 
                                         {/* E-Copy/Verification PDF/Image Upload Block (Required once status is selected) */}
                                         {registryBookVerification && (
-                                            <div className="space-y-3 pt-4 border-t border-slate-800/50">
+                                            <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/50">
                                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">
                                                     Attach Scanned {
                                                         registryBookVerification === "FORM_1A" ? "Form 1A" :
@@ -818,10 +818,10 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                 <label
                                                     htmlFor="verification-doc-upload"
                                                     className={cn(
-                                                        "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-36 bg-[#1f2937]/20 overflow-hidden relative group cursor-pointer",
+                                                        "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-36 bg-slate-50 dark:bg-[#1f2937]/20 overflow-hidden relative group cursor-pointer",
                                                         birthRegDocFile
                                                             ? "border-primary/30 bg-primary/5 shadow-inner"
-                                                            : "border-slate-800 hover:border-primary/30"
+                                                            : "border-slate-200 dark:border-slate-800 hover:border-primary/30"
                                                     )}
                                                 >
                                                     {birthRegDocFile ? (
@@ -852,7 +852,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                             ) : (
                                                                 <div className="relative w-full h-full flex flex-col items-center justify-center gap-2 group">
                                                                     <FileText className="w-8 h-8 text-primary" style={{ color: themeColor }} />
-                                                                    <span className="text-[9px] font-black uppercase italic tracking-widest text-white max-w-[200px] truncate">{birthRegDocFile.name}</span>
+                                                                    <span className="text-[9px] font-black uppercase italic tracking-widest text-slate-800 dark:text-white max-w-[200px] truncate">{birthRegDocFile.name}</span>
                                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
                                                                         <button
                                                                             type="button"
@@ -915,7 +915,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                         {/* REGISTRAR RELEASE FOR PICKING ACTION */}
                         {transaction.status === "FOR_PICKING" && (
                             <div className="space-y-6">
-                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-6">
+                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                     <div className="text-center space-y-3">
                                         <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mx-auto">
                                             <FileText className="w-8 h-8" />
@@ -940,7 +940,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                         {/* REGISTRAR RELEASE FOR CLAIM ACTION */}
                         {transaction.status === "FOR_CLAIM" && (
                             <div className="space-y-6">
-                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-6">
+                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                     <div className="text-center space-y-3">
                                         <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mx-auto">
                                             <Check className="w-8 h-8" />
@@ -1033,7 +1033,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                         {/* REGISTRAR RELEASED / DELIVERED DETAILS VIEW */}
                         {(transaction.status === "RELEASED" || transaction.status === "DELIVERED") && (
                             <div className="space-y-6">
-                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-6">
+                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                     <div className="text-center space-y-3">
                                         <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mx-auto">
                                             <Check className="w-8 h-8" />

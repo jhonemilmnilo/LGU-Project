@@ -211,6 +211,7 @@ export default function MarriageLicenseApplicationPage() {
 		app2BirthPlace: "",
 		app2Citizenship: "FILIPINO",
 		app2Gender: "",
+		app2Address: "",
 		requiredDocs: {} as Record<string, boolean>,
 		files: {} as Record<string, File | null>,
 		previews: {} as Record<string, string | null>,
@@ -336,6 +337,7 @@ export default function MarriageLicenseApplicationPage() {
 						app2BirthPlace: (addData.applicant2?.birthPlace || "").toUpperCase(),
 						app2Citizenship: (addData.applicant2?.citizenship || "FILIPINO").toUpperCase(),
 						app2Gender: (addData.applicant2?.gender || "").toUpperCase(),
+						app2Address: addData.applicant2?.address || "",
 						app2Resident: addData.app2Resident || null,
 						informantAddress: (addData.informantAddress || "").toUpperCase(),
 						requiredDocs: (addData.requiredDocs || []).reduce((acc: any, cur: string) => {
@@ -355,7 +357,15 @@ export default function MarriageLicenseApplicationPage() {
 					setHasDraft(!!saved);
 
 					if (savedData) {
-						setForm((prev: any) => ({ ...prev, ...savedData.form }));
+						setForm((prev: any) => {
+							const newForm = { ...prev, ...savedData.form };
+							if (newForm.app1Gender && !newForm.app2Gender) {
+								newForm.app2Gender = newForm.app1Gender === "MALE" ? "FEMALE" : newForm.app1Gender === "FEMALE" ? "MALE" : "";
+							} else if (newForm.app2Gender && !newForm.app1Gender) {
+								newForm.app1Gender = newForm.app2Gender === "MALE" ? "FEMALE" : newForm.app2Gender === "FEMALE" ? "MALE" : "";
+							}
+							return newForm;
+						});
 						if (savedData.currentStep) setCurrentStep(savedData.currentStep);
 					}
 
@@ -390,20 +400,25 @@ export default function MarriageLicenseApplicationPage() {
 							r.purok && `Purok ${r.purok}`,
 							r.sitio && `Sitio ${r.sitio}`,
 							r.barangay && `Brgy. ${r.barangay}`,
-							r.municipality || "Mapandan",
-							r.province || "Pangasinan"
+							r.municipality,
+							r.province
 						].filter(Boolean);
 						const constructedAddr = parts.join(", ").toUpperCase();
 
-						setForm((prev: any) => ({
-							...prev,
-							app1FullName: `${activeResident.firstName} ${activeResident.middleName ? activeResident.middleName[0] + '. ' : ''}${activeResident.lastName}`.toUpperCase(),
-							app1BirthDate: activeResident.dateOfBirth ? new Date(activeResident.dateOfBirth).toISOString().split('T')[0] : "",
-							app1BirthPlace: (activeResident.placeOfBirth || activeResident.municipality || "").toUpperCase(),
-							app1Citizenship: (activeResident.citizenship || "FILIPINO").toUpperCase(),
-							app1Gender: (activeResident.gender || "").toUpperCase(),
-							informantAddress: constructedAddr
-						}));
+						setForm((prev: any) => {
+							const app1Gender = (activeResident.gender || "").toUpperCase();
+							const app2Gender = app1Gender === "MALE" ? "FEMALE" : app1Gender === "FEMALE" ? "MALE" : "";
+							return {
+								...prev,
+								app1FullName: `${activeResident.firstName} ${activeResident.middleName ? activeResident.middleName[0] + '. ' : ''}${activeResident.lastName}`.toUpperCase(),
+								app1BirthDate: activeResident.dateOfBirth ? new Date(activeResident.dateOfBirth).toISOString().split('T')[0] : "",
+								app1BirthPlace: (activeResident.placeOfBirth || activeResident.municipality || "").toUpperCase(),
+								app1Citizenship: (activeResident.citizenship || "FILIPINO").toUpperCase(),
+								app1Gender,
+								app2Gender,
+								informantAddress: constructedAddr
+							};
+						});
 					}
 				}
 			} catch (err) {
@@ -434,14 +449,28 @@ export default function MarriageLicenseApplicationPage() {
 				return;
 			}
 			const targetApp1Gender = form.app1Gender || (app2Gender === "MALE" ? "FEMALE" : app2Gender === "FEMALE" ? "MALE" : "");
+			const targetApp2Gender = app2Gender || (targetApp1Gender === "MALE" ? "FEMALE" : targetApp1Gender === "FEMALE" ? "MALE" : "");
+			
+			const parts = [
+				r.houseNumber && `#${r.houseNumber}`,
+				r.street && `${r.street} St.`,
+				r.purok && `Purok ${r.purok}`,
+				r.sitio && `Sitio ${r.sitio}`,
+				r.barangay && `Brgy. ${r.barangay}`,
+				r.municipality,
+				r.province
+			].filter(Boolean);
+			const constructedAddr = parts.join(", ").toUpperCase();
+
 			setForm((prev: any) => ({
 				...prev,
 				app2FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
 				app2BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
 				app2BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
 				app2Citizenship: (r.citizenship || "FILIPINO").toUpperCase(),
-				app2Gender: app2Gender,
+				app2Gender: targetApp2Gender,
 				app1Gender: targetApp1Gender,
+				app2Address: constructedAddr,
 				app2Resident: r
 			}));
 			toast.success(`Fetched details for ${r.firstName} ${r.lastName}`);
@@ -449,15 +478,19 @@ export default function MarriageLicenseApplicationPage() {
 	};
 
 	const handleClearApp2Resident = () => {
-		setForm((prev: any) => ({
-			...prev,
-			app2FullName: "",
-			app2BirthDate: "",
-			app2BirthPlace: "",
-			app2Citizenship: "FILIPINO",
-			app2Gender: "",
-			app2Resident: null
-		}));
+		setForm((prev: any) => {
+			const app1Gender = (prev.app1Gender || "").toUpperCase();
+			const app2Gender = app1Gender === "MALE" ? "FEMALE" : app1Gender === "FEMALE" ? "MALE" : "";
+			return {
+				...prev,
+				app2FullName: "",
+				app2BirthDate: "",
+				app2BirthPlace: "",
+				app2Citizenship: "FILIPINO",
+				app2Gender,
+				app2Resident: null
+			};
+		});
 		toast.info("Cleared selected resident details. You can now input details manually or search again.");
 	};
 
@@ -562,7 +595,8 @@ export default function MarriageLicenseApplicationPage() {
 				"app2BirthDate",
 				"app2BirthPlace",
 				"app2Citizenship",
-				"app2Gender"
+				"app2Gender",
+				"app2Address"
 			];
 			const missing: string[] = [];
 			required.forEach((k) => {
@@ -729,7 +763,8 @@ export default function MarriageLicenseApplicationPage() {
 					birthDate: form.app2BirthDate,
 					birthPlace: form.app2BirthPlace,
 					citizenship: form.app2Citizenship,
-					gender: form.app2Gender
+					gender: form.app2Gender,
+					address: form.app2Address
 				},
 				app2IsResident: form.app2IsResident,
 				app2IsForeigner: form.app2IsForeigner,
@@ -1008,11 +1043,11 @@ export default function MarriageLicenseApplicationPage() {
 											disabled={!!resident?.gender}
 											value={form.app1Gender}
 											onValueChange={(val) => {
-												setForm({ 
-													...form, 
+												setForm((prev: any) => ({ 
+													...prev, 
 													app1Gender: val,
 													app2Gender: val === "MALE" ? "FEMALE" : val === "FEMALE" ? "MALE" : ""
-												});
+												}));
 											}}
 										>
 											<SelectTrigger className="w-full h-10 px-3 bg-slate-100 dark:bg-white/5 border-none font-bold uppercase text-xs rounded-md disabled:cursor-not-allowed opacity-75 focus:ring-2 focus:ring-amber-500 text-left">
@@ -1046,18 +1081,21 @@ export default function MarriageLicenseApplicationPage() {
 											id="app2Resident"
 											checked={form.app2IsResident}
 											onCheckedChange={(checked) => {
-												setForm((prev: any) => ({
-													...prev,
-													app2IsResident: !!checked,
-													...(checked ? {} : {
-														app2FullName: "",
-														app2BirthDate: "",
-														app2BirthPlace: "",
-														app2Citizenship: "FILIPINO",
-														app2Gender: "",
-														app2Resident: null
-													})
-												}));
+												setForm((prev: any) => {
+													const newGender = prev.app1Gender === "MALE" ? "FEMALE" : prev.app1Gender === "FEMALE" ? "MALE" : "";
+													return {
+														...prev,
+														app2IsResident: !!checked,
+														...(checked ? {} : {
+															app2FullName: "",
+															app2BirthDate: "",
+															app2BirthPlace: "",
+															app2Citizenship: "FILIPINO",
+															app2Gender: newGender,
+															app2Resident: null
+														})
+													};
+												});
 											}}
 										/>
 										<label htmlFor="app2Resident" className="text-xs font-bold italic text-slate-500 cursor-pointer">Applicant 2 is a resident of Mapandan</label>
@@ -1200,11 +1238,11 @@ export default function MarriageLicenseApplicationPage() {
 														return;
 													}
 												}
-												setForm({ 
-													...form, 
+												setForm((prev: any) => ({ 
+													...prev, 
 													app2Gender: val,
-													app1Gender: val === "MALE" ? "FEMALE" : val === "FEMALE" ? "MALE" : form.app1Gender
-												});
+													app1Gender: val === "MALE" ? "FEMALE" : val === "FEMALE" ? "MALE" : prev.app1Gender
+												}));
 												setMissingInputs((m) => ({ ...m, app2Gender: false }));
 											}}
 										>
@@ -1230,6 +1268,24 @@ export default function MarriageLicenseApplicationPage() {
 												⚠️ Same-sex marriage is not permitted
 											</div>
 										)}
+									</div>
+									<div className="space-y-1.5 col-span-1 md:col-span-2">
+										<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Address</Label>
+										<Input
+											placeholder="ENTER ADDRESS"
+											disabled={!!form.app2Resident}
+											className={cn(
+												"bg-slate-50 dark:bg-white/5 font-bold uppercase border-none",
+												missingInputs.app2Address ? "border border-red-500" : "",
+												!!form.app2Resident && "bg-slate-100 dark:bg-white/5 opacity-75 cursor-not-allowed"
+											)}
+											value={form.app2Address || ""}
+											onChange={e => {
+												setForm((p: any) => ({ ...p, app2Address: e.target.value.toUpperCase() }));
+												setMissingInputs((m) => ({ ...m, app2Address: false }));
+											}}
+										/>
+										{missingInputs.app2Address && <div className="text-xs text-red-600 font-bold">Required</div>}
 									</div>
 								</div>
 							</Card>

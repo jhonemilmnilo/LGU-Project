@@ -129,7 +129,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                         Back to Treasury
                     </Link>
 
-                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 text-center space-y-4">
+                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 text-center space-y-4">
                         <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
                             <AlertCircle className="w-6 h-6" />
                         </div>
@@ -220,7 +220,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                         />
 
                         {/* MAIN ASSESSMENT CARD */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12 animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-12 animate-in fade-in duration-300">
                             {/* IDENTIFIER / ACCORDION HEADER */}
                             <div
                                 className="flex justify-between items-center cursor-pointer select-none"
@@ -417,7 +417,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                         />
 
                         {/* Primary LCR Specific Details Panel */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-[0_2px_40px_rgba(0,0,0,0.02)] overflow-hidden animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-xl dark:shadow-2xl overflow-hidden animate-in fade-in duration-300">
                             {/* Section Header — Accordion Toggle */}
                             <div
                                 className="flex items-center justify-between p-8 md:p-10 cursor-pointer select-none group"
@@ -523,20 +523,20 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                         <div className="space-y-4">
                                             <div className="space-y-1">
                                                 <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Deceased Full Name</span>
-                                                <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                     {transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "—"}
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="space-y-1">
                                                     <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Date of Death</span>
-                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                         {safeFormatDate(transaction.deathRegistration?.dateOfEvent || additional.dateOfDeath || additional.dateOfEvent)}
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Registry No.</span>
-                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                         {transaction.deathRegistration?.registryNumber || "PENDING"}
                                                     </div>
                                                 </div>
@@ -544,21 +544,21 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="space-y-1">
                                                     <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Cause of Death</span>
-                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                         {additional.causeOfDeath || "—"}
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Place of Death</span>
-                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                         {transaction.deathRegistration?.placeOfEvent || additional.placeOfEvent || additional.placeOfDeath || "—"}
                                                     </div>
                                                 </div>
                                             </div>
                                             {(transaction.deathRegistration?.issuedBy || additional.issuedBy) && (
-                                                <div className="space-y-1 pt-3 border-t border-slate-800/50">
+                                                <div className="space-y-1 pt-3 border-t border-slate-100 dark:border-slate-800/50">
                                                     <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Issued By</span>
-                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                         {transaction.deathRegistration?.issuedBy || additional.issuedBy}
                                                     </div>
                                                 </div>
@@ -746,13 +746,13 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="space-y-1.5">
                                                     <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Father</span>
-                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                         {additional.fathersName || additional.fatherName || "—"}
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1.5">
                                                     <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">Mother</span>
-                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
                                                         {additional.mothersName || additional.motherName || "—"}
                                                     </div>
                                                 </div>
@@ -876,7 +876,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                         </div>
 
                         {/* Evidence Uploads & Attachments */}
-                        <div className="bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-[0_2px_40px_rgba(0,0,0,0.02)] dark:shadow-2xl">
+                        <div className="bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800 rounded-[2.5rem] overflow-hidden shadow-xl dark:shadow-2xl">
                             <div
                                 className="flex items-center justify-between p-8 md:p-10 cursor-pointer select-none group"
                                 onClick={() => setIsEvidenceOpen(!isEvidenceOpen)}
@@ -1073,7 +1073,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
 
 
                         {/* Status tracker */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
+                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-6">
                             <div>
                                 <h3 className="text-md font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">Status Tracker</h3>
                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic mt-1">Status phase progress</p>
@@ -1124,7 +1124,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                             const displayRefNo = refNo || "No payment reference ID stored";
 
                             return (
-                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
+                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 rounded-xl bg-primary/10 text-primary">
                                             <Hash className="w-4 h-4" />
@@ -1171,7 +1171,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                             if (!orNo && !orDocUrl) return null;
 
                             return (
-                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
+                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 rounded-xl bg-green-500/10 text-green-500">
                                             <FileText className="w-4 h-4" />
