@@ -272,8 +272,14 @@ export function Sidebar({
                 menuItems = [
                     ...(registrarHubItem ? [registrarHubItem] : [])
                 ];
+            } else if (deptUpper === "TREASURY") {
+                menuItems = allMenuItems.filter(item => 
+                    ["Treasury Hub", "Payments Ledger", "Payment Settings"].includes(item.label)
+                );
             } else if (deptUpper === "LGU") {
-                menuItems = allMenuItems;
+                menuItems = allMenuItems.filter(item => 
+                    !["Registrar Hub", "Treasury Hub", "Payments Ledger", "BPLO Permits", "Payment Settings"].includes(item.label)
+                );
             } else {
                 menuItems = [
                     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }
