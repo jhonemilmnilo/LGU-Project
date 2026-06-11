@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -21,20 +20,9 @@ import {
     Search,
     CheckCircle2,
     Users,
-    Eye,
     Home
 } from "lucide-react";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
-
-const checkIsPdf = (file: any, url: string | null) => {
-    if (file && file instanceof File) {
-        return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    }
-    if (url) {
-        return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
-    }
-    return false;
-};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,24 +84,6 @@ async function uploadFileClientSide(file: File, fieldName: string, userId: strin
     return publicUrl;
 }
 
-const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
-    const [src, setSrc] = React.useState(fallbackUrl || "");
-
-    React.useEffect(() => {
-        if (!file) {
-            setSrc(fallbackUrl || "");
-            return;
-        }
-        const url = URL.createObjectURL(file);
-        setSrc(url);
-        return () => {
-            URL.revokeObjectURL(url);
-        };
-    }, [file, fallbackUrl]);
-
-    if (!src) return null;
-    return <img src={src} alt={alt} className={className} />;
-};
 
 type Step = "STATUS" | "IDENTITY" | "DETAILS" | "PARENTS" | "CONFIRM";
 

@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -17,9 +16,7 @@ import {
     ArrowRight,
     Upload,
     CheckCircle2,
-    FileText,
-    Eye,
-    Trash2
+    FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,24 +81,6 @@ async function uploadFileClientSide(file: File, fieldName: string, userId: strin
     return publicUrl;
 }
 
-const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
-    const [src, setSrc] = React.useState(fallbackUrl || "");
-
-    React.useEffect(() => {
-        if (!file) {
-            setSrc(fallbackUrl || "");
-            return;
-        }
-        const url = URL.createObjectURL(file);
-        setSrc(url);
-        return () => {
-            URL.revokeObjectURL(url);
-        };
-    }, [file, fallbackUrl]);
-
-    if (!src) return null;
-    return <img src={src} alt={alt} className={className} />;
-};
 
 const STORAGE_KEY = "lcr_death_psa_endorsement_draft";
 

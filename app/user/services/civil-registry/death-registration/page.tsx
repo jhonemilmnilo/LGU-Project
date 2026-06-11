@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -17,10 +16,7 @@ import {
     Skull,
     ArrowRight,
     Upload,
-    CheckCircle2,
-    FileText,
-    Eye,
-    Trash2
+    CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,24 +56,6 @@ import { compressImage } from "@/lib/image-compression";
 import { supabase } from "@/lib/supabase";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 
-const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
-    const [src, setSrc] = React.useState(fallbackUrl || "");
-
-    React.useEffect(() => {
-        if (!file) {
-            setSrc(fallbackUrl || "");
-            return;
-        }
-        const url = URL.createObjectURL(file);
-        setSrc(url);
-        return () => {
-            URL.revokeObjectURL(url);
-        };
-    }, [file, fallbackUrl]);
-
-    if (!src) return null;
-    return <img src={src} alt={alt} className={className} />;
-};
 
 const STORAGE_KEY = "lcr_death_registration_draft";
 

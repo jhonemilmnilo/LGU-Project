@@ -8,7 +8,7 @@ import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, FileText, Eye, Heart, ShieldCheck, AlertCircle } from "lucide-react";
+import { Home, User, Search, CheckCircle2, Check, Loader2, FileText, Eye, Heart, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
@@ -31,7 +31,6 @@ import { submitMarriageLicenseTransaction } from "@/app/admin/transactions/marri
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { supabase } from "@/lib/supabase";
-import { compressImage } from "@/lib/image-compression";
 
 const checkIsPdf = (file: any, url: string | null) => {
 	if (file && file instanceof File) {
@@ -566,69 +565,6 @@ export default function MarriageLicenseApplicationPage() {
 				}));
 			}
 			setMissingFiles((m) => ({ ...m, [key]: false }));
-		}
-	};
-
-	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-		const file = e.target.files?.[0] || null;
-		if (file) {
-			if (file && file.size > 5 * 1024 * 1024) {
-				toast.error("File size exceeds 5MB limit.");
-				if (e && e.target && e.target.parentElement) {
-					const parent = e.target.parentElement;
-					let errEl = parent.querySelector('.file-error-msg');
-					if (!errEl) {
-						errEl = document.createElement('div');
-						errEl.className = 'file-error-msg text-[9px] font-black uppercase text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-center animate-pulse mt-2 z-50';
-						parent.appendChild(errEl);
-					}
-					errEl.textContent = 'LIMIT UPLOAD ERROR: MAX 5MB ALLOWED';
-					setTimeout(() => errEl && errEl.remove(), 4000);
-				}
-				if (e && e.target) e.target.value = "";
-				return;
-			}
-
-			let fileToProcess = file;
-			if (file.type.startsWith("image/")) {
-				try {
-					toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-					fileToProcess = await compressImage(file);
-					toast.success("Image optimized successfully!", { id: "image-compress-toast" });
-				} catch (err) {
-					console.error("Compression error:", err);
-					toast.dismiss("image-compress-toast");
-				}
-			}
-
-			// Save raw/compressed file to IndexedDB
-			saveDraftFile(STORAGE_KEY, key, fileToProcess).catch(err => {
-				console.error("Failed to save draft file to IndexedDB:", err);
-			});
-
-			// Read image files as data URL so previews persist across reloads
-			if (fileToProcess.type.startsWith("image/")) {
-				const reader = new FileReader();
-				reader.onload = () => {
-					const dataUrl = reader.result as string | null;
-					if (!dataUrl) return;
-					// set File reference
-					setForm((prev: any) => ({
-						...prev,
-						files: { ...prev.files, [key]: fileToProcess },
-						previews: { ...prev.previews, [key]: dataUrl }
-					}));
-					setMissingFiles((m) => ({ ...m, [key]: false }));
-				};
-				reader.readAsDataURL(fileToProcess);
-			} else {
-				setForm((prev: any) => ({
-					...prev,
-					files: { ...prev.files, [key]: fileToProcess },
-					previews: { ...prev.previews, [key]: null }
-				}));
-				setMissingFiles((m) => ({ ...m, [key]: false }));
-			}
 		}
 	};
 

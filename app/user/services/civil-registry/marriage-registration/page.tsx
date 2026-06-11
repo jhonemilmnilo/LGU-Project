@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -15,22 +14,9 @@ import {
     ArrowRight,
     Search,
     CheckCircle2,
-    Upload,
-    AlertCircle,
-    Eye,
-    FileText
+    AlertCircle
 } from "lucide-react";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
-
-const checkIsPdf = (file: any, url: string | null) => {
-    if (file && file instanceof File) {
-        return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    }
-    if (url) {
-        return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
-    }
-    return false;
-};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,7 +50,6 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
-import { compressImage } from "@/lib/image-compression";
 import { supabase } from "@/lib/supabase";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 
@@ -356,67 +341,6 @@ export default function MarriageRegistrationPage() {
         }
         init();
     }, []);
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-        const file = e.target.files?.[0] || null;
-        if (file) {
-            if (file && file.size > 5 * 1024 * 1024) {
-                toast.error("File size exceeds 5MB limit.");
-                if (e && e.target && e.target.parentElement) {
-                    const parent = e.target.parentElement;
-                    let errEl = parent.querySelector('.file-error-msg');
-                    if (!errEl) {
-                        errEl = document.createElement('div');
-                        errEl.className = 'file-error-msg text-[9px] font-black uppercase text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-center animate-pulse mt-2 z-50';
-                        parent.appendChild(errEl);
-                    }
-                    errEl.textContent = 'LIMIT UPLOAD ERROR: MAX 5MB ALLOWED';
-                    setTimeout(() => errEl && errEl.remove(), 4000);
-                }
-                if (e && e.target) e.target.value = "";
-                return;
-            }
-
-            let fileToProcess = file;
-            if (file.type.startsWith("image/")) {
-                try {
-                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-                    fileToProcess = await compressImage(file);
-                    toast.success("Image optimized successfully!", { id: "image-compress-toast" });
-                } catch (err) {
-                    console.error("Compression error:", err);
-                    toast.dismiss("image-compress-toast");
-                }
-            }
-
-            // Save raw/compressed file to IndexedDB
-            saveDraftFile(STORAGE_KEY, key, fileToProcess).catch(err => {
-                console.error("Failed to save draft file to IndexedDB:", err);
-            });
-
-            if (fileToProcess.type.startsWith("image/")) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const dataUrl = reader.result as string | null;
-                    if (!dataUrl) return;
-
-                    // Set File reference
-                    setForm(prev => ({ 
-                        ...prev, 
-                        files: { ...prev.files, [key]: fileToProcess },
-                        previews: { ...prev.previews, [key]: dataUrl }
-                    }));
-                };
-                reader.readAsDataURL(fileToProcess);
-            } else {
-                setForm(prev => ({
-                    ...prev,
-                    files: { ...prev.files, [key]: fileToProcess },
-                    previews: { ...prev.previews, [key]: null }
-                }));
-            }
-        }
-    };
 
     const handlePremiumFileSelect = async (file: File, key: string) => {
         saveDraftFile(STORAGE_KEY, key, file).catch(err => {

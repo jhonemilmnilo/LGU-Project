@@ -1,11 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    FileText,
     User,
     Loader2,
     Check,
@@ -18,23 +16,12 @@ import {
     Upload,
     Search,
     CheckCircle2,
-    Eye,
     Home
 } from "lucide-react";
 import Link from "next/link";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 import { supabase } from "@/lib/supabase";
-
-const checkIsPdf = (file: any, url: string | null) => {
-    if (file && file instanceof File) {
-        return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    }
-    if (url) {
-        return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
-    }
-    return false;
-};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,24 +55,6 @@ import { compressImage } from "@/lib/image-compression";
 import { useRouter } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 
-const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
-    const [src, setSrc] = React.useState(fallbackUrl || "");
-
-    React.useEffect(() => {
-        if (!file) {
-            setSrc(fallbackUrl || "");
-            return;
-        }
-        const url = URL.createObjectURL(file);
-        setSrc(url);
-        return () => {
-            URL.revokeObjectURL(url);
-        };
-    }, [file, fallbackUrl]);
-
-    if (!src) return null;
-    return <img src={src} alt={alt} className={className} />;
-};
 
 // --- UPLOAD FILE CLIENT-SIDE TO SUPABASE STORAGE ---
 async function uploadFileClientSide(file: File, fieldName: string, userId: string): Promise<string> {
@@ -577,45 +546,6 @@ export default function MarriageCertificateRequestPage() {
 
     const handleAcceptPolicy = () => { setPolicyOpen(false); setPolicyAccepted(true); };
     const dbType = availableTypes.find(t => t.code === "LCR_MARRIAGE");
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error("File size exceeds 5MB limit.");
-                if (e.target.parentElement) {
-                    const parent = e.target.parentElement;
-                    let errEl = parent.querySelector('.file-error-msg');
-                    if (!errEl) {
-                        errEl = document.createElement('div');
-                        errEl.className = 'file-error-msg text-[9px] font-black uppercase text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-center animate-pulse mt-2 z-50';
-                        parent.appendChild(errEl);
-                    }
-                    errEl.textContent = 'LIMIT UPLOAD ERROR: MAX 5MB ALLOWED';
-                    setTimeout(() => errEl && errEl.remove(), 4000);
-                }
-                e.target.value = "";
-                return;
-            }
-            
-            let fileToProcess = file;
-            if (file.type.startsWith("image/")) {
-                try {
-                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-                    fileToProcess = await compressImage(file);
-                    toast.success("Image optimized successfully!", { id: "image-compress-toast" });
-                } catch (err) {
-                    console.error("Compression error:", err);
-                    toast.dismiss("image-compress-toast");
-                }
-            }
-
-            setForm(prev => ({
-                ...prev,
-                files: { ...prev.files, [key]: fileToProcess }
-            }));
-        }
-    };
 
     const handleSubmit = async () => {
         if (submitting) return;
