@@ -179,8 +179,12 @@ export function Sidebar({
             isDropdown: true,
             isOpen: isRegistrarOpen,
             onToggle: () => {
-                setIsRegistrarOpen(true);
-                router.push("/admin/registrar");
+                if (isRegistrarOpen) {
+                    setIsRegistrarOpen(false);
+                } else {
+                    setIsRegistrarOpen(true);
+                    router.push("/admin/registrar?category=Birth Registration");
+                }
             },
             subItems: [
                 { href: "/admin/registrar?category=Birth Registration", label: "Birth Registration" },
@@ -200,8 +204,12 @@ export function Sidebar({
             isDropdown: true,
             isOpen: isTreasuryOpen,
             onToggle: () => {
-                setIsTreasuryOpen(true);
-                router.push("/admin/treasury?category=CEDULA");
+                if (isTreasuryOpen) {
+                    setIsTreasuryOpen(false);
+                } else {
+                    setIsTreasuryOpen(true);
+                    router.push("/admin/treasury?category=CEDULA");
+                }
             },
             subItems: [
                 { href: "/admin/treasury?category=CEDULA", label: "CEDULA" },
