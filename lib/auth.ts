@@ -69,7 +69,7 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("Your account has not been approved yet. Please wait for an administrator to process your registration.");
                 }
 
-                 return {
+                return {
                     id: user.id,
                     email: user.email,
                     name: user.name,

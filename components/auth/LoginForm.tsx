@@ -179,7 +179,7 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                     if (stored) {
                         try {
                             map = JSON.parse(stored) || {};
-                        } catch {}
+                        } catch { }
                     }
                     map[normalizedEmail] = updated;
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
@@ -238,7 +238,7 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
         if (stored) {
             try {
                 map = JSON.parse(stored) || {};
-            } catch {}
+            } catch { }
         }
         map[normalizedEmail] = newState;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
@@ -256,7 +256,7 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 const map = JSON.parse(stored) || {};
                 delete map[normalizedEmail];
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-            } catch {}
+            } catch { }
         }
     }, []);
 
@@ -402,8 +402,8 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                     <div className="space-y-2">
                         <Label htmlFor="login-email" className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Email Address</Label>
                         <div className="relative">
-                            <Mail 
-                                className="absolute left-3 top-4 h-4 w-4 transition-colors duration-200" 
+                            <Mail
+                                className="absolute left-3 top-4 h-4 w-4 transition-colors duration-200"
                                 style={{ color: isEmailFocused ? themeColor : undefined }}
                             />
                             <Input
@@ -411,9 +411,9 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                                 type="email"
                                 placeholder="name@example.com"
                                 className="pl-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus-visible:ring-0 focus-visible:ring-offset-0"
-                                style={{ 
+                                style={{
                                     borderColor: isEmailFocused ? themeColor : undefined,
-                                    boxShadow: isEmailFocused ? `0 0 0 1px ${themeColor}` : undefined 
+                                    boxShadow: isEmailFocused ? `0 0 0 1px ${themeColor}` : undefined
                                 }}
                                 onFocus={() => setIsEmailFocused(true)}
                                 {...form.register("email", {
@@ -441,8 +441,8 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                             </Link>
                         </div>
                         <div className="relative">
-                            <Lock 
-                                className="absolute left-3 top-4 h-4 w-4 transition-colors duration-200" 
+                            <Lock
+                                className="absolute left-3 top-4 h-4 w-4 transition-colors duration-200"
                                 style={{ color: isPasswordFocused ? themeColor : undefined }}
                             />
                             <Input
@@ -450,9 +450,9 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
                                 className="pl-10 pr-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus-visible:ring-0 focus-visible:ring-offset-0"
-                                style={{ 
+                                style={{
                                     borderColor: isPasswordFocused ? themeColor : undefined,
-                                    boxShadow: isPasswordFocused ? `0 0 0 1px ${themeColor}` : undefined 
+                                    boxShadow: isPasswordFocused ? `0 0 0 1px ${themeColor}` : undefined
                                 }}
                                 onFocus={() => setIsPasswordFocused(true)}
                                 {...form.register("password", {

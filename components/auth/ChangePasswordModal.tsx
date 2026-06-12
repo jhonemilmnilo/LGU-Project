@@ -163,15 +163,20 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess, th
                 toast.success("Account setup complete!");
                 onSuccess();
 
-                // Fetch current session to determine role and auto-set portal cookie
+                // Fetch current session to determine role for redirect target
                 const response = await fetch("/api/auth/session");
                 const session = await response.json();
-                if (session && session.user && session.user.role !== "USER") {
+                const isAdmin = session && session.user && session.user.role !== "USER";
+
+                if (isAdmin) {
                     document.cookie = `active_portal=admin; path=/; max-age=86400; SameSite=Lax`;
-                    window.location.href = "/admin/dashboard";
-                } else {
-                    window.location.href = "/";
                 }
+
+                // Use replace() instead of href assignment so the browser does a full
+                // page reload, forcing NextAuth to re-issue the JWT and pick up
+                // isPasswordChanged=true from the DB — preventing the modal from
+                // re-appearing on the redirected page.
+                window.location.replace(isAdmin ? "/admin/dashboard" : "/");
             } else {
                 toast.error(result.error || "Failed to update password.");
             }
