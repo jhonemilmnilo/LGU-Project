@@ -163,20 +163,15 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess, th
                 toast.success("Account setup complete!");
                 onSuccess();
 
-                // Fetch current session to determine role for redirect target
+                // Fetch current session to determine role and auto-set portal cookie
                 const response = await fetch("/api/auth/session");
                 const session = await response.json();
-                const isAdmin = session && session.user && session.user.role !== "USER";
-
-                if (isAdmin) {
+                if (session && session.user && session.user.role !== "USER") {
                     document.cookie = `active_portal=admin; path=/; max-age=86400; SameSite=Lax`;
+                    window.location.href = "/admin/dashboard";
+                } else {
+                    window.location.href = "/";
                 }
-
-                // Use replace() instead of href assignment so the browser does a full
-                // page reload, forcing NextAuth to re-issue the JWT and pick up
-                // isPasswordChanged=true from the DB — preventing the modal from
-                // re-appearing on the redirected page.
-                window.location.replace(isAdmin ? "/admin/dashboard" : "/");
             } else {
                 toast.error(result.error || "Failed to update password.");
             }
@@ -390,23 +385,23 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess, th
                                     </div>
                                 </div>
 
-                                 {requirements.some(req => !req.met) && (
-                                     <div className="space-y-3 mt-4">
-                                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none opacity-80">Password Requirements</p>
-                                         <div className="space-y-2.5">
-                                             {requirements.filter(req => !req.met).map((req, i) => (
-                                                 <div key={i} className="flex items-center gap-3">
-                                                     <div className="w-4 h-4 rounded-full flex items-center justify-center border border-border bg-background">
-                                                         <div className="w-1.5 h-1.5 bg-muted rounded-full" />
-                                                     </div>
-                                                     <span className="text-[13px] font-semibold text-muted-foreground">
-                                                         {req.label}
-                                                     </span>
-                                                 </div>
-                                             ))}
-                                         </div>
-                                     </div>
-                                 )}
+                                {requirements.some(req => !req.met) && (
+                                    <div className="space-y-3 mt-4">
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none opacity-80">Password Requirements</p>
+                                        <div className="space-y-2.5">
+                                            {requirements.filter(req => !req.met).map((req, i) => (
+                                                <div key={i} className="flex items-center gap-3">
+                                                    <div className="w-4 h-4 rounded-full flex items-center justify-center border border-border bg-background">
+                                                        <div className="w-1.5 h-1.5 bg-muted rounded-full" />
+                                                    </div>
+                                                    <span className="text-[13px] font-semibold text-muted-foreground">
+                                                        {req.label}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="pt-2">
                                     <Button

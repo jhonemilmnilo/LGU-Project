@@ -1386,34 +1386,6 @@ export async function addResident(formData: FormData) {
         const headIdFromForm = formData.get("headId") as string || null;
         let householdId = (formData.get("householdId") as string) || null;
 
-        // If not head and selected a head, get their householdId
-        if (!isHead && headIdFromForm) {
-            const head = await (prisma.resident as any).findUnique({
-                where: { id: headIdFromForm },
-                select: { householdId: true }
-            });
-            if (head && head.householdId) {
-                householdId = head.householdId;
-            }
-        }
-
-        // If this is a head registration and no householdId provided, create a new household
-        if (isHead && !householdId) {
-            try {
-                const newHousehold = await (prisma as any).household.create({
-                    data: {
-                        barangay: formData.get("barangay") as string,
-                        householdSize: 1, // Start with head
-                        contactNumber: formData.get("contactNumber") as string || null,
-                        notes: "Automatically created during head registration"
-                    } as any
-                });
-                householdId = newHousehold.id;
-            } catch (err) {
-                console.error("Failed to create automatic household:", err);
-            }
-        }
-
         const linkedMembers = familyMembers.filter((fm: any) => !!fm.id);
         const manualMembers = familyMembers.filter((fm: any) => !fm.id);
 
@@ -1421,189 +1393,207 @@ export async function addResident(formData: FormData) {
         const emailRaw = emails.find(e => e.trim() !== "") || null;
         const email = emailRaw ? emailRaw.trim().toLowerCase() : null;
         const password = formData.get("password") as string | null;
-        let createdUserId: string | null = null;
-
-        if (email) {
-            // Check if user already exists
-            const existingUser = await prisma.user.findUnique({ where: { email } });
-            if (existingUser) {
-                return { success: false, error: "This email is already registered to another resident." };
-            }
-
-            const name = `${formData.get("firstName")} ${formData.get("lastName")}`;
-            // Use provided password or default to email
-            const rawPassword = password || email;
-            const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-            console.log(`[AccountSync] Creating user account for ${email}...`);
-            const user = await prisma.user.create({
-                data: {
-                    email,
-                    password: hashedPassword,
-                    name,
-                    role: "USER",
-                    emailVerified: new Date(),
-                    isEmailVerified: true,
-                    isPasswordChanged: false // Residents added by admin must change password on first login
-                } as any
-            });
-            createdUserId = user.id;
-        }
-
         const categoryIds = formData.getAll("categories") as string[];
 
-        // FIX 3: REGISTRATION DUPLICATE GUARD
-        // const faceDataRaw = formData.get("facialRecognition");
-        // if (faceDataRaw) {
-        //     const faceData = JSON.parse(faceDataRaw as string);
-        //     const descriptorToSave = faceData.descriptor || (Array.isArray(faceData) ? faceData : null);
-        //     
-        //     if (descriptorToSave) {
-        //          const duplicateCheck = await checkDuplicateFace(descriptorToSave);
-        //          if (duplicateCheck.success && duplicateCheck.match) {
-        //              return { 
-        //                  success: false, 
-        //                  error: `DUPLICATE FACE DETECTED: This identity matches ${duplicateCheck.match.name}.` 
-        //              };
-        //          }
-        //     }
-        // }
+        const result = await prisma.$transaction(async (tx: any) => {
+            // If not head and selected a head, get their householdId
+            if (!isHead && headIdFromForm) {
+                const head = await tx.resident.findUnique({
+                    where: { id: headIdFromForm },
+                    select: { householdId: true }
+                });
+                if (head && head.householdId) {
+                    householdId = head.householdId;
+                }
+            }
 
-        const resident = await (prisma as any).resident.create({
-            data: {
-                firstName: formData.get("firstName") as string,
-                lastName: formData.get("lastName") as string,
-                middleName: formData.get("middleName") as string || null,
-                suffix: formData.get("suffix") as string || null,
-                gender: formData.get("gender") as string,
-                dateOfBirth: new Date(formData.get("dateOfBirth") as string),
-                age: formData.get("age") ? parseInt(formData.get("age") as string, 10) : null,
-                placeOfBirth: formData.get("placeOfBirth") as string || null,
-                civilStatus: formData.get("civilStatus") as string,
-                citizenship: formData.get("citizenship") as string || "Filipino",
-                height: formData.get("height") as string || null,
-                weight: formData.get("weight") as string || null,
-                religion: formData.get("religion") as string || null,
-                bloodType: formData.get("bloodType") as string || null,
-                houseNumber: formData.get("houseNumber") as string || null,
-                street: formData.get("street") as string || null,
-                sitio: formData.get("sitio") as string || null,
-                purok: formData.get("purok") as string || null,
-                municipality: formData.get("municipality") as string || "Mapandan",
-                province: formData.get("province") as string || "Pangasinan",
-                contactNumber: formData.get("contactNumber") as string || null,
-                isHead: isHead,
-                relationshipToHead: formData.get("relationshipToHead") as string || null,
-                householdId: householdId,
-                familyHeadId: headIdFromForm,
-                tin: formData.get("tin") as string || null,
-                gsis: formData.get("gsis") as string || null,
-                sss: formData.get("sss") as string || null,
-                philhealthNumber: formData.get("philhealthNumber") as string || null,
-                occupation: formData.get("occupation") as string || null,
-                employer: formData.get("employer") as string || null,
-                motherFirstName: formData.get("motherFirstName") as string || null,
-                motherMiddleName: formData.get("motherMiddleName") as string || null,
-                motherLastName: formData.get("motherLastName") as string || null,
-                fatherFirstName: formData.get("fatherFirstName") as string || null,
-                fatherMiddleName: formData.get("fatherMiddleName") as string || null,
-                fatherLastName: formData.get("fatherLastName") as string || null,
-                idType: formData.get("idType") as string || null,
-                idFrontUrl,
-                idBackUrl,
-                educationalAttainment: formData.get("educationalAttainment") as string || null,
-                degreeProgram: formData.get("degreeProgram") as string || null,
-                employmentStatus: formData.get("employmentStatus") as string || null,
-                monthlyIncome: formData.get("monthlyIncome") as string || null,
-                isSenior: formData.get("isSenior") === "true" || formData.get("isSenior") === "on",
-                isPWD: formData.get("isPWD") === "true" || formData.get("isPWD") === "on",
-                isSoloParent: formData.get("isSoloParent") === "true" || formData.get("isSoloParent") === "on",
-                isIndigenous: formData.get("isIndigenous") === "true" || formData.get("isIndigenous") === "on",
-                is4Ps: formData.get("is4Ps") === "true" || formData.get("is4Ps") === "on",
-                otherSector: formData.get("otherSector") as string || null,
-                dataPrivacyConsent: true,
-                consentTimestamp: new Date(),
-                receivedBy: activeUserName,
-                officialPosition: activeUserRole,
-                dateReceived: new Date(),
-                livenessUrl,
-                registrationStatus: "APPROVED",
-                registrationType: "HEAD",
-                isDead: false,
-                rfid: null,
-                facialRecognition: formData.get("facialRecognition")
-                    ? JSON.parse(formData.get("facialRecognition") as string)
-                    : null,
-                userId: createdUserId,
-                email: email,
-                categoryId: categoryIds.length > 0 ? categoryIds[0] : null,
-                barangay: formData.get("barangay") as string || await getSessionBarangay() || null,
-            } as any
-        });
+            let createdUserId = null;
+            if (email) {
+                const name = `${formData.get("firstName")} ${formData.get("lastName")}`;
+                const existingUser = await tx.user.findUnique({ where: { email } });
+                if (existingUser) throw new Error("Email already taken.");
 
-        // Post-creation steps
-        if (householdId) {
-            // 1. If this person is the head, update the household's headId
-            if (isHead) {
-                await (prisma as any).household.update({
+                const rawPassword = password || email;
+                const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+                console.log(`[AccountSync] Creating user account for ${email}...`);
+                const user = await tx.user.create({
+                    data: {
+                        email,
+                        password: hashedPassword,
+                        name,
+                        role: "USER",
+                        emailVerified: new Date(),
+                        isEmailVerified: true,
+                        isPasswordChanged: password ? true : false
+                    }
+                });
+                createdUserId = user.id;
+            }
+
+            // If this is a head registration and no householdId provided, create a new household
+            if (isHead && !householdId) {
+                const newHousehold = await tx.household.create({
+                    data: {
+                        barangay: formData.get("barangay") as string || await getSessionBarangay() || "",
+                        householdSize: 1,
+                        contactNumber: formData.get("contactNumber") as string || null,
+                    } as any
+                });
+                householdId = newHousehold.id;
+            }
+
+            let barangayValue = formData.get("barangay") as string || await getSessionBarangay() || null;
+            if (!barangayValue && categoryIds.length > 0) {
+                const categoryObj = await tx.residentCategory.findUnique({
+                    where: { id: categoryIds[0] }
+                });
+                if (categoryObj && (categoryObj.name.toLowerCase().includes("guest") || categoryObj.name.toLowerCase().includes("non resident"))) {
+                    barangayValue = "Non-Resident";
+                }
+            }
+            if (!barangayValue) {
+                barangayValue = "Non-Resident"; // Fallback to satisfy non-nullable DB constraint
+            }
+
+            const resident = await tx.resident.create({
+                data: {
+                    firstName: formData.get("firstName") as string,
+                    lastName: formData.get("lastName") as string,
+                    middleName: formData.get("middleName") as string || null,
+                    suffix: formData.get("suffix") as string || null,
+                    gender: formData.get("gender") as string,
+                    dateOfBirth: new Date(formData.get("dateOfBirth") as string),
+                    age: formData.get("age") ? parseInt(formData.get("age") as string, 10) : null,
+                    placeOfBirth: formData.get("placeOfBirth") as string || null,
+                    civilStatus: formData.get("civilStatus") as string,
+                    citizenship: formData.get("citizenship") as string || "Filipino",
+                    height: formData.get("height") as string || null,
+                    weight: formData.get("weight") as string || null,
+                    religion: formData.get("religion") as string || null,
+                    bloodType: formData.get("bloodType") as string || null,
+                    houseNumber: formData.get("houseNumber") as string || null,
+                    street: formData.get("street") as string || null,
+                    sitio: formData.get("sitio") as string || null,
+                    purok: formData.get("purok") as string || null,
+                    municipality: (formData.get("municipality") as string || "Mapandan").toUpperCase(),
+                    province: (formData.get("province") as string || "Pangasinan").toUpperCase(),
+                    contactNumber: formData.get("contactNumber") as string || null,
+                    isHead: isHead,
+                    relationshipToHead: formData.get("relationshipToHead") as string || null,
+                    household: householdId ? { connect: { id: householdId } } : undefined,
+                    familyHead: headIdFromForm ? { connect: { id: headIdFromForm } } : undefined,
+                    tin: formData.get("tin") as string || null,
+                    gsis: formData.get("gsis") as string || null,
+                    sss: formData.get("sss") as string || null,
+                    philhealthNumber: formData.get("philhealthNumber") as string || null,
+                    occupation: formData.get("occupation") as string || null,
+                    employer: formData.get("employer") as string || null,
+                    motherFirstName: formData.get("motherFirstName") as string || null,
+                    motherMiddleName: formData.get("motherMiddleName") as string || null,
+                    motherLastName: formData.get("motherLastName") as string || null,
+                    fatherFirstName: formData.get("fatherFirstName") as string || null,
+                    fatherMiddleName: formData.get("fatherMiddleName") as string || null,
+                    fatherLastName: formData.get("fatherLastName") as string || null,
+                    idType: formData.get("idType") as string || null,
+                    idFrontUrl,
+                    idBackUrl,
+                    educationalAttainment: formData.get("educationalAttainment") as string || null,
+                    degreeProgram: formData.get("degreeProgram") as string || null,
+                    employmentStatus: formData.get("employmentStatus") as string || null,
+                    monthlyIncome: formData.get("monthlyIncome") as string || null,
+                    isSenior: formData.get("isSenior") === "true" || formData.get("isSenior") === "on",
+                    isPWD: formData.get("isPWD") === "true" || formData.get("isPWD") === "on",
+                    isSoloParent: formData.get("isSoloParent") === "true" || formData.get("isSoloParent") === "on",
+                    isIndigenous: formData.get("isIndigenous") === "true" || formData.get("isIndigenous") === "on",
+                    is4Ps: formData.get("is4Ps") === "true" || formData.get("is4Ps") === "on",
+                    otherSector: formData.get("otherSector") as string || null,
+                    dataPrivacyConsent: true,
+                    consentTimestamp: new Date(),
+                    receivedBy: activeUserName,
+                    officialPosition: activeUserRole,
+                    dateReceived: new Date(),
+                    livenessUrl,
+                    registrationStatus: "APPROVED",
+                    registrationType: "HEAD",
+                    isDead: false,
+                    rfid: null,
+                    facialRecognition: formData.get("facialRecognition")
+                        ? JSON.parse(formData.get("facialRecognition") as string)
+                        : null,
+                    user: createdUserId ? { connect: { id: createdUserId } } : undefined,
+                    email: email,
+                    category: categoryIds.length > 0 && categoryIds[0] ? { connect: { id: categoryIds[0] } } : undefined,
+                    barangay: barangayValue ? barangayValue.toUpperCase() : "NON-RESIDENT",
+                } as any
+            });
+
+            // Post-creation steps
+            if (householdId) {
+                // 1. If this person is the head, update the household's headId
+                if (isHead) {
+                    await tx.household.update({
+                        where: { id: householdId },
+                        data: { headId: resident.id } as any
+                    });
+                }
+
+                // 2. Link existing residents who were added as family members
+                if (linkedMembers.length > 0) {
+                    for (const member of linkedMembers) {
+                        // Only link if they don't have a household yet
+                        const target = await tx.resident.findUnique({
+                            where: { id: member.id },
+                            select: { householdId: true }
+                        });
+
+                        if (target) {
+                            await tx.resident.update({
+                                where: { id: member.id },
+                                data: {
+                                    householdId: householdId,
+                                    familyHeadId: resident.id,
+                                    relationshipToHead: member.relationship || "Member"
+                                } as any
+                            });
+                        }
+                    }
+                }
+
+                // 3. Update final household size
+                const totalSize = 1 + familyMembers.length; // 1 (new resident) + family members
+                await tx.household.update({
                     where: { id: householdId },
-                    data: { headId: resident.id } as any
+                    data: { householdSize: totalSize } as any
                 });
             }
 
-            // 2. Link existing residents who were added as family members
-            if (linkedMembers.length > 0) {
-                for (const member of linkedMembers) {
-                    // Only link if they don't have a household yet
-                    const target = await (prisma.resident as any).findUnique({
-                        where: { id: member.id },
-                        select: { householdId: true }
-                    });
-
-                    if (target) {
-                        await (prisma as any).resident.update({
-                            where: { id: member.id },
-                            data: {
-                                householdId: householdId,
-                                familyHeadId: resident.id,
-                                relationshipToHead: member.relationship || "Member"
-                            } as any
-                        });
+            // Fetch full resident data with relations for the frontend
+            const finalResidentAdd = await tx.resident.findUnique({
+                where: { id: resident.id },
+                include: {
+                    category: true,
+                    household: {
+                        include: {
+                            members: true,
+                            head: true
+                        }
                     }
                 }
-            }
-
-            // 3. Update final household size
-            const totalSize = 1 + familyMembers.length; // 1 (new resident) + family members
-            await (prisma as any).household.update({
-                where: { id: householdId },
-                data: { householdSize: totalSize } as any
             });
-        }
 
-        // Fetch full resident data with relations for the frontend
-        const finalResidentAdd = await (prisma.resident as any).findUnique({
-            where: { id: resident.id },
-            include: {
-                category: true,
-                household: {
-                    include: {
-                        members: true,
-                        head: true
-                    }
-                }
-            }
+            const mappedAdd = finalResidentAdd ? {
+                ...finalResidentAdd,
+                headId: finalResidentAdd.household?.headId || null,
+                headName: finalResidentAdd.household?.head ? `${finalResidentAdd.household.head.firstName} ${finalResidentAdd.household.head.lastName}` : null
+            } : resident;
+
+            return mappedAdd;
         });
-
-        const mappedAdd = finalResidentAdd ? {
-            ...finalResidentAdd,
-            headId: finalResidentAdd.household?.headId || null,
-            headName: finalResidentAdd.household?.head ? `${finalResidentAdd.household.head.firstName} ${finalResidentAdd.household.head.lastName}` : null
-        } : resident;
 
         revalidatePath("/admin/residents");
         revalidatePath("/admin/households");
-        return { success: true, data: mappedAdd };
+        return { success: true, data: result };
     } catch (error) {
         console.error("Error adding resident:", error);
         return { success: false, error: "Failed to add resident" };
