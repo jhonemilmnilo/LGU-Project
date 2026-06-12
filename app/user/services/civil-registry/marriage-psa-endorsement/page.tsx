@@ -14,8 +14,7 @@ import {
     Home,
     Heart,
     ArrowRight,
-    CheckCircle2,
-    FileText
+    CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1159,7 +1158,7 @@ export default function MarriagePsaEndorsementPage() {
                                             <div className={cn(
                                                 "p-4 rounded-2xl border bg-white/30 dark:bg-white/5 flex items-start gap-4 transition-all duration-300",
                                                 (showErrors && !policyAccepted)
-                                                    ? "border-red-500 bg-red-500/5 shadow-md shadow-red-500/5"
+                                                    ? "border-2 border-red-500"
                                                     : "border-slate-200/40"
                                             )}>
                                                 <button
@@ -1170,7 +1169,7 @@ export default function MarriagePsaEndorsementPage() {
                                                         policyAccepted
                                                             ? "bg-rose-500 border-rose-500 text-white"
                                                             : showErrors
-                                                                ? "border-red-500"
+                                                                ? "border-2 border-red-500"
                                                                 : "border-slate-300"
                                                     )}
                                                 >

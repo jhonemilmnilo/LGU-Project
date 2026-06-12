@@ -1184,7 +1184,7 @@ export default function DeathPsaEndorsementPage() {
                                                 policyAccepted
                                                     ? "bg-emerald-50/20 border-emerald-500/30"
                                                     : showErrors
-                                                        ? "border-red-500/50 bg-red-50/10 ring-2 ring-red-500/20 animate-pulse"
+                                                        ? "border-2 border-red-500"
                                                         : "border-slate-200/40 bg-white/30 dark:bg-white/5 hover:border-emerald-500/20"
                                             )}
                                         >
@@ -1203,7 +1203,7 @@ export default function DeathPsaEndorsementPage() {
                                                     policyAccepted
                                                         ? "bg-emerald-500 border-emerald-500 text-white"
                                                         : showErrors
-                                                            ? "border-red-500"
+                                                            ? "border-2 border-red-500"
                                                             : "border-slate-300"
                                                 )}
                                             >

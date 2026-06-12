@@ -1516,7 +1516,7 @@ export default function MarriageLicenseApplicationPage() {
 								<div className={cn(
 									"p-4 rounded-2xl border flex items-start gap-4 transition-all duration-300",
 									(showSubmitErrors && !policyAccepted)
-										? "border-2 border-red-500 bg-red-50/10"
+										? "border-2 border-red-500"
 										: "border-slate-200/40 bg-slate-50 dark:bg-white/5"
 								)}>
 									<button

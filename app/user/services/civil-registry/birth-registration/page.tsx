@@ -2208,7 +2208,12 @@ export default function BirthRegistrationPage() {
                                     </div>
 
                                     <div className="space-y-4">
-                                        <div className="p-6 rounded-3xl border border-slate-200/20 bg-[#11131e]/90 dark:bg-[#11131e]/90 flex items-center gap-5">
+                                        <div className={cn(
+                                            "p-6 rounded-3xl border flex items-center gap-5 transition-all duration-300",
+                                            errors.policyAccepted
+                                                ? "border-2 border-red-500"
+                                                : "border-slate-200/20 bg-[#11131e]/90 dark:bg-[#11131e]/90"
+                                        )}>
                                             <button 
                                                 type="button" 
                                                 onClick={() => setPolicyOpen(true)} 
@@ -2216,7 +2221,9 @@ export default function BirthRegistrationPage() {
                                                     "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-300", 
                                                     policyAccepted 
                                                         ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20" 
-                                                        : "border-slate-500 hover:border-emerald-500"
+                                                        : errors.policyAccepted
+                                                            ? "border-2 border-red-500"
+                                                            : "border-slate-500 hover:border-emerald-500"
                                                 )}
                                             >
                                                 {policyAccepted ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : null}
