@@ -1652,45 +1652,6 @@ export default function DeathCertificateRequestPage() {
 
                             {/* Review panels */}
                             <div className="space-y-6">
-                                {/* Data Privacy checkbox */}
-                                <div className={cn(
-                                    "p-4 rounded-3xl border flex flex-col gap-3 shadow-sm bg-slate-500/5 transition-all duration-300",
-                                    (showErrors && !policyAccepted) ? "border-2 border-red-500" : "border-slate-200/50 dark:border-white/5"
-                                )}>
-                                    <div className="flex items-start gap-4 w-full">
-                                        <button
-                                            type="button"
-                                            onClick={() => setPolicyOpen(true)}
-                                            className={cn(
-                                                "w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 transition-colors",
-                                                policyAccepted ? "bg-slate-800 border-slate-800 dark:bg-white dark:border-white text-white dark:text-slate-900" :
-                                                (showErrors && !policyAccepted) ? "border-2 border-red-500" : "border-slate-300"
-                                            )}
-                                        >
-                                            {policyAccepted ? <Check className="w-3.5 h-3.5" /> : null}
-                                        </button>
-                                        <div className="flex-1 text-xs cursor-pointer select-none" onClick={() => setPolicyOpen(true)}>
-                                            <div className="font-black uppercase text-[10px] tracking-wider text-slate-800 dark:text-white">Data Privacy & Certification Agreement</div>
-                                            <div className="text-[9px] text-slate-500 italic mt-1 leading-relaxed">
-                                                I certify that all details submitted are true, correct, and matching public registry records. I agree to the Municipal Data Privacy compliance. Click to review.
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setPolicyOpen(true)}
-                                            className="text-[10px] font-black italic text-slate-600 dark:text-slate-400 hover:underline shrink-0"
-                                        >
-                                            Review
-                                        </button>
-                                    </div>
-                                    {showErrors && !policyAccepted && (
-                                        <div className="text-red-500 font-bold text-[9px] uppercase tracking-widest pl-9 flex items-center gap-1.5 animate-pulse">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                            Data privacy agreement is required to submit
-                                        </div>
-                                    )}
-                                </div>
-
                                 {/* Summary columns */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 rounded-[2.5rem] bg-slate-500/5 border border-slate-200/50 dark:border-white/5">
 
@@ -1757,6 +1718,45 @@ export default function DeathCertificateRequestPage() {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* Data Privacy checkbox */}
+                                <div className={cn(
+                                    "p-4 rounded-3xl border flex flex-col gap-3 shadow-sm bg-slate-500/5 transition-all duration-300",
+                                    (showErrors && !policyAccepted) ? "border-2 border-red-500" : "border-slate-200/50 dark:border-white/5"
+                                )}>
+                                    <div className="flex items-start gap-4 w-full">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPolicyOpen(true)}
+                                            className={cn(
+                                                "w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 transition-colors",
+                                                policyAccepted ? "bg-slate-800 border-slate-800 dark:bg-white dark:border-white text-white dark:text-slate-900" :
+                                                (showErrors && !policyAccepted) ? "border-2 border-red-500" : "border-slate-300"
+                                            )}
+                                        >
+                                            {policyAccepted ? <Check className="w-3.5 h-3.5" /> : null}
+                                        </button>
+                                        <div className="flex-1 text-xs cursor-pointer select-none" onClick={() => setPolicyOpen(true)}>
+                                            <div className="font-black uppercase text-[10px] tracking-wider text-slate-800 dark:text-white">Data Privacy & Certification Agreement</div>
+                                            <div className="text-[9px] text-slate-500 italic mt-1 leading-relaxed">
+                                                I certify that all details submitted are true, correct, and matching public registry records. I agree to the Municipal Data Privacy compliance. Click to review.
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPolicyOpen(true)}
+                                            className="text-[10px] font-black italic text-slate-600 dark:text-slate-400 hover:underline shrink-0"
+                                        >
+                                            Review
+                                        </button>
+                                    </div>
+                                    {showErrors && !policyAccepted && (
+                                        <div className="text-red-500 font-bold text-[9px] uppercase tracking-widest pl-9 flex items-center gap-1.5 animate-pulse">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                            Data privacy agreement is required to submit
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
