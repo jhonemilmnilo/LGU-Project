@@ -42,7 +42,8 @@ import {
     getCurrentUserResident,
     getTransactionTypes,
     ensureCivilRegistryTransactionTypes,
-    getSystemSettingAction
+    getSystemSettingAction,
+    getTransactionById
 } from "@/app/admin/transactions/actions";
 import { submitMarriageRegistrationTransaction } from "@/app/admin/transactions/marriage-regis-actions";
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
@@ -156,6 +157,8 @@ export default function MarriageRegistrationPage() {
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [revisionId, setRevisionId] = useState<string | null>(null);
+    const [revisionTx, setRevisionTx] = useState<any>(null);
 
     const [themeColor, setThemeColor] = useState("theme_color");
     const [lateFee, setLateFee] = useState<number>(300);
@@ -188,6 +191,10 @@ export default function MarriageRegistrationPage() {
     const [resident, setResident] = useState<any>(null);
     const [showDetailsErrors, setShowDetailsErrors] = useState(false);
 
+    const isApp1Male = resident?.gender ? resident.gender.toUpperCase() === "MALE" : true;
+    const app1Label = resident?.gender ? (isApp1Male ? "Groom" : "Wife") : "Applicant 1";
+    const app2Label = resident?.gender ? (isApp1Male ? "Wife" : "Groom") : "Applicant 2";
+
     const [form, setForm] = useState({
         typeId: "",
         registryType: "MARRIAGE_REG",
@@ -205,6 +212,7 @@ export default function MarriageRegistrationPage() {
         app2BirthDate: "",
         app2BirthPlace: "",
         app2Citizenship: "FILIPINO",
+        app2Address: "",
 
         // Marriage Details
         dateOfMarriage: "",
@@ -224,12 +232,17 @@ export default function MarriageRegistrationPage() {
     // Privacy / Terms modal state (shared key across LCR pages)
     const [policyOpen, setPolicyOpen] = useState(false);
     const [policyAccepted, setPolicyAccepted] = useState(false);
+    const [showConfirmErrors, setShowConfirmErrors] = useState(false);
 
-    const handleAcceptPolicy = () => { setPolicyOpen(false); setPolicyAccepted(true); };
+    const handleAcceptPolicy = () => { 
+        setPolicyOpen(false); 
+        setPolicyAccepted(true); 
+        setShowConfirmErrors(false);
+    };
 
     // Save progress to localStorage
     useEffect(() => {
-        if (!loading) {
+        if (!loading && !revisionId) {
             // Persist drafts to localStorage. We strip files and previews
             // to avoid hitting the quota limit, since binary files are stored in IndexedDB.
             const savableForm = (() => {
@@ -245,12 +258,28 @@ export default function MarriageRegistrationPage() {
             localStorage.setItem(STORAGE_KEY, serialized);
             setHasDraft(true);
         }
-    }, [form, currentStep, loading]);
+    }, [form, currentStep, loading, revisionId]);
 
     useEffect(() => {
         async function init() {
             try {
                 await ensureCivilRegistryTransactionTypes();
+
+                // Check for revisionId query parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const revId = urlParams.get("revisionId");
+
+                let txData: any = null;
+                if (revId) {
+                    const txRes = await getTransactionById(revId);
+                    if (txRes.success && txRes.data) {
+                        txData = txRes.data;
+                        setRevisionId(revId);
+                        setRevisionTx(txData);
+                    } else {
+                        toast.error("Failed to fetch revision details");
+                    }
+                }
 
                 // Try loading from localStorage first
                 const saved = localStorage.getItem(STORAGE_KEY);
@@ -268,57 +297,94 @@ export default function MarriageRegistrationPage() {
                     setResident(activeResident);
                 }
 
-                if (savedData) {
-                    setForm(prev => ({ ...prev, ...savedData.form }));
-                    setCurrentStep(savedData.currentStep);
-                }
+                if (txData) {
+                    const addData = txData.additionalData as any || {};
+                    const resSnapshot = txData.residentSnapshot as any || activeResident || {};
 
-                // Restore draft files from IndexedDB
-                try {
-                    const draftFiles = await getDraftFiles(STORAGE_KEY);
-                    if (draftFiles && Object.keys(draftFiles).length > 0) {
-                        setForm(prev => {
-                            const newFiles = { ...prev.files, ...draftFiles };
-                            const newPreviews = { ...prev.previews };
-                            Object.entries(draftFiles).forEach(([key, file]) => {
-                                if (file && file.type.startsWith("image/")) {
-                                    newPreviews[key] = URL.createObjectURL(file);
-                                }
-                            });
-                            return {
-                                ...prev,
-                                files: newFiles,
-                                previews: newPreviews
-                            };
-                        });
-                    }
-                } catch (e) {
-                    console.error("Failed to restore draft files from IndexedDB:", e);
-                }
-
-                if (activeResident) {
-                    const r = activeResident;
-                    const parts = [
-                        r.houseNumber && `#${r.houseNumber}`,
-                        r.street && `${r.street} St.`,
-                        r.purok && `Purok ${r.purok}`,
-                        r.sitio && `Sitio ${r.sitio}`,
-                        r.barangay && `Brgy. ${r.barangay}`,
-                        r.municipality || "Mapandan",
-                        r.province || "Pangasinan"
-                    ].filter(Boolean);
-                    const constructedAddr = parts.join(", ").toUpperCase();
+                    // Extract previews from additionalData (URLs of documents)
+                    const previews: Record<string, string | null> = {};
+                    const fileKeys = ["marriageCert", "psaNeg", "affidavitDelay", "marriageLicense", "validIdFront", "validIdBack"];
+                    fileKeys.forEach(k => {
+                        if (addData[k] && typeof addData[k] === "string" && addData[k].startsWith("http")) {
+                            previews[k] = addData[k];
+                        }
+                    });
 
                     setForm(prev => ({
                         ...prev,
-                        email: r.email || prev.email || "",
-                        contactNumber: r.contactNumber || prev.contactNumber || "",
-                        app1FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
-                        app1BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
-                        app1BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
-                        app1Citizenship: (r.citizenship || "FILIPINO").toUpperCase(),
-                        informantAddress: constructedAddr
+                        typeId: txData.typeId || prev.typeId,
+                        registrationType: addData.registrationType || "",
+                        app1FullName: addData.applicant1?.fullName || "",
+                        app1BirthDate: addData.applicant1?.birthDate || "",
+                        app1BirthPlace: addData.applicant1?.birthPlace || "",
+                        app1Citizenship: addData.applicant1?.citizenship || "",
+                        app2IsResident: addData.applicant2?.isResident || false,
+                        app2FullName: addData.applicant2?.fullName || "",
+                        app2BirthDate: addData.applicant2?.birthDate || "",
+                        app2BirthPlace: addData.applicant2?.birthPlace || "",
+                        app2Citizenship: addData.applicant2?.citizenship || "",
+                        app2Address: addData.applicant2?.address || "",
+                        dateOfMarriage: addData.dateOfMarriage || "",
+                        placeOfMarriage: addData.placeOfMarriage || "MAPANDAN, PANGASINAN",
+                        email: addData.email || resSnapshot.email || "",
+                        contactNumber: addData.contactNumber || resSnapshot.contactNumber || "",
+                        relationship: addData.relationship || "",
+                        informantAddress: addData.informantAddress || "",
+                        previews
                     }));
+                } else {
+                    if (savedData) {
+                        setForm(prev => ({ ...prev, ...savedData.form }));
+                        setCurrentStep(savedData.currentStep);
+                    }
+
+                    // Restore draft files from IndexedDB
+                    try {
+                        const draftFiles = await getDraftFiles(STORAGE_KEY);
+                        if (draftFiles && Object.keys(draftFiles).length > 0) {
+                            setForm(prev => {
+                                const newFiles = { ...prev.files, ...draftFiles };
+                                const newPreviews = { ...prev.previews };
+                                Object.entries(draftFiles).forEach(([key, file]) => {
+                                    if (file && file.type.startsWith("image/")) {
+                                        newPreviews[key] = URL.createObjectURL(file);
+                                    }
+                                });
+                                return {
+                                    ...prev,
+                                    files: newFiles,
+                                    previews: newPreviews
+                                };
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Failed to restore draft files from IndexedDB:", e);
+                    }
+
+                    if (activeResident) {
+                        const r = activeResident;
+                        const parts = [
+                            r.houseNumber && `#${r.houseNumber}`,
+                            r.street && `${r.street} St.`,
+                            r.purok && `Purok ${r.purok}`,
+                            r.sitio && `Sitio ${r.sitio}`,
+                            r.barangay && `Brgy. ${r.barangay}`,
+                            r.municipality || "Mapandan",
+                            r.province || "Pangasinan"
+                        ].filter(Boolean);
+                        const constructedAddr = parts.join(", ").toUpperCase();
+
+                        setForm(prev => ({
+                            ...prev,
+                            email: r.email || prev.email || "",
+                            contactNumber: r.contactNumber || prev.contactNumber || "",
+                            app1FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
+                            app1BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
+                            app1BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
+                            app1Citizenship: (r.citizenship || "FILIPINO").toUpperCase(),
+                            informantAddress: constructedAddr
+                        }));
+                    }
                 }
 
                 if (typesResult.success && typesResult.data) {
@@ -405,15 +471,20 @@ export default function MarriageRegistrationPage() {
         if (submitting) return;
         // Require privacy terms acceptance before allowing submit
         if (!policyAccepted) {
+            setShowConfirmErrors(true);
             toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
             return;
         }
+        setShowConfirmErrors(false);
         setSubmitting(true);
         try {
             const formData = new FormData();
             formData.append("typeId", form.typeId);
             formData.append("registryType", "MARRIAGE_REG");
             formData.append("residentSnapshot", JSON.stringify(resident));
+            if (revisionId) {
+                formData.append("revisionId", revisionId);
+            }
 
             const additionalData = {
                 registrationType: form.registrationType,
@@ -421,14 +492,17 @@ export default function MarriageRegistrationPage() {
                     fullName: form.app1FullName,
                     birthDate: form.app1BirthDate,
                     birthPlace: form.app1BirthPlace,
-                    citizenship: form.app1Citizenship
+                    citizenship: form.app1Citizenship,
+                    gender: isApp1Male ? "MALE" : "FEMALE"
                 },
                 applicant2: {
                     isResident: form.app2IsResident,
                     fullName: form.app2FullName,
                     birthDate: form.app2BirthDate,
                     birthPlace: form.app2BirthPlace,
-                    citizenship: form.app2Citizenship
+                    citizenship: form.app2Citizenship,
+                    address: form.app2Address,
+                    gender: isApp1Male ? "FEMALE" : "MALE"
                 },
                 dateOfMarriage: form.dateOfMarriage,
                 placeOfMarriage: form.placeOfMarriage,
@@ -516,12 +590,12 @@ export default function MarriageRegistrationPage() {
         if (currentStep === "IDENTITY") {
             // Validate Applicant 1
             if (!form.app1FullName || !form.app1BirthDate || !form.app1BirthPlace || !form.app1Citizenship) {
-                toast.error("Please fill in all Applicant 1 details");
+                toast.error(`Please fill in all ${app1Label} details`);
                 return;
             }
             // Validate Applicant 2
-            if (!form.app2FullName || !form.app2BirthDate || !form.app2BirthPlace || !form.app2Citizenship) {
-                toast.error("Please fill in all Applicant 2 details");
+            if (!form.app2FullName || !form.app2BirthDate || !form.app2BirthPlace || !form.app2Citizenship || !form.app2Address) {
+                toast.error(`Please fill in all ${app2Label} details`);
                 return;
             }
             setCurrentStep("DETAILS");
@@ -566,15 +640,60 @@ export default function MarriageRegistrationPage() {
         const result = await getResidentDataById(res.id);
         if (result.success && result.data) {
             const r = result.data;
+            const parts = [
+                r.houseNumber && `#${r.houseNumber}`,
+                r.street && `${r.street} St.`,
+                r.purok && `Purok ${r.purok}`,
+                r.sitio && `Sitio ${r.sitio}`,
+                r.barangay && `Brgy. ${r.barangay}`,
+                r.municipality || "Mapandan",
+                r.province || "Pangasinan"
+            ].filter(Boolean);
+            const constructedAddr = parts.join(", ").toUpperCase();
+
             setForm(prev => ({
                 ...prev,
                 app2FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
                 app2BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
                 app2BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
-                app2Citizenship: (r.citizenship || "FILIPINO").toUpperCase()
+                app2Citizenship: (r.citizenship || "FILIPINO").toUpperCase(),
+                app2Address: constructedAddr
             }));
             toast.success(`Fetched details for ${r.firstName} ${r.lastName}`);
         }
+    };
+
+    const handleDateOfMarriageChange = (val: string) => {
+        if (!val) {
+            setForm(prev => ({
+                ...prev,
+                dateOfMarriage: "",
+                registrationType: ""
+            }));
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const [year, month, day] = val.split("-").map(Number);
+        const chosenDate = new Date(year, month - 1, day);
+        chosenDate.setHours(0, 0, 0, 0);
+
+        if (chosenDate > today) {
+            toast.error("Date of marriage cannot be in the future");
+            return;
+        }
+
+        const timeDiff = today.getTime() - chosenDate.getTime();
+        const diffDays = Math.round(timeDiff / (1000 * 3600 * 24));
+
+        const isLate = diffDays > 15;
+        setForm(prev => ({
+            ...prev,
+            dateOfMarriage: val,
+            registrationType: isLate ? "LATE" : "STANDARD"
+        }));
     };
 
     return (
@@ -806,12 +925,23 @@ export default function MarriageRegistrationPage() {
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-6"
                         >
+                            {revisionTx && (
+                                <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-800 dark:text-red-400 animate-in fade-in duration-300">
+                                    <AlertCircle className="w-5 h-5 shrink-0 animate-pulse mt-0.5" />
+                                    <div className="text-left space-y-1">
+                                        <p className="text-[10px] font-black uppercase tracking-wider italic">Attention: Revision Needed</p>
+                                        <p className="text-xs font-bold text-slate-900 dark:text-slate-300 leading-relaxed italic">
+                                            &ldquo;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&rdquo;
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                             {currentStep === "IDENTITY" && (
                                 <div className="space-y-8">
                                     {/* Applicant 1 */}
                                     <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                         <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                                            Applicant 1
+                                            {app1Label}
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-1.5">
@@ -847,6 +977,14 @@ export default function MarriageRegistrationPage() {
                                                     value={form.app1Citizenship}
                                                 />
                                             </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sex</Label>
+                                                <Input
+                                                    disabled
+                                                    className="bg-slate-100 dark:bg-white/5 border-none font-bold uppercase cursor-not-allowed opacity-75"
+                                                    value={isApp1Male ? "MALE" : "FEMALE"}
+                                                />
+                                            </div>
                                             <div className="space-y-1.5 col-span-1 md:col-span-2">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Informant Address</Label>
                                                 <Input
@@ -862,7 +1000,7 @@ export default function MarriageRegistrationPage() {
                                     <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
                                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                             <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
-                                                Applicant 2
+                                                {app2Label}
                                             </h3>
                                             <div className="flex items-center space-x-2">
                                                 <Checkbox
@@ -871,7 +1009,7 @@ export default function MarriageRegistrationPage() {
                                                     onCheckedChange={(checked) => setForm({ ...form, app2IsResident: !!checked })}
                                                 />
                                                 <label htmlFor="app2Resident" className="text-xs font-bold italic text-slate-500 cursor-pointer">
-                                                    Applicant 2 is a resident of Mapandan
+                                                    {app2Label} is a resident of Mapandan
                                                 </label>
                                             </div>
                                         </div>
@@ -922,6 +1060,23 @@ export default function MarriageRegistrationPage() {
                                                     onChange={e => setForm({ ...form, app2Citizenship: e.target.value.toUpperCase() })}
                                                 />
                                             </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sex</Label>
+                                                <Input
+                                                    disabled
+                                                    className="bg-slate-100 dark:bg-white/5 border-none font-bold uppercase cursor-not-allowed opacity-75"
+                                                    value={isApp1Male ? "FEMALE" : "MALE"}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5 col-span-1 md:col-span-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Address <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    placeholder="ENTER ADDRESS"
+                                                    className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                    value={form.app2Address}
+                                                    onChange={e => setForm({ ...form, app2Address: e.target.value.toUpperCase() })}
+                                                />
+                                            </div>
                                         </div>
                                     </Card>
 
@@ -948,6 +1103,7 @@ export default function MarriageRegistrationPage() {
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Registration Type <span className="text-rose-500">*</span></Label>
                                                 <Select 
                                                     value={form.registrationType} 
+                                                    disabled={true}
                                                     onValueChange={(val: any) => setForm({...form, registrationType: val})}
                                                 >
                                                     <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl">
@@ -969,9 +1125,10 @@ export default function MarriageRegistrationPage() {
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Marriage <span className="text-rose-500">*</span></Label>
                                                 <Input
                                                     type="date"
+                                                    max={new Date().toISOString().split("T")[0]}
                                                     className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl"
                                                     value={form.dateOfMarriage}
-                                                    onChange={e => setForm({ ...form, dateOfMarriage: e.target.value })}
+                                                    onChange={e => handleDateOfMarriageChange(e.target.value)}
                                                 />
                                                 {!form.dateOfMarriage && showDetailsErrors && (
                                                     <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -1019,7 +1176,7 @@ export default function MarriageRegistrationPage() {
                                                     </div>
                                                 </div>
                                             ) : form.registrationType === "STANDARD" ? (
-                                                <div className="col-span-1 md:col-span-2">
+                                                <div className="col-span-1">
                                                     <PremiumDocumentUpload
                                                         label="Accomplished Certificate of Marriage"
                                                         required
@@ -1100,16 +1257,28 @@ export default function MarriageRegistrationPage() {
                                                 <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b pb-2">Contracting Parties</h5>
                                                 <div className="space-y-4">
                                                     <div className="flex justify-between items-center text-xs">
-                                                        <span className="font-bold text-slate-400 italic">Party 1:</span>
+                                                        <span className="font-bold text-slate-400 italic">{app1Label}:</span>
                                                         <span className="font-black uppercase italic">{form.app1FullName}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center text-xs">
-                                                        <span className="font-bold text-slate-400 italic">Party 1 Address:</span>
+                                                        <span className="font-bold text-slate-400 italic">{app1Label} Sex:</span>
+                                                        <span className="font-black uppercase italic">{isApp1Male ? "MALE" : "FEMALE"}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">{app1Label} Address:</span>
                                                         <span className="font-black uppercase italic">{form.informantAddress || "N/A"}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center text-xs">
-                                                        <span className="font-bold text-slate-400 italic">Party 2:</span>
+                                                        <span className="font-bold text-slate-400 italic">{app2Label}:</span>
                                                         <span className="font-black uppercase italic">{form.app2FullName}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">{app2Label} Sex:</span>
+                                                        <span className="font-black uppercase italic">{isApp1Male ? "FEMALE" : "MALE"}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">{app2Label} Address:</span>
+                                                        <span className="font-black uppercase italic">{form.app2Address || "N/A"}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center text-xs text-rose-500">
                                                         <span className="font-bold italic">Type:</span>
@@ -1163,15 +1332,34 @@ export default function MarriageRegistrationPage() {
 
                                         <div className="pt-6 space-y-4">
                                             {/* Data Privacy Agreement panel */}
-                                            <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
-                                                <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-rose-500 border-rose-500 text-white" : "border-slate-300")}>
+                                            <div className={cn(
+                                                "p-4 rounded-2xl border bg-white/30 dark:bg-white/5 flex items-start gap-4 transition-all duration-300",
+                                                (showConfirmErrors && !policyAccepted)
+                                                    ? "border-red-500 bg-red-500/5 shadow-md shadow-red-500/5"
+                                                    : "border-slate-200/40"
+                                            )}>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setPolicyOpen(true)} 
+                                                    className={cn(
+                                                        "w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-all", 
+                                                        policyAccepted 
+                                                            ? "bg-rose-500 border-rose-500 text-white" 
+                                                            : showConfirmErrors
+                                                                ? "border-red-500"
+                                                                : "border-slate-300"
+                                                    )}
+                                                >
                                                     {policyAccepted ? <Check className="w-3 h-3" /> : null}
                                                 </button>
-                                                <div className="flex-1 text-xs cursor-pointer select-none" onClick={() => setPolicyOpen(true)}>
-                                                    <div className="font-black uppercase text-[11px] tracking-wider">DATA PRIVACY AND TERMS AGREEMENT</div>
-                                                    <div className="text-[10px] text-slate-500 italic mt-1">I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. CLICK TO REVIEW AGREEMENT.</div>
+                                                <div className="flex-1 text-xs cursor-pointer select-none text-left" onClick={() => setPolicyOpen(true)}>
+                                                    <div className="font-black uppercase text-[11px] tracking-wider text-slate-800 dark:text-white">DATA PRIVACY AND TERMS AGREEMENT</div>
+                                                    <div className="text-[10px] text-slate-500 italic mt-1 leading-relaxed">I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. CLICK TO REVIEW AGREEMENT.</div>
+                                                    {(showConfirmErrors && !policyAccepted) && (
+                                                        <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest mt-1 animate-pulse">Agreement required before submitting</p>
+                                                    )}
                                                 </div>
-                                                <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-rose-600">Review</button>
+                                                <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-rose-600 shrink-0">Review</button>
                                             </div>
                                         </div>
                                     </Card>
