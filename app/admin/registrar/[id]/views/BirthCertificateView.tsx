@@ -17,7 +17,12 @@ import {
     Trash2,
     RotateCw,
     Copy,
-    Coins
+    Coins,
+    User,
+    Users,
+    MapPin,
+    Calendar,
+    Baby
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -91,6 +96,8 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
     } = props;
 
     const [isAssessmentOpen, setIsAssessmentOpen] = React.useState(true);
+    const [isRegistryDataOpen, setIsRegistryDataOpen] = React.useState(true);
+    const [isRequirementsOpen, setIsRequirementsOpen] = React.useState(true);
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
     const additional = (() => {
         if (!transaction?.additionalData) return {};
@@ -297,7 +304,6 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                             )}
                         </div>
 
-                        {/* RESIDENT IDENTITY PROFILE ACCORDION */}
                         <ResidentIdentityProfile
                             resident={resident}
                             safeFormatDate={safeFormatDate}
@@ -306,130 +312,162 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                             titleWhiteText="Profile"
                             subtitleText="Verified Requester / Informant Data Dossier"
                             relationship={additional.relationship}
+                            relationshipLabel="Relationship to Subject"
                         />
-
-                        {/* Primary LCR Specific Details Panel */}
-                        <div className="bg-white dark:bg-[#111827] border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-xl dark:shadow-2xl space-y-8 animate-in fade-in duration-300">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-primary rounded-xl text-white shadow-lg shadow-primary/20">
-                                    <FileText className="w-5 h-5" />
+                        <div className="bg-white dark:bg-[#151b28] border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-xl dark:shadow-2xl space-y-8 animate-in fade-in duration-300">
+                            <div 
+                                className="flex justify-between items-center cursor-pointer select-none"
+                                onClick={() => setIsRegistryDataOpen(!isRegistryDataOpen)}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-green-500 rounded-xl text-white shadow-lg shadow-green-500/20">
+                                        <FileText className="w-5 h-5" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white leading-none">
+                                            Birth Registry Record Data
+                                        </h3>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 italic leading-none mt-0.5">
+                                            Civil Registry Application Details
+                                        </p>
+                                    </div>
                                 </div>
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">
-                                    Birth Certificate Search Information
-                                </h3>
+                                <div className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white transition-all focus:outline-none shrink-0">
+                                    {isRegistryDataOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                </div>
                             </div>
 
-
-
-                            {(additional.orSeriesNumber || additional.scannedDocUrl) && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-300">
-                                    {additional.orSeriesNumber && (
-                                        <div className="flex flex-col justify-center gap-2">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">O.R. Series Number</span>
-                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                {additional.orSeriesNumber}
-                                            </div>
+                            {isRegistryDataOpen && (
+                                <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                                    {(additional.orSeriesNumber || additional.scannedDocUrl) && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-300">
+                                            {additional.orSeriesNumber && (
+                                                <div className="space-y-1">
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block leading-none">O.R. Series Number</span>
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none italic">
+                                                        {additional.orSeriesNumber}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        <div className="space-y-6">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#10b981] flex items-center gap-1.5 italic">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" /> SUBJECT / DOCUMENT INFO
+                                            </h4>
+                                            <div className="space-y-4">
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block leading-none">Subject Name</span>
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none relative">
+                                                        <span className="italic">{subjectName}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-1.5">
+                                                        <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block leading-none">Event Date</span>
+                                                        <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none italic">
+                                                            {safeFormatDate(additional.dateOfEvent)}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block leading-none">Sex</span>
+                                                        <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-[#10b981] text-sm uppercase leading-none italic">
+                                                            {additional.sex || additional.gender || resident.gender || "—"}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block leading-none">Place of Birth</span>
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none italic">
+                                                        {additional.placeOfEvent || "—"}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-[#10b981] flex items-center gap-1.5 italic">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" /> Parental Matrix
+                                            </h4>
+                                            <div className="space-y-4">
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block leading-none">Father</span>
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none italic">
+                                                        {additional.fatherName || "—"}
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest block leading-none">Mother</span>
+                                                    <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none italic">
+                                                        {additional.motherName || "—"}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div className="space-y-6">
-                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">
-                                        Subject Details
-                                    </h4>
-                                    <div className="space-y-6">
-                                        <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Subject Full Name</span>
-                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                {subjectName}
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Date of Birth</span>
-                                                <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                    {safeFormatDate(additional.dateOfEvent)}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Registry No.</span>
-                                                <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                    {transaction.birthCertificateRequest?.registryNumber || "PENDING"}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Birth</span>
-                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                {additional.placeOfEvent || "—"}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">
-                                        Parental Details
-                                    </h4>
-                                    <div className="space-y-6">
-                                        <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">{"Father's Full Name"}</span>
-                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                {additional.fatherName || "—"}
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">{"Mother's Full Name"}</span>
-                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                {additional.motherName || "—"}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         {/* ATTACHMENT CARD FOR EVIDENCE */}
                         {evidenceDocs && evidenceDocs.length > 0 && (
                             <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1e293b] dark:text-white leading-none">
-                                    Submitted Identifications & Requirements
-                                </h3>
-                                <div className="grid grid-cols-2 gap-6">
-                                    {evidenceDocs.map((doc: any, idx: number) => {
-                                        if (!doc.url) return null;
-                                        return (
-                                            <div
-                                                key={idx}
-                                                onClick={() => handleViewFile?.(doc.url, doc.label, evidenceDocs, idx)}
-                                                className="relative group rounded-3xl overflow-hidden aspect-[3/2] bg-[#f8fafd] dark:bg-white/5 border border-slate-200/50 dark:border-white/5 cursor-pointer shadow-md hover:shadow-xl transition-all"
-                                            >
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
-                                                    src={doc.url}
-                                                    alt={doc.label}
-                                                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-all duration-500"
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
-                                                    <div
-                                                        style={{ backgroundColor: themeColor }}
-                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
-                                                    >
-                                                        <span>VIEW</span>
+                                <div
+                                    className="flex justify-between items-center cursor-pointer select-none"
+                                    onClick={() => setIsRequirementsOpen(!isRequirementsOpen)}
+                                >
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1e293b] dark:text-white leading-none">
+                                        Submitted Identifications & Requirements
+                                    </h3>
+                                    <div className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white transition-all focus:outline-none shrink-0">
+                                        {isRequirementsOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                    </div>
+                                </div>
+                                {isRequirementsOpen && (
+                                    <div className="grid grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                                        {evidenceDocs.map((doc: any, idx: number) => {
+                                            if (!doc.url) return null;
+                                            const isPdf = doc.url.toLowerCase().endsWith(".pdf") || doc.url.includes("application/pdf") || doc.url.includes(".pdf?");
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    onClick={() => handleViewFile?.(doc.url, doc.label, evidenceDocs, idx)}
+                                                    className="relative group rounded-3xl overflow-hidden aspect-[3/2] bg-[#f8fafd] dark:bg-white/5 border border-slate-200/50 dark:border-white/5 cursor-pointer shadow-md hover:shadow-xl transition-all"
+                                                >
+                                                    {isPdf ? (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-[#1f2937]/20 gap-2 p-4 group-hover:scale-[1.03] transition-all duration-500">
+                                                            <FileText className="w-10 h-10 text-red-500 animate-pulse" />
+                                                            <span className="text-[9px] font-black uppercase text-red-500/70 tracking-widest text-center">View PDF Document</span>
+                                                        </div>
+                                                    ) : (
+                                                        /* eslint-disable-next-line @next/next/no-img-element */
+                                                        <img
+                                                            src={doc.url}
+                                                            alt={doc.label}
+                                                            className="w-full h-full object-cover group-hover:scale-[1.03] transition-all duration-500"
+                                                        />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
+                                                        <div
+                                                            style={{ backgroundColor: themeColor }}
+                                                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
+                                                        >
+                                                            <span>VIEW</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate z-10">
+                                                        {doc.label}
                                                     </div>
                                                 </div>
-                                                <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate z-10">
-                                                    {doc.label}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

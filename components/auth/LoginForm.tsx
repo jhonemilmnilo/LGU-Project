@@ -63,6 +63,15 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 signOut({ redirect: false });
             } else {
                 const role = (session.user as any).role;
+                const isPasswordChanged = (session.user as any).isPasswordChanged;
+                const email = session.user?.email || "";
+
+                if (role === "USER" && isPasswordChanged === false) {
+                    setUserEmail(email);
+                    setShowChangeModal(true);
+                    return;
+                }
+
                 const dept = (session.user as any).department;
                 if (role === "USER") {
                     router.push("/");

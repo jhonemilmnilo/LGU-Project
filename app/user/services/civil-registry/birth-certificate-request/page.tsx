@@ -1,5 +1,6 @@
 "use client";
 
+
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +24,9 @@ import {
     Home
 } from "lucide-react";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
+
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,14 +54,13 @@ import {
     getTransactionTypes,
     ensureCivilRegistryTransactionTypes,
     submitCivilRegistryTransaction,
-    getSystemSettingAction
+    getSystemSettingAction,
+    getTransactionById
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
-import { compressImage } from "@/lib/image-compression";
 import { useRouter, useSearchParams } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { supabase } from "@/lib/supabase";
-import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 
 // --- UPLOAD FILE CLIENT-SIDE TO SUPABASE STORAGE ---
 async function uploadFileClientSide(file: File, fieldName: string, userId: string): Promise<string> {
@@ -83,7 +86,6 @@ async function uploadFileClientSide(file: File, fieldName: string, userId: strin
 
     return publicUrl;
 }
-
 
 type Step = "STATUS" | "IDENTITY" | "DETAILS" | "PARENTS" | "CONFIRM";
 
@@ -126,6 +128,7 @@ interface FormState {
     contactNumber: string;
     relationship: string;
     informantAddress?: string;
+    sex: string;
 }
 
 const REGISTRY_TYPES = [
@@ -182,11 +185,11 @@ export default function CivilRegistryPage() {
                 return !!form.relationship && !!form.contactNumber;
             case "DETAILS":
                 const isMarriage = form.registryType === "MARRIAGE" || form.registryType === "MARRIAGE_LICENSE";
-                if (!form.certFirstName || !form.certLastName || !form.dateOfEvent || !form.placeOfEvent) return false;
+                if (!form.certFirstName || !form.certLastName || !form.dateOfEvent || !form.sex) return false;
                 if (isMarriage && !form.spouseName) return false;
                 return true;
             case "PARENTS":
-                return true;
+                return !!form.motherFirstName && !!form.motherLastName;
             case "CONFIRM":
                 return true;
             default:
@@ -207,8 +210,13 @@ export default function CivilRegistryPage() {
             if (!form.certFirstName) errs.certFirstName = "Please enter first name.";
             if (!form.certLastName) errs.certLastName = "Please enter last name.";
             if (!form.dateOfEvent) errs.dateOfEvent = "Please select date of occurrence.";
-            if (!form.placeOfEvent) errs.placeOfEvent = "Please enter place of occurrence.";
+            if (!form.sex) errs.sex = "Please select sex.";
             if (isMarriage && !form.spouseName) errs.spouseName = "Please enter spouse's maiden name.";
+        }
+
+        if (step === "PARENTS") {
+            if (!form.motherFirstName) errs.motherFirstName = "Please enter Mother's maiden first name.";
+            if (!form.motherLastName) errs.motherLastName = "Please enter Mother's maiden last name.";
         }
 
         setErrors(errs);
@@ -245,13 +253,15 @@ export default function CivilRegistryPage() {
         setMounted(true);
     }, []);
     const [resident, setResident] = useState<any>(null);
+    const [revisionId, setRevisionId] = useState<string | null>(null);
+    const [revisionTx, setRevisionTx] = useState<any>(null);
 
     const [form, setForm] = useState<FormState>({
         typeId: "",
         registryType: "BIRTH",
         fullName: "",
         dateOfEvent: "",
-        placeOfEvent: "",
+        placeOfEvent: "MUNICIPALITY OF MAPANDAN",
         fatherName: "",
         fatherFirstName: "",
         fatherMiddleName: "",
@@ -274,11 +284,12 @@ export default function CivilRegistryPage() {
         email: "",
         contactNumber: "",
         relationship: "",
-        informantAddress: ""
+        informantAddress: "",
+        sex: ""
     });
 
     const isRestoredRef = useRef(false);
-    const prevRelationshipRef = useRef<string>("");
+
     // Privacy / Terms modal state (shared key across LCR pages)
     const [policyOpen, setPolicyOpen] = useState(false);
     const [policyAccepted, setPolicyAccepted] = useState(false);
@@ -294,82 +305,11 @@ export default function CivilRegistryPage() {
         setViewerTitle(title);
         setViewerOpen(true);
     };
-
-    const renderIdCard = (label: string, fileKey: string) => {
-        const file = form.files[fileKey] || null;
-        const defaultUrl = fileKey === "validIdFront" ? resident?.idFrontUrl : resident?.idBackUrl;
-        const preview = form.previews[fileKey] || defaultUrl || null;
-
-        return (
-            <PremiumDocumentUpload
-                key={fileKey}
-                label={label}
-                required
-                file={file}
-                previewUrl={preview}
-                error={showErrors && !file && !preview}
-                onFileSelect={async (newFile) => {
-                    if (newFile.size > 5 * 1024 * 1024) {
-                        toast.error("File size exceeds 5MB limit.");
-                        return;
-                    }
-
-                    let fileToProcess = newFile;
-                    if (newFile.type.startsWith("image/")) {
-                        try {
-                            toast.loading("Compressing and optimizing document...", { id: `file-compress-${fileKey}` });
-                            fileToProcess = await compressImage(newFile);
-                            toast.success("Image optimized successfully!", { id: `file-compress-${fileKey}` });
-                        } catch (err) {
-                            console.error("Compression error:", err);
-                            toast.dismiss(`file-compress-${fileKey}`);
-                        }
-                    }
-
-                    try {
-                        toast.loading("Uploading and preparing document preview...", { id: `file-upload-${fileKey}` });
-                        const userId = resident?.id || "anonymous";
-                        const sanitizedKey = fileKey.replace(/[^a-zA-Z0-9_-]/g, '_');
-                        const publicUrl = await uploadFileClientSide(fileToProcess, sanitizedKey, userId);
-
-                        setForm(prev => ({
-                            ...prev,
-                            files: { ...prev.files, [fileKey]: fileToProcess },
-                            previews: { ...prev.previews, [fileKey]: publicUrl }
-                        }));
-                        toast.success("Document uploaded & preview ready!", { id: `file-upload-${fileKey}` });
-                    } catch (uploadErr) {
-                        console.error(`[ClientUpload] Failed to upload ${fileKey} on-the-fly:`, uploadErr);
-                        toast.error("Upload failed. Local copy stored (preview limited).", { id: `file-upload-${fileKey}` });
-
-                        setForm(prev => ({
-                            ...prev,
-                            files: { ...prev.files, [fileKey]: fileToProcess },
-                            previews: { ...prev.previews, [fileKey]: fileToProcess.type.startsWith("image/") ? URL.createObjectURL(fileToProcess) : null }
-                        }));
-                    }
-                }}
-                onClear={async () => {
-                    setForm(prev => {
-                        const nextFiles = { ...prev.files };
-                        const nextPreviews = { ...prev.previews };
-                        delete nextFiles[fileKey];
-                        delete nextPreviews[fileKey];
-                        return {
-                            ...prev,
-                            files: nextFiles,
-                            previews: nextPreviews
-                        };
-                    });
-                    toast.success("File removed successfully.");
-                }}
-                onView={() => handleViewFile(file, preview, label)}
-            />
-        );
-    };
-
     // Persist progress to session storage
     useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("revisionId")) return;
+
         const savedStep = sessionStorage.getItem("civil-registry-step");
         const savedForm = sessionStorage.getItem("civil-registry-form");
 
@@ -390,27 +330,18 @@ export default function CivilRegistryPage() {
     }, []);
 
     useEffect(() => {
-        if (!loading) {
+        if (!loading && !revisionId) {
             sessionStorage.setItem("civil-registry-step", currentStep);
             sessionStorage.setItem("civil-registry-form", JSON.stringify({
                 ...form,
                 files: {} // Don't store File objects
             }));
         }
-    }, [currentStep, form, loading]);
+    }, [currentStep, form, loading, revisionId]);
 
     useEffect(() => {
-        prevRelationshipRef.current = form.relationship;
-    }, [form.relationship]);
-
-    useEffect(() => {
-        if (loading) return;
-        if (isRestoredRef.current) {
-            isRestoredRef.current = false;
-            return;
-        }
-
-        if (form.relationship === "SELF" && resident) {
+        if (loading || !resident) return;
+        if (form.relationship === "SELF") {
             setForm(prev => ({
                 ...prev,
                 fullName: `${resident.firstName || ""} ${resident.lastName || ""}`.trim(),
@@ -428,26 +359,37 @@ export default function CivilRegistryPage() {
                 motherFirstName: resident.motherFirstName || prev.motherFirstName,
                 motherMiddleName: resident.motherMiddleName || prev.motherMiddleName,
                 motherLastName: resident.motherLastName || prev.motherLastName,
+                sex: (resident.gender || "").toUpperCase(),
             }));
-        } else if (form.relationship && form.relationship !== "SELF" && prevRelationshipRef.current === "SELF") {
-            setForm(prev => ({
-                ...prev,
-                fullName: "",
-                certFirstName: "",
-                certMiddleName: "",
-                certLastName: "",
-                certSuffix: "",
-                dateOfEvent: "",
-                placeOfEvent: "",
-                fatherName: "",
-                fatherFirstName: "",
-                fatherMiddleName: "",
-                fatherLastName: "",
-                motherName: "",
-                motherFirstName: "",
-                motherMiddleName: "",
-                motherLastName: "",
-            }));
+        } else {
+            setForm(prev => {
+                const matchesResident =
+                    prev.certFirstName === resident.firstName &&
+                    prev.certLastName === resident.lastName;
+
+                if (matchesResident) {
+                    return {
+                        ...prev,
+                        fullName: "",
+                        certFirstName: "",
+                        certMiddleName: "",
+                        certLastName: "",
+                        certSuffix: "",
+                        dateOfEvent: "",
+                        placeOfEvent: "MUNICIPALITY OF MAPANDAN",
+                        fatherName: "",
+                        fatherFirstName: "",
+                        fatherMiddleName: "",
+                        fatherLastName: "",
+                        motherName: "",
+                        motherFirstName: "",
+                        motherMiddleName: "",
+                        motherLastName: "",
+                        sex: "",
+                    };
+                }
+                return prev;
+            });
         }
     }, [form.relationship, resident, loading]);
 
@@ -455,6 +397,22 @@ export default function CivilRegistryPage() {
         async function init() {
             try {
                 await ensureCivilRegistryTransactionTypes();
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const revId = urlParams.get("revisionId");
+
+                let txData: any = null;
+                if (revId) {
+                    const txRes = await getTransactionById(revId);
+                    if (txRes.success && txRes.data) {
+                        txData = txRes.data;
+                        setRevisionId(revId);
+                        setRevisionTx(txData);
+                    } else {
+                        toast.error("Failed to fetch revision details");
+                    }
+                }
+
                 const [resResult, typesResult, themeResult] = await Promise.all([
                     getCurrentUserResident(),
                     getTransactionTypes(),
@@ -480,8 +438,82 @@ export default function CivilRegistryPage() {
                     ].filter(Boolean);
                     const constructedAddr = parts.join(", ").toUpperCase();
 
-                    // Pre-fill some data if available
-                    if (resResult.data) {
+                    if (txData) {
+                        const addData = txData.additionalData as any || {};
+                        const resSnapshot = txData.residentSnapshot as any || r || {};
+
+                        const previews: Record<string, string | null> = {};
+                        const fileKeys = ["validIdFront", "validIdBack"];
+                        fileKeys.forEach(k => {
+                            if (addData[k] && typeof addData[k] === "string" && addData[k].startsWith("http")) {
+                                previews[k] = addData[k];
+                            }
+                        });
+
+                        let certFN = addData.certFirstName || "";
+                        let certMN = addData.certMiddleName || "";
+                        let certLN = addData.certLastName || "";
+                        let certSuf = addData.certSuffix || "";
+                        if (!certFN && !certLN && addData.subjectName) {
+                            const parts = addData.subjectName.split(/\s+/);
+                            certLN = parts.pop() || "";
+                            certFN = parts.shift() || "";
+                            if (["JR", "SR", "I", "II", "III", "IV"].includes(certLN.toUpperCase())) {
+                                certSuf = certLN;
+                                certLN = parts.pop() || "";
+                            }
+                            certMN = parts.join(" ") || "";
+                        }
+
+                        let fFN = addData.fatherFirstName || "";
+                        let fMN = addData.fatherMiddleName || "";
+                        let fLN = addData.fatherLastName || "";
+                        if (!fFN && !fLN && addData.fatherName && addData.fatherName !== "N/A") {
+                            const parts = addData.fatherName.split(/\s+/);
+                            fLN = parts.pop() || "";
+                            fFN = parts.shift() || "";
+                            fMN = parts.join(" ") || "";
+                        }
+
+                        let mFN = addData.motherFirstName || "";
+                        let mMN = addData.motherMiddleName || "";
+                        let mLN = addData.motherLastName || "";
+                        if (!mFN && !mLN && addData.motherName && addData.motherName !== "N/A") {
+                            const parts = addData.motherName.split(/\s+/);
+                            mLN = parts.pop() || "";
+                            mFN = parts.shift() || "";
+                            mMN = parts.join(" ") || "";
+                        }
+
+                        setForm(prev => ({
+                            ...prev,
+                            typeId: txData.typeId || prev.typeId,
+                            registryType: txData.registryType || prev.registryType,
+                            fullName: addData.subjectName || prev.fullName,
+                            dateOfEvent: addData.dateOfEvent || prev.dateOfEvent,
+                            placeOfEvent: addData.placeOfEvent || prev.placeOfEvent,
+                            fatherFirstName: fFN,
+                            fatherMiddleName: fMN,
+                            fatherLastName: fLN,
+                            fatherName: addData.fatherName || prev.fatherName,
+                            motherFirstName: mFN,
+                            motherMiddleName: mMN,
+                            motherLastName: mLN,
+                            motherName: addData.motherName || prev.motherName,
+                            spouseName: addData.spouseName || prev.spouseName,
+                            certFirstName: certFN,
+                            certMiddleName: certMN,
+                            certLastName: certLN,
+                            certSuffix: certSuf,
+                            idTypeOverride: addData.idType || prev.idTypeOverride,
+                            email: addData.email || resSnapshot.email || prev.email,
+                            contactNumber: addData.contactNumber || resSnapshot.contactNumber || prev.contactNumber,
+                            relationship: addData.relationship || prev.relationship,
+                            informantAddress: addData.informantAddress || prev.informantAddress,
+                            sex: addData.gender || prev.sex,
+                            previews
+                        }));
+                    } else if (resResult.data) {
                         setForm(prev => ({
                             ...prev,
                             fullName: `${resResult.data?.firstName || ""} ${resResult.data?.lastName || ""}`.trim(),
@@ -581,6 +613,9 @@ export default function CivilRegistryPage() {
             const formData = new FormData();
             formData.append("typeId", form.typeId);
             formData.append("registryType", form.registryType);
+            if (revisionId) {
+                formData.append("revisionId", revisionId);
+            }
             formData.append("residentSnapshot", JSON.stringify({
                 firstName: resident.firstName,
                 lastName: resident.lastName,
@@ -629,27 +664,38 @@ export default function CivilRegistryPage() {
             toast.dismiss("req-upload-toast");
 
             const additionalData = {
+                certFirstName: form.certFirstName,
+                certMiddleName: form.certMiddleName,
+                certLastName: form.certLastName,
+                certSuffix: form.certSuffix,
                 subjectName: form.fullName,
                 dateOfEvent: form.dateOfEvent,
-                placeOfEvent: form.placeOfEvent,
-                fatherName: form.fatherName,
-                motherName: form.motherName,
+                placeOfEvent: form.placeOfEvent || "MUNICIPALITY OF MAPANDAN",
+                fatherFirstName: form.fatherFirstName,
+                fatherMiddleName: form.fatherMiddleName,
+                fatherLastName: form.fatherLastName,
+                fatherName: `${form.fatherFirstName || ""} ${form.fatherMiddleName || ""} ${form.fatherLastName || ""}`.replace(/\s+/g, ' ').trim() || form.fatherName || "N/A",
+                motherFirstName: form.motherFirstName,
+                motherMiddleName: form.motherMiddleName,
+                motherLastName: form.motherLastName,
+                motherName: `${form.motherFirstName || ""} ${form.motherMiddleName || ""} ${form.motherLastName || ""}`.replace(/\s+/g, ' ').trim() || form.motherName || "N/A",
                 spouseName: form.spouseName,
                 relationship: form.relationship,
                 fulfillmentType: null,
                 email: form.email,
                 contactNumber: form.contactNumber,
                 idType: form.idTypeOverride || resident?.idType,
-                idFrontUrl: fileUrls["validIdFront"] || resident?.idFrontUrl,
-                idBackUrl: fileUrls["validIdBack"] || resident?.idBackUrl,
-                totalAmount: 0
+                idFrontUrl: resident?.idFrontUrl,
+                idBackUrl: resident?.idBackUrl,
+                totalAmount: 0, // No payment amount until evaluated by Registrar
+                gender: form.sex
             };
 
             formData.append("additionalData", JSON.stringify(additionalData));
 
             const res = await submitCivilRegistryTransaction(formData);
             if (res.success && res.data) {
-                toast.success("Request submitted successfully!");
+                toast.success(revisionId ? "Revision resubmitted successfully!" : "Request submitted successfully!");
                 sessionStorage.removeItem("civil-registry-step");
                 sessionStorage.removeItem("civil-registry-form");
                 router.push(`/user/services/requests/${res.data.id}`);
@@ -790,38 +836,23 @@ export default function CivilRegistryPage() {
                     </Breadcrumb>
                 </div>
 
-				{/* Premium Header/Banner with Ambient Gradient Backdrop */}
-				<div className="relative overflow-hidden bg-white dark:bg-[#0c1017] p-6 md:p-10 rounded-2xl md:rounded-[2rem] border border-slate-100 dark:border-white/5 text-slate-800 dark:text-white shadow-xl dark:shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-					<div
-						className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-10 dark:opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700"
-						style={{ backgroundColor: themeColor }}
-					/>
+                {/* Premium Header/Banner with Ambient Gradient Backdrop */}
+                <div className="relative overflow-hidden bg-white dark:bg-[#0c1017] p-6 md:p-10 rounded-2xl md:rounded-[2rem] border border-slate-100 dark:border-white/5 text-slate-800 dark:text-white shadow-xl dark:shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                    <div
+                        className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-10 dark:opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700"
+                        style={{ backgroundColor: themeColor }}
+                    />
 
-					<div className="space-y-3 md:space-y-4 max-w-2xl relative z-10">
-						<div className="flex items-center gap-3">
-							<div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center backdrop-blur-md">
-								<FileText className="w-4 h-4 text-primary" style={{ color: themeColor }} />
-							</div>
-							<span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-white/70 italic">Local Civil Registry</span>
-						</div>
+                    <div className="space-y-3 md:space-y-4 max-w-2xl relative z-10">
+                        <h1 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter leading-none">
+                            Request <span style={{ color: themeColor }}>Birth Certificate</span>
+                        </h1>
 
-						<h1 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter leading-none">
-							Request <span style={{ color: themeColor }}>Birth Certificate</span>
-						</h1>
-
-						<p className="text-slate-600 dark:text-slate-300 font-medium text-xs leading-relaxed max-w-xl italic">
-							Request a certified true copy of your Birth Certificate. Complete the form and upload required identifications to verify your request.
-						</p>
-					</div>
-
-					<div className="hidden md:block relative z-10 shrink-0">
-						<div className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500">
-							<div className="absolute inset-0 bg-gradient-to-tr opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundImage: `linear-gradient(to top right, ${themeColor}, transparent)` }} />
-							<CheckCircle2 className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
-							<p className="text-[7px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-tight">Secure Filing</p>
-						</div>
-					</div>
-				</div>
+                        <p className="text-slate-600 dark:text-slate-300 font-medium text-xs leading-relaxed max-w-xl italic">
+                            Request a certified true copy of your Birth Certificate. Complete the form and upload required identifications to verify your request.
+                        </p>
+                    </div>
+                </div>
 
                 <div className="space-y-6">
 
@@ -947,6 +978,18 @@ export default function CivilRegistryPage() {
                                         <p className="text-[10px] md:text-xs text-slate-500 font-medium italic">Verify and refine your personal records for this request.</p>
                                     </div>
 
+                                    {revisionTx && (
+                                        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-800 dark:text-red-400 animate-in fade-in duration-300">
+                                            <AlertCircle className="w-5 h-5 shrink-0 animate-pulse mt-0.5" />
+                                            <div className="text-left space-y-1">
+                                                <p className="text-[10px] font-black uppercase tracking-wider italic">Attention: Revision Needed</p>
+                                                <p className="text-xs font-bold text-slate-900 dark:text-slate-300 leading-relaxed italic">
+                                                    &ldquo;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&rdquo;
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="space-y-4 md:space-y-6">
                                         {/* Row 1: Names */}
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
@@ -1031,28 +1074,6 @@ export default function CivilRegistryPage() {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 gap-3 md:gap-4">
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Informant Address</Label>
-                                                <Input
-                                                    value={form.informantAddress || ""}
-                                                    readOnly
-                                                    className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold text-xs md:text-sm uppercase"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 gap-3 md:gap-4">
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Informant Address</Label>
-                                                <Input
-                                                    value={form.informantAddress || ""}
-                                                    readOnly
-                                                    className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold text-xs md:text-sm uppercase"
-                                                />
-                                            </div>
-                                        </div>
-
                                         {/* Row 3: Contact & Occupation */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 items-start">
                                             <div className="space-y-1.5">
@@ -1069,7 +1090,10 @@ export default function CivilRegistryPage() {
                                                     <Input
                                                         name="contactNumber"
                                                         value={form.contactNumber}
-                                                        onChange={(e) => setForm(p => ({ ...p, contactNumber: e.target.value }))}
+                                                        onChange={(e) => {
+                                                            const cleanVal = e.target.value.replace(/[^0-9+]/g, "");
+                                                            setForm(p => ({ ...p, contactNumber: cleanVal }));
+                                                        }}
                                                         className={cn(
                                                             "h-10 rounded-xl border-slate-950 dark:border-white focus:ring-blue-500 shadow-sm text-xs md:text-sm transition-all duration-300 font-bold italic",
                                                             (errors.contactNumber || (showErrors && !form.contactNumber)) && "border-red-500 bg-red-50/10 focus:ring-red-500 focus:border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"
@@ -1251,7 +1275,7 @@ export default function CivilRegistryPage() {
                                             </div>
                                         )}
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">
                                                     {form.registryType === "BIRTH" ? "Date of Birth" :
@@ -1277,22 +1301,38 @@ export default function CivilRegistryPage() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Place of Birth <span className="text-red-500">*</span></Label>
-                                                <Input
-                                                    name="placeOfEvent"
-                                                    className={cn(
-                                                        "rounded-xl border-slate-950 dark:border-white bg-white dark:bg-slate-900 transition-all",
-                                                        (showErrors && !form.placeOfEvent) && "border-red-500 bg-red-50/10 focus:ring-red-500 focus:border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500",
-                                                        (form.relationship === "SELF" && !!resident?.municipality) && "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                                                    )}
-                                                    placeholder="Hospital / Municipality / Church"
-                                                    value={form.placeOfEvent}
-                                                    onChange={(e) => setForm({ ...form, placeOfEvent: e.target.value.toUpperCase() })}
-                                                    readOnly={form.relationship === "SELF" && !!resident?.municipality}
-                                                />
-                                                {(showErrors && !form.placeOfEvent) && (
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Sex <span className="text-red-500">*</span></Label>
+                                                <Select
+                                                    value={form.sex}
+                                                    onValueChange={(val) => setForm({ ...form, sex: val })}
+                                                    disabled={form.relationship === "SELF"}
+                                                >
+                                                    <SelectTrigger className={cn(
+                                                        "h-10 w-full rounded-xl border-slate-950 dark:border-white focus:ring-blue-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold",
+                                                        (showErrors && !form.sex) && "!border-red-500 bg-red-50/10 focus:ring-red-500",
+                                                        form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                                    )}>
+                                                        <SelectValue placeholder="Select Sex" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
+                                                        <SelectItem value="MALE">MALE</SelectItem>
+                                                        <SelectItem value="FEMALE">FEMALE</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                {(showErrors && !form.sex) && (
                                                     <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required field</p>
                                                 )}
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Place of Birth</Label>
+                                                <Input
+                                                    name="placeOfEvent"
+                                                    className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02] text-slate-400 font-bold h-10 transition-all uppercase cursor-not-allowed"
+                                                    placeholder="MUNICIPALITY OF MAPANDAN"
+                                                    value={form.placeOfEvent || "MUNICIPALITY OF MAPANDAN"}
+                                                    readOnly
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -1402,10 +1442,12 @@ export default function CivilRegistryPage() {
 
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name</Label>
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name <span className="text-red-500">*</span></Label>
                                                     <Input
+                                                        name="motherFirstName"
                                                         className={cn(
                                                             "rounded-xl border-slate-950 dark:border-white bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
+                                                            (showErrors && !form.motherFirstName) && "border-red-500 bg-red-50/10 focus:ring-red-500 focus:border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500",
                                                             form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                         )}
                                                         placeholder="EX. MARIA"
@@ -1413,6 +1455,9 @@ export default function CivilRegistryPage() {
                                                         onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, motherFirstName: e.target.value.toUpperCase() })}
                                                         readOnly={form.relationship === "SELF"}
                                                     />
+                                                    {(showErrors && !form.motherFirstName) && (
+                                                        <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required field</p>
+                                                    )}
                                                 </div>
 
                                                 <div className="space-y-2">
@@ -1430,10 +1475,12 @@ export default function CivilRegistryPage() {
                                                 </div>
 
                                                 <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name</Label>
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name <span className="text-red-500">*</span></Label>
                                                     <Input
+                                                        name="motherLastName"
                                                         className={cn(
                                                             "rounded-xl border-slate-950 dark:border-white bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
+                                                            (showErrors && !form.motherLastName) && "border-red-500 bg-red-50/10 focus:ring-red-500 focus:border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500",
                                                             form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                         )}
                                                         placeholder="EX. MERCADO"
@@ -1441,6 +1488,9 @@ export default function CivilRegistryPage() {
                                                         onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, motherLastName: e.target.value.toUpperCase() })}
                                                         readOnly={form.relationship === "SELF"}
                                                     />
+                                                    {(showErrors && !form.motherLastName) && (
+                                                        <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required field</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1497,120 +1547,139 @@ export default function CivilRegistryPage() {
                                         </div>
                                     </div>
 
-                                    <Card className="bg-slate-50 dark:bg-white/5 border-none p-6 rounded-[2rem] space-y-4">
-                                        <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Certificate Type</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic">
+                                                {form.registryType === "BIRTH" ? "Birth Certificate" :
+                                                    form.registryType === "MARRIAGE" ? "Marriage Certificate" :
+                                                        form.registryType === "DEATH" ? "Death Certificate" :
+                                                            "Marriage License Application"}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Subject Name</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">{`${form.certFirstName} ${form.certMiddleName} ${form.certLastName} ${form.certSuffix}`.trim()}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Relationship</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic">{form.relationship}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Sex</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.sex || "N/A"}</p>
+                                        </div>
+                                        {form.spouseName && (
                                             <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Certificate Type</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">
-                                                    {form.registryType === "BIRTH" ? "Birth Certificate" :
-                                                        form.registryType === "MARRIAGE" ? "Marriage Certificate" :
-                                                            form.registryType === "DEATH" ? "Death Certificate" :
-                                                                "Marriage License Application"}
-                                                </p>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Spouse Name</span>
+                                                <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.spouseName}</p>
                                             </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Subject Name</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic uppercase">{`${form.certFirstName} ${form.certMiddleName} ${form.certLastName} ${form.certSuffix}`.trim()}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Relationship</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">{form.relationship}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Informant Address</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.informantAddress || "N/A"}</p>
-                                            </div>
-                                            {form.spouseName && (
+                                        )}
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Occurrence Date</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic">{form.dateOfEvent}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Target Contact</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic">{form.contactNumber}</p>
+                                        </div>
+                                        {/* Parents Info Summary */}
+                                        {form.registryType !== "MARRIAGE" && form.registryType !== "MARRIAGE_LICENSE" && (
+                                            <>
                                                 <div className="space-y-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Spouse Name</span>
-                                                    <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.spouseName}</p>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Father&apos;s Name</span>
+                                                    <p className="font-black text-slate-900 dark:text-white italic uppercase">
+                                                        {`${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.trim() || form.fatherName || "N/A"}
+                                                    </p>
                                                 </div>
-                                            )}
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Occurrence Date</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">{form.dateOfEvent}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Occupation</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">{resident?.occupation || "N/A"}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Target Contact</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">{form.contactNumber}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Gender</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">{resident?.gender || "N/A"}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Civil Status</span>
-                                                <p className="font-black text-slate-900 dark:text-white italic">{resident?.civilStatus || "N/A"}</p>
-                                            </div>
-                                            {/* Parents Info Summary */}
-                                            {form.registryType !== "MARRIAGE" && form.registryType !== "MARRIAGE_LICENSE" && (
-                                                <>
-                                                    <div className="space-y-1">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Father&apos;s Name</span>
-                                                        <p className="font-black text-slate-900 dark:text-white italic uppercase">
-                                                            {`${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.trim() || form.fatherName || "N/A"}
-                                                        </p>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Mother&apos;s Name</span>
-                                                        <p className="font-black text-slate-900 dark:text-white italic uppercase">
-                                                            {`${form.motherFirstName} ${form.motherMiddleName} ${form.motherLastName}`.trim() || form.motherName || "N/A"}
-                                                        </p>
-                                                    </div>
-                                                </>
-                                            )}
+                                                <div className="space-y-1">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Mother&apos;s Name</span>
+                                                    <p className="font-black text-slate-900 dark:text-white italic uppercase">
+                                                        {`${form.motherFirstName} ${form.motherMiddleName} ${form.motherLastName}`.trim() || form.motherName || "N/A"}
+                                                    </p>
+                                                </div>
+                                            </>
+                                        )}
 
+                                    </div>
+
+                                    {/* ID Submission Section */}
+                                    <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                                                <Upload className="w-3.5 h-3.5 text-blue-500" />
+                                            </div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Document Verification</span>
                                         </div>
 
-                                        {/* ID Submission Section */}
-                                        <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className="p-1.5 bg-blue-500/10 rounded-lg">
-                                                    <Upload className="w-3.5 h-3.5 text-blue-500" />
-                                                </div>
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Document Verification</span>
+                                        <div className="space-y-4">
+                                            <div className="space-y-1.5 max-w-md">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-blue-500/70 ml-1 flex items-center justify-between">
+                                                    <span>Select ID Type <span className="text-red-500">*</span></span>
+                                                </Label>
+                                                <Select
+                                                    value={form.idTypeOverride || resident?.idType || ""}
+                                                    onValueChange={(value) => setForm(prev => ({
+                                                        ...prev,
+                                                        idTypeOverride: value
+                                                    }))}
+                                                >
+                                                    <SelectTrigger className="h-10 w-full rounded-xl border-slate-950 dark:border-white focus:ring-blue-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold">
+                                                        <SelectValue>
+                                                            {form.idTypeOverride || resident?.idType || "Select type of government ID"}
+                                                        </SelectValue>
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
+                                                        <SelectItem value="UMID">Unified Multi-Purpose ID (UMID)</SelectItem>
+                                                        <SelectItem value="DRIVERS_LICENSE">Driver&apos;s License</SelectItem>
+                                                        <SelectItem value="PASSPORT">Passport</SelectItem>
+                                                        <SelectItem value="POSTAL_ID">Postal ID</SelectItem>
+                                                        <SelectItem value="VOTERS_ID">Voter&apos;s ID</SelectItem>
+                                                        <SelectItem value="PRC_ID">PRC ID</SelectItem>
+                                                        <SelectItem value="NATIONAL_ID">National ID (PhilSys)</SelectItem>
+                                                        <SelectItem value="SENIOR_CITIZEN">Senior Citizen ID</SelectItem>
+                                                        <SelectItem value="PWD_ID">PWD ID</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="space-y-1.5 md:col-span-2">
-                                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-blue-500/70 ml-1 flex items-center justify-between">
-                                                        <span>Select ID Type <span className="text-red-500">*</span></span>
-                                                    </Label>
-                                                    <Select
-                                                        value={form.idTypeOverride || resident?.idType || ""}
-                                                        onValueChange={(value) => setForm(prev => ({
-                                                            ...prev,
-                                                            idTypeOverride: value
-                                                        }))}
-                                                    >
-                                                        <SelectTrigger className="h-10 w-full rounded-xl border-slate-950 dark:border-white focus:ring-blue-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold">
-                                                            <SelectValue>
-                                                                {form.idTypeOverride || resident?.idType || "Select type of government ID"}
-                                                            </SelectValue>
-                                                        </SelectTrigger>
-                                                        <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
-                                                            <SelectItem value="UMID">Unified Multi-Purpose ID (UMID)</SelectItem>
-                                                            <SelectItem value="DRIVERS_LICENSE">Driver&apos;s License</SelectItem>
-                                                            <SelectItem value="PASSPORT">Passport</SelectItem>
-                                                            <SelectItem value="POSTAL_ID">Postal ID</SelectItem>
-                                                            <SelectItem value="VOTERS_ID">Voter&apos;s ID</SelectItem>
-                                                            <SelectItem value="PRC_ID">PRC ID</SelectItem>
-                                                            <SelectItem value="NATIONAL_ID">National ID (PhilSys)</SelectItem>
-                                                            <SelectItem value="SENIOR_CITIZEN">Senior Citizen ID</SelectItem>
-                                                            <SelectItem value="PWD_ID">PWD ID</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                <div className="w-full">
+                                                    <PremiumDocumentUpload
+                                                        label="Valid Government ID (Front)"
+                                                        required
+                                                        file={form.files["validIdFront"]}
+                                                        existingUrl={resident?.idFrontUrl}
+                                                        onFileSelect={(file) => {
+                                                            setForm(prev => ({
+                                                                ...prev,
+                                                                files: { ...prev.files, validIdFront: file }
+                                                            }));
+                                                        }}
+                                                        onView={() => handleViewFile(form.files["validIdFront"] || null, resident?.idFrontUrl || null, "Valid Government ID (Front)")}
+                                                        error={showErrors && !form.files["validIdFront"] && !resident?.idFrontUrl}
+                                                    />
                                                 </div>
 
-                                                {renderIdCard("Valid Government ID (Front)", "validIdFront")}
-                                                {renderIdCard("Valid Government ID (Back)", "validIdBack")}
+                                                <div className="w-full">
+                                                    <PremiumDocumentUpload
+                                                        label="Valid Government ID (Back)"
+                                                        required
+                                                        file={form.files["validIdBack"]}
+                                                        existingUrl={resident?.idBackUrl}
+                                                        onFileSelect={(file) => {
+                                                            setForm(prev => ({
+                                                                ...prev,
+                                                                files: { ...prev.files, validIdBack: file }
+                                                            }));
+                                                        }}
+                                                        onView={() => handleViewFile(form.files["validIdBack"] || null, resident?.idBackUrl || null, "Valid Government ID (Back)")}
+                                                        error={showErrors && !form.files["validIdBack"] && !resident?.idBackUrl}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
-                                    </Card>
+                                    </div>
 
                                     <div className="space-y-4">
                                         <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
