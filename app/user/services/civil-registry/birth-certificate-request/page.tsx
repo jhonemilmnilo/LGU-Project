@@ -337,7 +337,7 @@ export default function CivilRegistryPage() {
                 files: {} // Don't store File objects
             }));
         }
-    }, [currentStep, form, loading]);
+    }, [currentStep, form, loading, revisionId]);
 
     useEffect(() => {
         if (loading || !resident) return;

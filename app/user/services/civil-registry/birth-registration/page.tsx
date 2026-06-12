@@ -421,7 +421,7 @@ export default function BirthRegistrationPage() {
                 console.warn("Failed to persist form to sessionStorage:", err);
             }
         }
-    }, [currentStep, form, loading]);
+    }, [currentStep, form, loading, revisionId]);
 
     useEffect(() => {
         if (loading) return;

@@ -310,8 +310,6 @@ export default function MarriageRegistrationPage() {
                         }
                     });
 
-                    const isMale = resSnapshot.gender ? resSnapshot.gender.toUpperCase() === "MALE" : true;
-
                     setForm(prev => ({
                         ...prev,
                         typeId: txData.typeId || prev.typeId,

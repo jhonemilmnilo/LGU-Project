@@ -358,7 +358,7 @@ export default function MarriageCertificateRequestPage() {
                 files: {}
             }));
         }
-    }, [currentStep, form, loading]);
+    }, [currentStep, form, loading, revisionId]);
 
     useEffect(() => {
         prevRelationshipRef.current = form.relationship;

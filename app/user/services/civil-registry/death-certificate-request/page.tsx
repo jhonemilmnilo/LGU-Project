@@ -607,7 +607,7 @@ export default function DeathCertificateRequestPage() {
         }, 500);
 
         return () => clearTimeout(timer);
-    }, [form, currentStep, draftLoaded, loading]);
+    }, [form, currentStep, draftLoaded, loading, revisionId]);
 
     const handleAcceptPolicy = () => {
         setPolicyOpen(false);
