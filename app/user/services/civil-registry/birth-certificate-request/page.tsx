@@ -445,8 +445,10 @@ export default function CivilRegistryPage() {
                         const previews: Record<string, string | null> = {};
                         const fileKeys = ["validIdFront", "validIdBack"];
                         fileKeys.forEach(k => {
-                            if (addData[k] && typeof addData[k] === "string" && addData[k].startsWith("http")) {
-                                previews[k] = addData[k];
+                            const altKey = k === "validIdFront" ? "idFrontUrl" : "idBackUrl";
+                            const url = addData[k] || addData[altKey];
+                            if (url && typeof url === "string" && url.startsWith("http")) {
+                                previews[k] = url;
                             }
                         });
 
@@ -509,7 +511,7 @@ export default function CivilRegistryPage() {
                             email: addData.email || resSnapshot.email || prev.email,
                             contactNumber: addData.contactNumber || resSnapshot.contactNumber || prev.contactNumber,
                             relationship: addData.relationship || prev.relationship,
-                            informantAddress: addData.informantAddress || prev.informantAddress,
+                            informantAddress: addData.informantAddress || constructedAddr || prev.informantAddress || "",
                             sex: addData.gender || prev.sex,
                             previews
                         }));
@@ -623,6 +625,7 @@ export default function CivilRegistryPage() {
                 suffix: resident.suffix,
                 contactNumber: resident.contactNumber,
                 email: resident.email,
+                civilStatus: resident.civilStatus || "",
                 gender: resident.gender,
                 barangay: resident.barangay,
                 municipality: resident.municipality,
@@ -685,8 +688,10 @@ export default function CivilRegistryPage() {
                 email: form.email,
                 contactNumber: form.contactNumber,
                 idType: form.idTypeOverride || resident?.idType,
-                idFrontUrl: resident?.idFrontUrl,
-                idBackUrl: resident?.idBackUrl,
+                idFrontUrl: fileUrls["validIdFront"] || resident?.idFrontUrl,
+                idBackUrl: fileUrls["validIdBack"] || resident?.idBackUrl,
+                validIdFront: fileUrls["validIdFront"] || resident?.idFrontUrl,
+                validIdBack: fileUrls["validIdBack"] || resident?.idBackUrl,
                 totalAmount: 0, // No payment amount until evaluated by Registrar
                 gender: form.sex
             };

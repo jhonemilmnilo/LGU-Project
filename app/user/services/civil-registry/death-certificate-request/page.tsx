@@ -49,7 +49,8 @@ import {
     ensureCivilRegistryTransactionTypes,
     submitCivilRegistryTransaction,
     getSystemSettingAction,
-    getTransactionById
+    getTransactionById,
+    getBarangaysList
 } from "@/app/admin/transactions/actions";
 import { searchResidents } from "@/app/admin/actions";
 import { toast } from "sonner";
@@ -107,6 +108,7 @@ interface FormState {
     civilStatus: string;
     gender: string;
     relationship: string;
+    relationshipOther?: string;
     email: string;
     contactNumber: string;
     informantAddress?: string;
@@ -280,6 +282,7 @@ export default function DeathCertificateRequestPage() {
         setMounted(true);
     }, []);
     const [draftLoaded, setDraftLoaded] = useState(false);
+    const [barangaysList, setBarangaysList] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [showErrors, setShowErrors] = useState(false);
     const [dbType, setDbType] = useState<any>(null);
@@ -297,6 +300,7 @@ export default function DeathCertificateRequestPage() {
         civilStatus: "",
         gender: "",
         relationship: "",
+        relationshipOther: "",
         contactNumber: "",
         email: "",
         informantAddress: "",
@@ -334,6 +338,16 @@ export default function DeathCertificateRequestPage() {
         setViewerUrl(existingUrl);
         setViewerTitle(title);
         setViewerOpen(true);
+    };
+
+    const getNormalizedPlaceOfDeath = (val: string) => {
+        if (!val) return "";
+        const upperVal = val.toUpperCase();
+        const found = barangaysList.find(b => upperVal.includes(b.toUpperCase()));
+        if (found) {
+            return `${found.toUpperCase()}, MAPANDAN, PANGASINAN`;
+        }
+        return val;
     };
 
     const renderIdCard = (label: string, fileKey: string) => {
@@ -430,15 +444,32 @@ export default function DeathCertificateRequestPage() {
                     }
                 }
 
-                const [resResult, typesResult] = await Promise.all([
+                const [resResult, typesResult, brgyResult] = await Promise.all([
                     getCurrentUserResident(),
-                    getTransactionTypes()
+                    getTransactionTypes(),
+                    getBarangaysList()
                 ]);
 
+                if (brgyResult.success && brgyResult.data) {
+                    setBarangaysList(brgyResult.data);
+                }
+
                 let residentData: any = null;
+                let constructedAddr = "";
                 if (resResult.success && resResult.data) {
                     residentData = resResult.data;
                     setResident(residentData);
+
+                    const parts = [
+                        residentData.houseNumber && `#${residentData.houseNumber}`,
+                        residentData.street && `${residentData.street} St.`,
+                        residentData.purok && `Purok ${residentData.purok}`,
+                        residentData.sitio && `Sitio ${residentData.sitio}`,
+                        residentData.barangay && `Brgy. ${residentData.barangay}`,
+                        residentData.municipality || "Mapandan",
+                        residentData.province || "Pangasinan"
+                    ].filter(Boolean);
+                    constructedAddr = parts.join(", ").toUpperCase();
                 }
 
                 let lcrTypeId = "";
@@ -456,16 +487,17 @@ export default function DeathCertificateRequestPage() {
                     setForm({
                         typeId: lcrTypeId || draft.typeId || "",
                         idTypeOverride: draft.idTypeOverride || "",
-                        firstName: draft.firstName || "",
-                        middleName: draft.middleName || "",
-                        lastName: draft.lastName || "",
-                        suffix: draft.suffix || "",
-                        civilStatus: draft.civilStatus || "",
-                        gender: draft.gender || "",
+                        firstName: draft.firstName || residentData?.firstName || "",
+                        middleName: draft.middleName || residentData?.middleName || "",
+                        lastName: draft.lastName || residentData?.lastName || "",
+                        suffix: draft.suffix || residentData?.suffix || "",
+                        civilStatus: draft.civilStatus || (residentData?.civilStatus || "").toUpperCase() || "",
+                        gender: draft.gender || (residentData?.gender || "").toUpperCase() || "",
                         relationship: draft.relationship || "",
-                        contactNumber: draft.contactNumber || "",
-                        email: draft.email || "",
-                        informantAddress: draft.informantAddress || "",
+                        relationshipOther: draft.relationshipOther || "",
+                        contactNumber: draft.contactNumber || residentData?.contactNumber || "",
+                        email: draft.email || residentData?.email || "",
+                        informantAddress: draft.informantAddress || constructedAddr || "",
                         deceasedFirstName: draft.deceasedFirstName || "",
                         deceasedMiddleName: draft.deceasedMiddleName || "",
                         deceasedLastName: draft.deceasedLastName || "",
@@ -495,8 +527,10 @@ export default function DeathCertificateRequestPage() {
                     const previews: Record<string, string | null> = {};
                     const fileKeys = ["validIdFront", "validIdBack"];
                     fileKeys.forEach(k => {
-                        if (addData[k] && typeof addData[k] === "string" && addData[k].startsWith("http")) {
-                            previews[k] = addData[k];
+                        const altKey = k === "validIdFront" ? "idFrontUrl" : "idBackUrl";
+                        const url = addData[k] || addData[altKey];
+                        if (url && typeof url === "string" && url.startsWith("http")) {
+                            previews[k] = url;
                         }
                     });
 
@@ -504,16 +538,17 @@ export default function DeathCertificateRequestPage() {
                         ...prev,
                         typeId: txData.typeId || prev.typeId,
                         idTypeOverride: addData.idType || prev.idTypeOverride,
-                        firstName: resSnapshot.firstName || prev.firstName,
-                        middleName: resSnapshot.middleName || prev.middleName,
-                        lastName: resSnapshot.lastName || prev.lastName,
-                        suffix: resSnapshot.suffix || prev.suffix,
-                        civilStatus: (addData.civilStatus || resSnapshot.civilStatus || prev.civilStatus || "").toUpperCase(),
-                        gender: (addData.gender || resSnapshot.gender || prev.gender || "").toUpperCase(),
-                        relationship: addData.relationship || prev.relationship,
-                        contactNumber: addData.contactNumber || resSnapshot.contactNumber || prev.contactNumber,
-                        email: addData.email || resSnapshot.email || prev.email,
-                        informantAddress: addData.informantAddress || prev.informantAddress,
+                        firstName: resSnapshot.firstName || residentData?.firstName || prev.firstName,
+                        middleName: resSnapshot.middleName || residentData?.middleName || prev.middleName,
+                        lastName: resSnapshot.lastName || residentData?.lastName || prev.lastName,
+                        suffix: resSnapshot.suffix || residentData?.suffix || prev.suffix,
+                        civilStatus: (addData.civilStatus || resSnapshot.civilStatus || residentData?.civilStatus || prev.civilStatus || "").toUpperCase(),
+                        gender: (addData.gender || resSnapshot.gender || residentData?.gender || prev.gender || "").toUpperCase(),
+                        relationship: addData.relationship && addData.relationship.startsWith("OTHER:") ? "OTHER" : (addData.relationship || prev.relationship),
+                        relationshipOther: addData.relationship && addData.relationship.startsWith("OTHER:") ? addData.relationship.replace(/^OTHER:\s*/i, "") : "",
+                        contactNumber: addData.contactNumber || resSnapshot.contactNumber || residentData?.contactNumber || prev.contactNumber,
+                        email: addData.email || resSnapshot.email || residentData?.email || prev.email,
+                        informantAddress: addData.informantAddress || constructedAddr || prev.informantAddress || "",
                         deceasedFirstName: addData.deceasedFirstName || "",
                         deceasedMiddleName: addData.deceasedMiddleName || "",
                         deceasedLastName: addData.deceasedLastName || "",
@@ -530,17 +565,6 @@ export default function DeathCertificateRequestPage() {
                         previews
                     }));
                 } else if (residentData) {
-                    const parts = [
-                        residentData.houseNumber && `#${residentData.houseNumber}`,
-                        residentData.street && `${residentData.street} St.`,
-                        residentData.purok && `Purok ${residentData.purok}`,
-                        residentData.sitio && `Sitio ${residentData.sitio}`,
-                        residentData.barangay && `Brgy. ${residentData.barangay}`,
-                        residentData.municipality || "Mapandan",
-                        residentData.province || "Pangasinan"
-                    ].filter(Boolean);
-                    const constructedAddr = parts.join(", ").toUpperCase();
-
                     setForm(prev => ({
                         ...prev,
                         typeId: lcrTypeId || prev.typeId,
@@ -584,8 +608,10 @@ export default function DeathCertificateRequestPage() {
                 civilStatus: form.civilStatus,
                 gender: form.gender,
                 relationship: form.relationship,
+                relationshipOther: form.relationshipOther,
                 contactNumber: form.contactNumber,
                 email: form.email,
+                informantAddress: form.informantAddress,
                 deceasedFirstName: form.deceasedFirstName,
                 deceasedMiddleName: form.deceasedMiddleName,
                 deceasedLastName: form.deceasedLastName,
@@ -657,7 +683,8 @@ export default function DeathCertificateRequestPage() {
                 suffix: form.suffix.trim(),
                 contactNumber: form.contactNumber.trim(),
                 email: form.email.trim(),
-                gender: form.gender || resident?.gender,
+                civilStatus: form.civilStatus || resident?.civilStatus || "",
+                gender: form.gender || resident?.gender || "",
                 barangay: resident?.barangay || "Mapandan",
                 municipality: resident?.municipality || "Mapandan",
                 province: resident?.province || "Pangasinan"
@@ -716,12 +743,15 @@ export default function DeathCertificateRequestPage() {
                 motherFirstName: form.motherFirstName.trim(),
                 motherMiddleName: form.motherMiddleName.trim(),
                 motherLastName: form.motherLastName.trim(),
-                relationship: form.relationship,
+                relationship: form.relationship === "OTHER" ? `OTHER: ${form.relationshipOther}` : form.relationship,
                 email: form.email.trim(),
                 contactNumber: form.contactNumber.trim(),
+                informantAddress: form.informantAddress,
                 idType: form.idTypeOverride || resident?.idType,
                 idFrontUrl: fileUrls["validIdFront"] || resident?.idFrontUrl,
                 idBackUrl: fileUrls["validIdBack"] || resident?.idBackUrl,
+                validIdFront: fileUrls["validIdFront"] || resident?.idFrontUrl,
+                validIdBack: fileUrls["validIdBack"] || resident?.idBackUrl,
                 totalAmount: dbType?.baseFee || 150.00
             };
 
@@ -1053,25 +1083,39 @@ export default function DeathCertificateRequestPage() {
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Relationship to Owner <span className="text-red-500">*</span></Label>
-                                        <Select
-                                            value={form.relationship}
-                                            onValueChange={(val) => setForm(p => ({ ...p, relationship: val }))}
-                                        >
-                                            <SelectTrigger className={cn("h-10 rounded-xl text-xs md:text-sm font-bold uppercase", (showErrors && !form.relationship) && "border-2 border-red-500")}>
-                                                <SelectValue placeholder="Select relationship" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="SPOUSE">Spouse</SelectItem>
-                                                <SelectItem value="SON">Son</SelectItem>
-                                                <SelectItem value="DAUGHTER">Daughter</SelectItem>
-                                                <SelectItem value="MOTHER">Mother</SelectItem>
-                                                <SelectItem value="FATHER">Father</SelectItem>
-                                                <SelectItem value="SIBLING">Sibling</SelectItem>
-                                                <SelectItem value="REPRESENTATIVE">Legal Representative</SelectItem>
-                                                <SelectItem value="OTHER">Other</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Relationship to Owner <span className="text-red-500">*</span></Label>
+                                            <Select
+                                                value={form.relationship}
+                                                onValueChange={(val) => setForm(p => ({ ...p, relationship: val }))}
+                                            >
+                                                <SelectTrigger className={cn("h-10 rounded-xl text-xs md:text-sm font-bold uppercase", (showErrors && !form.relationship) && "border-2 border-red-500")}>
+                                                    <SelectValue placeholder="Select relationship" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="SPOUSE">Spouse</SelectItem>
+                                                    <SelectItem value="SON">Son</SelectItem>
+                                                    <SelectItem value="DAUGHTER">Daughter</SelectItem>
+                                                    <SelectItem value="MOTHER">Mother</SelectItem>
+                                                    <SelectItem value="FATHER">Father</SelectItem>
+                                                    <SelectItem value="SIBLING">Sibling</SelectItem>
+                                                    <SelectItem value="REPRESENTATIVE">Legal Representative</SelectItem>
+                                                    <SelectItem value="OTHER">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        {form.relationship === "OTHER" && (
+                                            <div className="space-y-1.5 animate-in fade-in duration-200">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Please specify relationship <span className="text-red-500">*</span></Label>
+                                                <Input
+                                                    value={form.relationshipOther || ""}
+                                                    onChange={(e) => setForm(p => ({ ...p, relationshipOther: e.target.value }))}
+                                                    className={cn("h-10 rounded-xl text-xs md:text-sm font-bold uppercase", (showErrors && !form.relationshipOther) && "border-2 border-red-500")}
+                                                    placeholder="Specify relationship (e.g. Nephew, Friend)"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1117,9 +1161,14 @@ export default function DeathCertificateRequestPage() {
                                 </Button>
                                 <Button
                                     onClick={() => {
-                                        if (!form.firstName || !form.lastName || !form.civilStatus || !form.gender || !form.relationship || !form.contactNumber) {
+                                        const missing = [];
+                                        if (!form.relationship) missing.push("Relationship");
+                                        if (form.relationship === "OTHER" && !form.relationshipOther) missing.push("Relationship Description");
+                                        if (!form.contactNumber) missing.push("Contact Number");
+
+                                        if (missing.length > 0) {
                                             setShowErrors(true);
-                                            toast.error("Please fill in all required requester fields.");
+                                            toast.error(`Please fill in all required requester fields: ${missing.join(", ")}`);
                                             return;
                                         }
                                         setShowErrors(false);
@@ -1401,19 +1450,45 @@ export default function DeathCertificateRequestPage() {
                                         <Input
                                             type="date"
                                             value={form.dateOfDeath}
+                                            max={new Date().toISOString().split("T")[0]}
                                             onChange={(e) => setForm(p => ({ ...p, dateOfDeath: e.target.value }))}
-                                            className={cn("h-10 rounded-xl font-bold text-xs md:text-sm", (showErrors && !form.dateOfDeath) && "border-2 border-red-500")}
+                                            className={cn("h-10 rounded-xl font-bold text-xs md:text-sm", ((showErrors && !form.dateOfDeath) || (form.dateOfDeath && new Date(form.dateOfDeath) > new Date())) && "border-2 border-red-500")}
                                         />
+                                        {form.dateOfDeath && new Date(form.dateOfDeath) > new Date() && (
+                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse mt-1">
+                                                Date of death cannot be in the future.
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="space-y-1.5">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Place of Death <span className="text-red-500">*</span></Label>
-                                        <Input
-                                            value={form.placeOfDeath}
-                                            onChange={(e) => setForm(p => ({ ...p, placeOfDeath: e.target.value }))}
-                                            className={cn("h-10 rounded-xl font-bold text-xs md:text-sm uppercase", (showErrors && !form.placeOfDeath) && "border-2 border-red-500")}
-                                            placeholder="e.g. Mapandan, Pangasinan"
-                                        />
+                                        <Select
+                                            value={getNormalizedPlaceOfDeath(form.placeOfDeath)}
+                                            onValueChange={(val) => setForm(p => ({ ...p, placeOfDeath: val }))}
+                                        >
+                                            <SelectTrigger className={cn("h-10 rounded-xl text-xs md:text-sm font-bold uppercase bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10", (showErrors && !form.placeOfDeath) && "border-2 border-red-500")}>
+                                                <SelectValue placeholder="SELECT PLACE OF DEATH" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
+                                                {barangaysList.map((brgy) => (
+                                                    <SelectItem key={brgy} value={`${brgy.toUpperCase()}, MAPANDAN, PANGASINAN`}>
+                                                        {brgy.toUpperCase()}
+                                                    </SelectItem>
+                                                ))}
+                                                {(() => {
+                                                    const normVal = getNormalizedPlaceOfDeath(form.placeOfDeath);
+                                                    if (normVal && !barangaysList.some(b => normVal.startsWith(b.toUpperCase()))) {
+                                                        return (
+                                                            <SelectItem value={normVal}>
+                                                                {normVal}
+                                                            </SelectItem>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
 
@@ -1443,6 +1518,11 @@ export default function DeathCertificateRequestPage() {
                                         if (!form.dateOfDeath || !form.placeOfDeath) {
                                             setShowErrors(true);
                                             toast.error("Please fill in all required fields.");
+                                            return;
+                                        }
+                                        const isFutureDate = form.dateOfDeath && new Date(form.dateOfDeath) > new Date();
+                                        if (isFutureDate) {
+                                            toast.error("Date of death cannot be in the future.");
                                             return;
                                         }
                                         setShowErrors(false);
@@ -1486,10 +1566,8 @@ export default function DeathCertificateRequestPage() {
                                             idTypeOverride: value
                                         }))}
                                     >
-                                        <SelectTrigger className="h-12 rounded-xl border-slate-200 focus:ring-slate-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold">
-                                            <SelectValue>
-                                                {form.idTypeOverride || resident?.idType || "Select type of government ID"}
-                                            </SelectValue>
+                                        <SelectTrigger className={cn("h-12 rounded-xl border-slate-200 focus:ring-slate-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold", (showErrors && !(form.idTypeOverride || resident?.idType)) && "border-2 border-red-500")}>
+                                            <SelectValue placeholder="Select type of government ID" />
                                         </SelectTrigger>
                                         <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
                                             <SelectItem value="UMID">Unified Multi-Purpose ID (UMID)</SelectItem>
@@ -1503,6 +1581,11 @@ export default function DeathCertificateRequestPage() {
                                             <SelectItem value="PWD_ID">PWD ID</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                    {showErrors && !(form.idTypeOverride || resident?.idType) && (
+                                        <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse mt-1">
+                                            Government ID Type is required.
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Grid Uploaders */}
@@ -1524,6 +1607,12 @@ export default function DeathCertificateRequestPage() {
                                 </Button>
                                 <Button
                                     onClick={() => {
+                                        const idTypeSelected = form.idTypeOverride || resident?.idType;
+                                        if (!idTypeSelected) {
+                                            setShowErrors(true);
+                                            toast.error("Please select a Government ID type.");
+                                            return;
+                                        }
                                         const hasIdFront = form.files["validIdFront"] || resident?.idFrontUrl || form.previews["validIdFront"];
                                         const hasIdBack = form.files["validIdBack"] || resident?.idBackUrl || form.previews["validIdBack"];
                                         if (!hasIdFront || !hasIdBack) {
