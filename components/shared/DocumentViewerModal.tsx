@@ -159,7 +159,7 @@ export default function DocumentViewerModal({
 
                 if (!active) return;
 
-                const docxPreviewModule = await import("docx-preview");
+                const docxPreviewModule = await import(/* webpackIgnore: true */ "docx-preview");
                 if (docxContainerRef.current && active) {
                     docxContainerRef.current.innerHTML = "";
                     await docxPreviewModule.renderAsync(docxBlob, docxContainerRef.current, undefined, {
