@@ -1615,312 +1615,309 @@ export async function updateResident(id: string, formData: FormData) {
         const email = emailRaw ? emailRaw.trim().toLowerCase() : null;
         const password = formData.get("password") as string | null;
 
-        const currentResident = await (prisma.resident as any).findUnique({
-            where: { id },
-            select: { userId: true }
-        });
-
         const categoryIds = formData.getAll("categories") as string[];
 
-        // FIX 3: REGISTRATION DUPLICATE GUARD (UPDATE)
-        // const faceDataRaw = formData.get("facialRecognition");
-        // if (faceDataRaw) {
-        //     const faceData = JSON.parse(faceDataRaw as string);
-        //     const descriptorToSave = faceData.descriptor || (Array.isArray(faceData) ? faceData : null);
-        //     
-        //     if (descriptorToSave) {
-        //          const duplicateCheck = await checkDuplicateFace(descriptorToSave, id);
-        //          if (duplicateCheck.success && duplicateCheck.match) {
-        //              return { 
-        //                  success: false, 
-        //                  error: `DUPLICATE FACE DETECTED: This identity matches ${duplicateCheck.match.name}. Update blocked.` 
-        //              };
-        //          }
-        //     }
-        // }
-
-        const dataToUpdate: any = {
-            firstName: formData.get("firstName") as string,
-            lastName: formData.get("lastName") as string,
-            middleName: formData.get("middleName") as string || null,
-            suffix: formData.get("suffix") as string || null,
-            gender: formData.get("gender") as string,
-            dateOfBirth: new Date(formData.get("dateOfBirth") as string),
-            age: formData.get("age") ? parseInt(formData.get("age") as string, 10) : null,
-            placeOfBirth: formData.get("placeOfBirth") as string || null,
-            civilStatus: formData.get("civilStatus") as string,
-            citizenship: formData.get("citizenship") as string || "Filipino",
-            height: formData.get("height") as string || null,
-            weight: formData.get("weight") as string || null,
-            religion: formData.get("religion") as string || null,
-            bloodType: formData.get("bloodType") as string || null,
-            houseNumber: formData.get("houseNumber") as string || null,
-            street: formData.get("street") as string || null,
-            sitio: formData.get("sitio") as string || null,
-            purok: formData.get("purok") as string || null,
-            barangay: formData.get("barangay") as string,
-            contactNumber: formData.get("contactNumber") as string || null,
-            isHead: formData.get("isHead") === "true" || formData.get("isHead") === "on",
-            relationshipToHead: formData.get("relationshipToHead") as string || null,
-            householdId: formData.get("householdId") as string || null,
-            familyHeadId: formData.get("headId") as string || null,
-            tin: formData.get("tin") as string || null,
-            gsis: formData.get("gsis") as string || null,
-            sss: formData.get("sss") as string || null,
-            philhealthNumber: formData.get("philhealthNumber") as string || null,
-            occupation: formData.get("occupation") as string || null,
-            employer: formData.get("employer") as string || null,
-            motherFirstName: formData.get("motherFirstName") as string || null,
-            motherMiddleName: formData.get("motherMiddleName") as string || null,
-            motherLastName: formData.get("motherLastName") as string || null,
-            fatherFirstName: formData.get("fatherFirstName") as string || null,
-            fatherMiddleName: formData.get("fatherMiddleName") as string || null,
-            fatherLastName: formData.get("fatherLastName") as string || null,
-            idType: formData.get("idType") as string || null,
-            educationalAttainment: formData.get("educationalAttainment") as string || null,
-            degreeProgram: formData.get("degreeProgram") as string || null,
-            employmentStatus: formData.get("employmentStatus") as string || null,
-            monthlyIncome: formData.get("monthlyIncome") as string || null,
-            isSenior: formData.get("isSenior") === "true" || formData.get("isSenior") === "on",
-            isPWD: formData.get("isPWD") === "true" || formData.get("isPWD") === "on",
-            isSoloParent: formData.get("isSoloParent") === "true" || formData.get("isSoloParent") === "on",
-            isIndigenous: formData.get("isIndigenous") === "true" || formData.get("isIndigenous") === "on",
-            is4Ps: formData.get("is4Ps") === "true" || formData.get("is4Ps") === "on",
-            otherSector: formData.get("otherSector") as string || null,
-            dataPrivacyConsent: true,
-            receivedBy: activeUserName,
-            officialPosition: activeUserRole,
-            dateReceived: new Date(),
-            facialRecognition: formData.get("facialRecognition")
-                ? JSON.parse(formData.get("facialRecognition") as string)
-                : undefined,
-            registrationStatus: "APPROVED",
-            categoryId: categoryIds.length > 0 ? categoryIds[0] : null
-        };
-
-        if (email) {
-            const name = `${formData.get("firstName")} ${formData.get("lastName")}`;
-
-            if (currentResident?.userId) {
-                // Check if email taken by ANOTHER person
-                const existingUser = await prisma.user.findFirst({
-                    where: { email, NOT: { id: currentResident.userId } }
-                });
-                if (existingUser) return { success: false, error: "Email already taken by another user." };
-
-                const userUpdateData: any = { email, name };
-                if (password) {
-                    userUpdateData.password = await bcrypt.hash(password, 10);
-                    userUpdateData.isPasswordChanged = true; // Admin manually set a password
-                }
-
-                if (dataToUpdate.registrationStatus === "APPROVED") {
-                    userUpdateData.emailVerified = new Date();
-                    userUpdateData.isEmailVerified = true;
-                } else if (dataToUpdate.registrationStatus === "PENDING" || dataToUpdate.registrationStatus === "REJECTED") {
-                    userUpdateData.emailVerified = null;
-                    userUpdateData.isEmailVerified = false;
-                }
-
-                console.log(`[AccountSync] Updating account for ${email}...`);
-                await prisma.user.update({
-                    where: { id: currentResident.userId },
-                    data: userUpdateData
-                });
-            } else {
-                // Resident has no User record yet, create one
-                const existingUser = await prisma.user.findUnique({ where: { email } });
-                if (existingUser) return { success: false, error: "Email already taken." };
-
-                const rawPassword = password || email;
-                const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-                console.log(`[AccountSync] Creating new account for ${email}...`);
-                const user = await prisma.user.create({
-                    data: {
-                        email,
-                        password: hashedPassword,
-                        name,
-                        role: "USER",
-                        emailVerified: dataToUpdate.registrationStatus === "APPROVED" ? new Date() : null,
-                        isEmailVerified: dataToUpdate.registrationStatus === "APPROVED",
-                        isPasswordChanged: password ? true : false
-                    } as any
-                });
-                dataToUpdate.userId = user.id;
-            }
-            dataToUpdate.email = email;
-        }
-
-        const oldResident = await (prisma as any).resident.findUnique({ where: { id } });
-
-        if (livenessUrl && oldResident?.livenessUrl && oldResident.livenessUrl !== livenessUrl) {
-            await deleteUploadedFile(oldResident.livenessUrl);
-        }
-        if (idFrontUrl && oldResident?.idFrontUrl && oldResident.idFrontUrl !== idFrontUrl) {
-            await deleteUploadedFile(oldResident.idFrontUrl);
-        }
-        if (idBackUrl && oldResident?.idBackUrl && oldResident.idBackUrl !== idBackUrl) {
-            await deleteUploadedFile(oldResident.idBackUrl);
-        }
-
-        if (livenessUrl) dataToUpdate.livenessUrl = livenessUrl;
-        else dataToUpdate.livenessUrl = (formData.get("livenessUrl") as string) || null;
-
-        if (idFrontUrl) dataToUpdate.idFrontUrl = idFrontUrl;
-        else dataToUpdate.idFrontUrl = (formData.get("idFrontUrl") as string) || null;
-
-        if (idBackUrl) dataToUpdate.idBackUrl = idBackUrl;
-        else dataToUpdate.idBackUrl = (formData.get("idBackUrl") as string) || null;
-
-        const isHead = formData.get("isHead") === "true" || formData.get("isHead") === "on";
-        const headIdFromForm = formData.get("headId") as string || null;
-        let householdId = (formData.get("householdId") as string) || (dataToUpdate.householdId as string) || null;
-
-        // NEW: If transitioning from member to head, force new household creation
-        if (isHead && householdId) {
-            const currentH = await (prisma.household as any).findUnique({
-                where: { id: householdId },
-                select: { headId: true }
-            });
-            if (currentH && currentH.headId !== id) {
-                // Was member of another household, needs their own now
-                householdId = null;
-            }
-        }
-
-        // If not head and selected a head, get their householdId
-        if (!isHead && headIdFromForm) {
-            const head = await (prisma.resident as any).findUnique({
-                where: { id: headIdFromForm },
-                select: { householdId: true }
-            });
-            if (head && head.householdId) {
-                householdId = head.householdId;
-                dataToUpdate.householdId = householdId;
-            }
-        }
-
-        // If newly marked as head and no householdId, create one
-        if (isHead && !householdId) {
-            // Check if they are already a head of any household to avoid unique constraint error
-            const existingAsHead = await (prisma as any).household.findUnique({
-                where: { headId: id }
+        const mappedUpdate = await prisma.$transaction(async (tx: any) => {
+            const currentResident = await (tx.resident as any).findUnique({
+                where: { id },
+                select: { userId: true }
             });
 
-            if (existingAsHead) {
-                householdId = existingAsHead.id;
-                dataToUpdate.householdId = householdId;
-            } else {
-                try {
-                    const newHousehold = await (prisma as any).household.create({
+            const dataToUpdate: any = {
+                firstName: formData.get("firstName") as string,
+                lastName: formData.get("lastName") as string,
+                middleName: formData.get("middleName") as string || null,
+                suffix: formData.get("suffix") as string || null,
+                gender: formData.get("gender") as string,
+                dateOfBirth: new Date(formData.get("dateOfBirth") as string),
+                age: formData.get("age") ? parseInt(formData.get("age") as string, 10) : null,
+                placeOfBirth: formData.get("placeOfBirth") as string || null,
+                civilStatus: formData.get("civilStatus") as string,
+                citizenship: formData.get("citizenship") as string || "Filipino",
+                height: formData.get("height") as string || null,
+                weight: formData.get("weight") as string || null,
+                religion: formData.get("religion") as string || null,
+                bloodType: formData.get("bloodType") as string || null,
+                houseNumber: formData.get("houseNumber") as string || null,
+                street: formData.get("street") as string || null,
+                sitio: formData.get("sitio") as string || null,
+                purok: formData.get("purok") as string || null,
+                barangay: formData.get("barangay") as string,
+                contactNumber: formData.get("contactNumber") as string || null,
+                isHead: formData.get("isHead") === "true" || formData.get("isHead") === "on",
+                relationshipToHead: formData.get("relationshipToHead") as string || null,
+                householdId: formData.get("householdId") as string || null,
+                familyHeadId: formData.get("headId") as string || null,
+                tin: formData.get("tin") as string || null,
+                gsis: formData.get("gsis") as string || null,
+                sss: formData.get("sss") as string || null,
+                philhealthNumber: formData.get("philhealthNumber") as string || null,
+                occupation: formData.get("occupation") as string || null,
+                employer: formData.get("employer") as string || null,
+                motherFirstName: formData.get("motherFirstName") as string || null,
+                motherMiddleName: formData.get("motherMiddleName") as string || null,
+                motherLastName: formData.get("motherLastName") as string || null,
+                fatherFirstName: formData.get("fatherFirstName") as string || null,
+                fatherMiddleName: formData.get("fatherMiddleName") as string || null,
+                fatherLastName: formData.get("fatherLastName") as string || null,
+                idType: formData.get("idType") as string || null,
+                educationalAttainment: formData.get("educationalAttainment") as string || null,
+                degreeProgram: formData.get("degreeProgram") as string || null,
+                employmentStatus: formData.get("employmentStatus") as string || null,
+                monthlyIncome: formData.get("monthlyIncome") as string || null,
+                isSenior: formData.get("isSenior") === "true" || formData.get("isSenior") === "on",
+                isPWD: formData.get("isPWD") === "true" || formData.get("isPWD") === "on",
+                isSoloParent: formData.get("isSoloParent") === "true" || formData.get("isSoloParent") === "on",
+                isIndigenous: formData.get("isIndigenous") === "true" || formData.get("isIndigenous") === "on",
+                is4Ps: formData.get("is4Ps") === "true" || formData.get("is4Ps") === "on",
+                otherSector: formData.get("otherSector") as string || null,
+                dataPrivacyConsent: true,
+                receivedBy: activeUserName,
+                officialPosition: activeUserRole,
+                dateReceived: new Date(),
+                facialRecognition: formData.get("facialRecognition")
+                    ? JSON.parse(formData.get("facialRecognition") as string)
+                    : undefined,
+                registrationStatus: "APPROVED",
+                categoryId: categoryIds.length > 0 ? categoryIds[0] : null
+            };
+
+            if (email) {
+                const name = `${formData.get("firstName")} ${formData.get("lastName")}`;
+
+                if (currentResident?.userId) {
+                    // Check if email taken by ANOTHER person
+                    const existingUser = await tx.user.findFirst({
+                        where: { email, NOT: { id: currentResident.userId } }
+                    });
+                    if (existingUser) throw new Error("Email already taken by another user.");
+
+                    const userUpdateData: any = { email, name };
+                    if (password) {
+                        userUpdateData.password = await bcrypt.hash(password, 10);
+                        userUpdateData.isPasswordChanged = true; // Admin manually set a password
+                    }
+
+                    if (dataToUpdate.registrationStatus === "APPROVED") {
+                        userUpdateData.emailVerified = new Date();
+                        userUpdateData.isEmailVerified = true;
+                    } else if (dataToUpdate.registrationStatus === "PENDING" || dataToUpdate.registrationStatus === "REJECTED") {
+                        userUpdateData.emailVerified = null;
+                        userUpdateData.isEmailVerified = false;
+                    }
+
+                    console.log(`[AccountSync] Updating account for ${email}...`);
+                    await tx.user.update({
+                        where: { id: currentResident.userId },
+                        data: userUpdateData
+                    });
+                } else {
+                    // Resident has no User record yet, create one
+                    const existingUser = await tx.user.findUnique({ where: { email } });
+                    if (existingUser) throw new Error("Email already taken.");
+
+                    const rawPassword = password || email;
+                    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+                    console.log(`[AccountSync] Creating new account for ${email}...`);
+                    const user = await tx.user.create({
                         data: {
-                            barangay: formData.get("barangay") as string,
-                            householdSize: 1,
-                            headId: id,
-                            contactNumber: formData.get("contactNumber") as string || null,
+                            email,
+                            password: hashedPassword,
+                            name,
+                            role: "USER",
+                            emailVerified: dataToUpdate.registrationStatus === "APPROVED" ? new Date() : null,
+                            isEmailVerified: dataToUpdate.registrationStatus === "APPROVED",
+                            isPasswordChanged: password ? true : false
                         } as any
                     });
-                    householdId = newHousehold.id;
-                    dataToUpdate.householdId = householdId;
-                } catch (err) {
-                    console.error("Automatic household creation failed during update:", err);
+                    dataToUpdate.userId = user.id;
+                }
+                dataToUpdate.email = email;
+            } else {
+                // Email cleared
+                dataToUpdate.email = null;
+                if (currentResident?.userId) {
+                    console.log(`[AccountSync] Setting email to null for user account ${currentResident.userId}...`);
+                    await tx.user.update({
+                        where: { id: currentResident.userId },
+                        data: { email: null }
+                    });
                 }
             }
-        }
 
-        const resident = await (prisma as any).resident.update({
-            where: { id },
-            data: dataToUpdate as any
-        });
+            const oldResident = await (tx as any).resident.findUnique({ where: { id } });
 
-        // Handle Family Members (manual and linked)
-        const familyMembersData = formData.get("familyMembers") as string;
-        if (familyMembersData) {
-            const familyMembersParsed = JSON.parse(familyMembersData);
-            const manualMembers = familyMembersParsed.filter((fm: any) => !fm.id);
-            const linkedMembers = familyMembersParsed.filter((fm: any) => !!fm.id);
+            if (livenessUrl && oldResident?.livenessUrl && oldResident.livenessUrl !== livenessUrl) {
+                await deleteUploadedFile(oldResident.livenessUrl);
+            }
+            if (idFrontUrl && oldResident?.idFrontUrl && oldResident.idFrontUrl !== idFrontUrl) {
+                await deleteUploadedFile(oldResident.idFrontUrl);
+            }
+            if (idBackUrl && oldResident?.idBackUrl && oldResident.idBackUrl !== idBackUrl) {
+                await deleteUploadedFile(oldResident.idBackUrl);
+            }
 
-            // 1. Refresh manual family members
+            if (livenessUrl) dataToUpdate.livenessUrl = livenessUrl;
+            else dataToUpdate.livenessUrl = (formData.get("livenessUrl") as string) || null;
 
-            // 2. Link existing registered residents & Unlink removed ones
-            if (householdId) {
-                // Link current list
-                for (const member of linkedMembers) {
-                    const target = await (prisma.resident as any).findUnique({
-                        where: { id: member.id },
-                        select: { householdId: true }
-                    });
+            if (idFrontUrl) dataToUpdate.idFrontUrl = idFrontUrl;
+            else dataToUpdate.idFrontUrl = (formData.get("idFrontUrl") as string) || null;
 
-                    if (target) {
-                        await (prisma as any).resident.update({
-                            where: { id: member.id },
+            if (idBackUrl) dataToUpdate.idBackUrl = idBackUrl;
+            else dataToUpdate.idBackUrl = (formData.get("idBackUrl") as string) || null;
+
+            const isHead = formData.get("isHead") === "true" || formData.get("isHead") === "on";
+            const headIdFromForm = formData.get("headId") as string || null;
+            let householdId = (formData.get("householdId") as string) || (dataToUpdate.householdId as string) || null;
+
+            // NEW: If transitioning from member to head, force new household creation
+            if (isHead && householdId) {
+                const currentH = await (tx.household as any).findUnique({
+                    where: { id: householdId },
+                    select: { headId: true }
+                });
+                if (currentH && currentH.headId !== id) {
+                    // Was member of another household, needs their own now
+                    householdId = null;
+                }
+            }
+
+            // If not head and selected a head, get their householdId
+            if (!isHead && headIdFromForm) {
+                const head = await (tx.resident as any).findUnique({
+                    where: { id: headIdFromForm },
+                    select: { householdId: true }
+                });
+                if (head && head.householdId) {
+                    householdId = head.householdId;
+                    dataToUpdate.householdId = householdId;
+                }
+            }
+
+            // If newly marked as head and no householdId, create one
+            if (isHead && !householdId) {
+                // Check if they are already a head of any household to avoid unique constraint error
+                const existingAsHead = await (tx as any).household.findUnique({
+                    where: { headId: id }
+                });
+
+                if (existingAsHead) {
+                    householdId = existingAsHead.id;
+                    dataToUpdate.householdId = householdId;
+                } else {
+                    try {
+                        const newHousehold = await (tx as any).household.create({
                             data: {
-                                householdId: householdId,
-                                relationshipToHead: member.relationship || "Member"
+                                barangay: formData.get("barangay") as string,
+                                householdSize: 1,
+                                headId: id,
+                                contactNumber: formData.get("contactNumber") as string || null,
                             } as any
                         });
+                        householdId = newHousehold.id;
+                        dataToUpdate.householdId = householdId;
+                    } catch (err) {
+                        console.error("Automatic household creation failed during update:", err);
                     }
                 }
+            }
 
-                // If specialized head update, handle unlinking
-                if (isHead) {
-                    const currentMembers = await (prisma.resident as any).findMany({
-                        where: {
-                            householdId: householdId,
-                            id: { not: id }
-                        },
-                        select: { id: true }
-                    });
+            const resident = await (tx as any).resident.update({
+                where: { id },
+                data: dataToUpdate as any
+            });
 
-                    const newMemberIds = linkedMembers.map((m: any) => m.id);
-                    const membersToUnlink = currentMembers.filter((m: any) => !newMemberIds.includes(m.id));
+            // Handle Family Members (manual and linked)
+            const familyMembersData = formData.get("familyMembers") as string;
+            if (familyMembersData) {
+                const familyMembersParsed = JSON.parse(familyMembersData);
+                const manualMembers = familyMembersParsed.filter((fm: any) => !fm.id);
+                const linkedMembers = familyMembersParsed.filter((fm: any) => !!fm.id);
 
-                    for (const member of membersToUnlink) {
-                        await (prisma as any).resident.update({
+                // 1. Refresh manual family members
+
+                // 2. Link existing registered residents & Unlink removed ones
+                if (householdId) {
+                    // Link current list
+                    for (const member of linkedMembers) {
+                        const target = await (tx.resident as any).findUnique({
                             where: { id: member.id },
-                            data: { householdId: null, relationshipToHead: null } as any
+                            select: { householdId: true }
                         });
+
+                        if (target) {
+                            await (tx as any).resident.update({
+                                where: { id: member.id },
+                                data: {
+                                    householdId: householdId,
+                                    relationshipToHead: member.relationship || "Member"
+                                } as any
+                            });
+                        }
                     }
+
+                    // If specialized head update, handle unlinking
+                    if (isHead) {
+                        const currentMembers = await (tx.resident as any).findMany({
+                            where: {
+                                householdId: householdId,
+                                id: { not: id }
+                            },
+                            select: { id: true }
+                        });
+
+                        const newMemberIds = linkedMembers.map((m: any) => m.id);
+                        const membersToUnlink = currentMembers.filter((m: any) => !newMemberIds.includes(m.id));
+
+                        for (const member of membersToUnlink) {
+                            await (tx as any).resident.update({
+                                where: { id: member.id },
+                                data: { householdId: null, relationshipToHead: null } as any
+                            });
+                        }
+                    }
+                }
+
+                // 3. Update household size
+                if (householdId) {
+                    const totalSize = 1 + familyMembersParsed.length;
+                    await (tx as any).household.update({
+                        where: { id: householdId },
+                        data: { householdSize: totalSize } as any
+                    });
                 }
             }
 
-            // 3. Update household size
-            if (householdId) {
-                const totalSize = 1 + familyMembersParsed.length;
-                await (prisma as any).household.update({
-                    where: { id: householdId },
-                    data: { householdSize: totalSize } as any
-                });
-            }
-        }
-
-        // Fetch full resident data with relations for the frontend
-        const finalResidentUpdate = await (prisma.resident as any).findUnique({
-            where: { id: resident.id },
-            include: {
-                category: true,
-                household: {
-                    include: {
-                        members: true,
-                        head: true
+            // Fetch full resident data with relations for the frontend
+            const finalResidentUpdate = await (tx.resident as any).findUnique({
+                where: { id: resident.id },
+                include: {
+                    category: true,
+                    household: {
+                        include: {
+                            members: true,
+                            head: true
+                        }
                     }
                 }
-            }
+            });
+
+            const mappedUpdate = finalResidentUpdate ? {
+                ...finalResidentUpdate,
+                headId: finalResidentUpdate.household?.headId || null,
+                headName: finalResidentUpdate.household?.head ? `${finalResidentUpdate.household.head.firstName} ${finalResidentUpdate.household.head.lastName}` : null
+            } : resident;
+
+            return mappedUpdate;
         });
-
-        const mappedUpdate = finalResidentUpdate ? {
-            ...finalResidentUpdate,
-            headId: finalResidentUpdate.household?.headId || null,
-            headName: finalResidentUpdate.household?.head ? `${finalResidentUpdate.household.head.firstName} ${finalResidentUpdate.household.head.lastName}` : null
-        } : resident;
 
         revalidatePath("/admin/residents");
         revalidatePath("/admin/households");
         return { success: true, data: mappedUpdate };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating resident:", error);
-        return { success: false, error: "Failed to update resident" };
+        return { success: false, error: error.message || "Failed to update resident" };
     }
 }
 
