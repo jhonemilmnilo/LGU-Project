@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, use, useCallback } from "react";
@@ -206,7 +207,7 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
                             Revision Count: {transaction?.revisionCount || 0} / 3
                         </Badge>
                         <Badge className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 border border-blue-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-1 rounded-xl">
-                            Re-inspection Count: {transaction?.additionalData?.reinspectionCount || 0} / 4
+                            Re-inspection Count: {transaction?.additionalData?.reinspectionCount || 0} / 3
                         </Badge>
                     </div>
                     <Badge variant="outline" className="font-black italic uppercase tracking-widest text-[10px] border-primary/20 text-primary bg-primary/5 px-4 py-1">
@@ -383,6 +384,28 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
                                     </div>
                                 );
                             })()}
+
+                            {/* Applicant E-Signature Section */}
+                            {additional?.signature && (
+                                <div className="col-span-12 space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Applicant Digital E-Signature</label>
+                                    <div className="max-w-[240px] bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 p-4">
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <div className="group relative aspect-video rounded-xl overflow-hidden flex items-center justify-center cursor-zoom-in bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5">
+                                                    <img src={additional.signature} alt="E-Signature" className="max-h-20 object-contain p-2 group-hover:scale-105 transition-transform" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <div className="p-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                                            <ZoomIn className="w-4 h-4 text-white" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </DialogTrigger>
+                                            <LightboxView src={additional.signature} alt="E-Signature" label="Applicant E-Signature" />
+                                        </Dialog>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -402,6 +425,14 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
                             <div className="space-y-2">
                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Occupancy Use</label>
                                 <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 min-h-[48px]">{additional?.occupancyUse || "--"}</div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Total Floor(s)</label>
+                                <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 min-h-[48px]">{additional?.totalFloors || "--"}</div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Is applicant lot owner?</label>
+                                <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 min-h-[48px]">{additional?.isLotOwner || "--"}</div>
                             </div>
                             <div className="space-y-2 md:col-span-2">
                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Location of Construction</label>

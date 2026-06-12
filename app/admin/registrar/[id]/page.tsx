@@ -66,6 +66,7 @@ import GenericServiceView from "@/app/admin/treasury/[id]/views/GenericServiceVi
 import MarriageCertificateRequestView from "./views/MarriageCertificateRequestView";
 import BirthPsaEndorsementView from "./views/BirthPsaEndorsement";
 import DeathPsaEndorsementView from "./views/DeathPsaEndorsement";
+import MarriagePsaEndorsementView from "./views/MarriagePsaEndorsement";
 import DocumentViewerModal from "@/app/admin/treasury/[id]/components/DocumentViewerModal";
 
 interface PageProps {
@@ -248,7 +249,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
         ? "/admin/registrar?category=Birth%20Registration"
         : typeCodeForBack === "LCR_BIRTH"
             ? "/admin/registrar?category=Birth%20Certificate"
-            : (typeCodeForBack === "LCR_PSA_ENDORSEMENT" || typeCodeForBack === "LCR_DEATH_PSA_ENDORSEMENT")
+            : (typeCodeForBack === "LCR_PSA_ENDORSEMENT" || typeCodeForBack === "LCR_DEATH_PSA_ENDORSEMENT" || typeCodeForBack === "LCR_MARRIAGE_PSA_ENDORSEMENT")
                 ? "/admin/registrar?category=PSA%20Endorsement"
                 : typeCodeForBack === "LCR_DEATH_REG"
                     ? "/admin/registrar?category=Death%20Registration"
@@ -496,6 +497,9 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                                 } else {
                                     setDeliveryFee(tx.type.deliveryFee);
                                 }
+                            }).catch(err => {
+                                console.error("Failed to get delivery fee by barangay:", err);
+                                setDeliveryFee(tx.type.deliveryFee);
                             });
                         } else {
                             setDeliveryFee(tx.type.deliveryFee);
@@ -516,25 +520,41 @@ export default function RegistrarDetailPage({ params }: PageProps) {
         if (!supabase || !id) return;
 
         console.log(`Subscribing to Supabase Realtime for transaction ${id}...`);
-        const channel = supabase
-            .channel(`realtime-registrar-transaction-${id}`)
-            .on(
-                "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: "Transaction",
-                    filter: `id=eq.${id}`,
-                },
-                () => {
-                    fetchTransaction();
-                }
-            )
-            .subscribe();
+        let channel: any;
+        try {
+            channel = supabase
+                .channel(`realtime-registrar-transaction-${id}`)
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "*",
+                        schema: "public",
+                        table: "Transaction",
+                        filter: `id=eq.${id}`,
+                    },
+                    () => {
+                        fetchTransaction().catch(err => {
+                            console.error("Realtime fetchTransaction failed:", err);
+                        });
+                    }
+                )
+                .subscribe((status: string, err?: any) => {
+                    if (err) {
+                        console.error("Supabase Realtime subscription error:", err);
+                    }
+                    if (status === "CHANNEL_ERROR") {
+                        console.error("Supabase Realtime channel error status caught");
+                    }
+                });
+        } catch (error) {
+            console.error("Failed to initialize Supabase Realtime subscription:", error);
+        }
 
         return () => {
             console.log(`Unsubscribing from Supabase Realtime for transaction ${id}...`);
-            supabase.removeChannel(channel);
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
         };
     }, [id, fetchTransaction]);
 
@@ -1170,7 +1190,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     if (!transaction) return <div className="p-20 text-center dark:text-white">Protocol Error: Transaction Inaccessible</div>;
 
     const isRegistrar = rawUserRole === "REGISTRAR" || userDepartment?.toUpperCase() === "REGISTRAR";
-    if ((isLcrBirthCertifiedCopy || typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") && isRegistrar && ["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
+    if ((isLcrBirthCertifiedCopy || typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") && isRegistrar && ["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
         return (
             <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 space-y-6">
                 <div className="p-6 rounded-[2.5rem] bg-white dark:bg-[#151b28] border border-amber-500/20 shadow-2xl relative">
@@ -1187,7 +1207,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md">
                     This request is currently under Treasury payment verification and O.R. issuance. The Registrar department cannot access this request until the official receipt is successfully issued by the Treasury.
                 </p>
-                <Link href="/admin/registrar">
+                <Link href="/admin/registrar" prefetch={false}>
                     <Button variant="outline" className="h-12 px-6 rounded-xl border-2 font-black italic uppercase text-xs tracking-wider transition-all active:scale-95">
                         Back to Registrar Dashboard
                     </Button>
@@ -1212,7 +1232,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md">
                     This service request has been officially cancelled by the citizen. No further processing or evaluation is required for this record.
                 </p>
-                <Link href={backUrl}>
+                <Link href={backUrl} prefetch={false}>
                     <Button variant="outline" className="h-14 px-8 rounded-2xl border-2 font-black italic uppercase text-xs tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all active:scale-95">
                         Back to Dashboard
                     </Button>
@@ -1350,7 +1370,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             }
             return stepsList;
         }
-        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
+        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") {
             return [
                 { id: "VERIFY_BILL", label: "Registrar: Verify & Bill" },
                 { id: "USER_PAYMENT", label: "User: Payment" },
@@ -1385,7 +1405,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     let steps = [...baseSteps];
     const status = transaction.status as string;
 
-    if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
+    if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") {
         // Maintain the standard 4 steps
     } else if (status === "REJECTED") {
         steps = [
@@ -1421,7 +1441,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     });
 
     const getEffectiveStatus = (s: string) => {
-        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
+        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") {
             if (["FOR_INSPECTION", "FOR_REQUESTING", "UNDER_REVIEW", "FOR_REVISION", "REJECTED"].includes(s)) {
                 return "VERIFY_BILL";
             }
@@ -1820,6 +1840,23 @@ export default function RegistrarDetailPage({ params }: PageProps) {
         return (
             <>
                 <DeathPsaEndorsementView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerInitialIdx}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") {
+        return (
+            <>
+                <MarriagePsaEndorsementView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}

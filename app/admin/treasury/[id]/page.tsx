@@ -3,7 +3,7 @@
 
 import React, { useState, useRef, useEffect, use, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -92,6 +92,7 @@ import MarriageRegistrationView from "./views/MarriageRegistrationView";
 import GenericServiceView from "./views/GenericServiceView";
 import BirthPsaEndorsementView from "./views/BirthPsaEndorsement";
 import DeathPsaEndorsementView from "./views/DeathPsaEndorsement";
+import MarriagePsaEndorsementView from "./views/MarriagePsaEndorsement";
 import MarraigeCertificateView from "./views/MarraigeCertificateView";
 
 interface PageProps {
@@ -257,7 +258,8 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
 }
 
 export default function TreasuryDetailPage({ params }: PageProps) {
-    const { id } = use(params);
+    const routeParams = useParams();
+    const id = routeParams?.id as string;
     const router = useRouter();
     const { data: session } = useSession();
     const rawUserRole = (session?.user as any)?.role;
@@ -476,7 +478,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const isCedula = transaction?.type?.code?.includes("CEDULA") ?? false;
     const typeCode = (transaction?.type?.code || "").toUpperCase();
-    const isLcrCertifiedCopy = typeCode === "LCR_BIRTH" || typeCode === "LCR_DEATH" || typeCode === "LCR_MARRIAGE" || typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || (transaction?.type?.name && (transaction.type.name.includes("Birth Certificate") || transaction.type.name.includes("Death Certificate") || transaction.type.name.includes("Marriage Certificate"))) || false;
+    const isLcrCertifiedCopy = typeCode === "LCR_BIRTH" || typeCode === "LCR_DEATH" || typeCode === "LCR_MARRIAGE" || typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT" || (transaction?.type?.name && (transaction.type.name.includes("Birth Certificate") || transaction.type.name.includes("Death Certificate") || transaction.type.name.includes("Marriage Certificate"))) || false;
     const isLcrBirthCertifiedCopy = typeCode === "LCR_BIRTH" || (transaction?.type?.name && transaction.type.name.includes("Birth Certificate")) || false;
     const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
@@ -584,6 +586,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 } else {
                                     setDeliveryFee(tx.type.deliveryFee);
                                 }
+                            }).catch(err => {
+                                console.error("Failed to get delivery fee by barangay:", err);
+                                setDeliveryFee(tx.type.deliveryFee);
                             });
                         } else {
                             setDeliveryFee(tx.type.deliveryFee);
@@ -604,25 +609,41 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         if (!supabase || !id) return;
 
         console.log(`Subscribing to Supabase Realtime for transaction ${id}...`);
-        const channel = supabase
-            .channel(`realtime-treasury-transaction-${id}`)
-            .on(
-                "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: "Transaction",
-                    filter: `id=eq.${id}`,
-                },
-                () => {
-                    fetchTransaction();
-                }
-            )
-            .subscribe();
+        let channel: any;
+        try {
+            channel = supabase
+                .channel(`realtime-treasury-transaction-${id}`)
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "*",
+                        schema: "public",
+                        table: "Transaction",
+                        filter: `id=eq.${id}`,
+                    },
+                    () => {
+                        fetchTransaction().catch(err => {
+                            console.error("Realtime fetchTransaction failed:", err);
+                        });
+                    }
+                )
+                .subscribe((status: string, err?: any) => {
+                    if (err) {
+                        console.error("Supabase Realtime subscription error:", err);
+                    }
+                    if (status === "CHANNEL_ERROR") {
+                        console.error("Supabase Realtime channel error status caught");
+                    }
+                });
+        } catch (error) {
+            console.error("Failed to initialize Supabase Realtime subscription:", error);
+        }
 
         return () => {
             console.log(`Unsubscribing from Supabase Realtime for transaction ${id}...`);
-            supabase.removeChannel(channel);
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
         };
     }, [id, fetchTransaction]);
 
@@ -862,7 +883,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md">
                     This service request has been officially cancelled by the citizen. No further processing or evaluation is required for this record.
                 </p>
-                <Link href={backUrl}>
+                <Link href={backUrl} prefetch={false}>
                     <Button variant="outline" className="h-14 px-8 rounded-2xl border-2 font-black italic uppercase text-xs tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all active:scale-95">
                         Back to Dashboard
                     </Button>
@@ -871,7 +892,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         );
     }
 
-    if ((typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") && !["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
+    if ((typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") && !["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
         return (
             <div className="min-h-screen bg-white dark:bg-[#0c111d] flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in fade-in duration-700">
                 <div className="relative">
@@ -887,7 +908,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md">
                     This request is currently under Registrar verification, document release, or waiting for User payment. The Treasury department cannot access this request until it is paid and ready for payment verification.
                 </p>
-                <Link href={backUrl}>
+                <Link href={backUrl} prefetch={false}>
                     <Button variant="outline" className="h-12 px-6 rounded-xl border-2 font-black italic uppercase text-xs tracking-wider transition-all active:scale-95">
                         Back to Treasury Dashboard
                     </Button>
@@ -1068,7 +1089,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             return stepsList;
         }
-        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
+        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") {
             return [
                 { id: "VERIFY_BILL", label: "Registrar: Verify & Bill" },
                 { id: "USER_PAYMENT", label: "User: Payment" },
@@ -1104,7 +1125,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     let steps = [...baseSteps];
     const status = transaction.status as string;
 
-    if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
+    if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") {
         // Maintain standard 4 steps
     } else if (status === "REJECTED") {
         steps = [
@@ -1139,7 +1160,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     });
 
     const getEffectiveStatus = (s: string) => {
-        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
+        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") {
             if (["FOR_INSPECTION", "FOR_REQUESTING", "UNDER_REVIEW", "FOR_REVISION", "REJECTED"].includes(s)) {
                 return "VERIFY_BILL";
             }
@@ -1949,6 +1970,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return (
             <>
                 <DeathPsaEndorsementView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") {
+        return (
+            <>
+                <MarriagePsaEndorsementView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}
