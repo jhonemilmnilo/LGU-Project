@@ -71,10 +71,16 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 }
 
                 const role = (session.user as any).role;
-                const dept = (session.user as any).department;
+                const dept = (session.user as any).department ? (session.user as any).department.toUpperCase() : "";
                 if (role === "USER") {
                     router.push("/");
-                } else if (dept && (dept.toUpperCase() === "REGISTRAR" || dept.toUpperCase() === "CIVIL_REGISTRY")) {
+                } else if (role === "TREASURY_STAFF" || (role === "ADMIN" && dept === "TREASURY")) {
+                    router.push("/admin/treasury?category=CEDULA");
+                } else if (role === "ADMIN_AIDE" || (role === "ADMIN" && dept === "BPLO")) {
+                    router.push("/admin/bplo");
+                } else if (role === "ENGINEER") {
+                    router.push("/admin/engineer");
+                } else if (dept === "REGISTRAR" || dept === "CIVIL_REGISTRY") {
                     router.push("/admin/registrar");
                 } else {
                     router.push("/admin/dashboard");

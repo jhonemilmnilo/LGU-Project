@@ -443,7 +443,7 @@ export default function CivilRegistryPage() {
                         const resSnapshot = txData.residentSnapshot as any || r || {};
 
                         const previews: Record<string, string | null> = {};
-                        const fileKeys = ["validIdFront", "validIdBack"];
+                        const fileKeys = ["validIdFront", "validIdBack", "authorizationLetter"];
                         fileKeys.forEach(k => {
                             if (addData[k] && typeof addData[k] === "string" && addData[k].startsWith("http")) {
                                 previews[k] = addData[k];
@@ -596,6 +596,14 @@ export default function CivilRegistryPage() {
             return;
         }
 
+        if (form.relationship !== "SELF") {
+            const hasAuthLetter = form.files["authorizationLetter"] || revisionTx?.additionalData?.authorizationLetter || form.previews["authorizationLetter"];
+            if (!hasAuthLetter) {
+                toast.error("Please upload an Authorization Letter.");
+                return;
+            }
+        }
+
         if (!form.idTypeOverride && !resident?.idType) {
             toast.error("Please select an ID type.");
             return;
@@ -688,7 +696,8 @@ export default function CivilRegistryPage() {
                 idFrontUrl: resident?.idFrontUrl,
                 idBackUrl: resident?.idBackUrl,
                 totalAmount: 0, // No payment amount until evaluated by Registrar
-                gender: form.sex
+                gender: form.sex,
+                ...fileUrls
             };
 
             formData.append("additionalData", JSON.stringify(additionalData));
@@ -713,7 +722,7 @@ export default function CivilRegistryPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: themeColor }} />
+                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "var(--primary-theme)" }} />
                 <p className="font-black uppercase tracking-widest text-[10px] text-slate-400 italic">Initializing Request Form...</p>
             </div>
         );
@@ -1119,10 +1128,23 @@ export default function CivilRegistryPage() {
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                                             <div className="col-span-2 md:col-span-1 space-y-1.5">
                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Relationship <span className="text-red-500">*</span></Label>
-                                                <Select
-                                                    value={form.relationship}
-                                                    onValueChange={(value) => setForm({ ...form, relationship: value })}
-                                                >
+                                                 <Select
+                                                     value={form.relationship}
+                                                     onValueChange={(value) => {
+                                                         const updatedFiles = { ...form.files };
+                                                         const updatedPreviews = { ...form.previews };
+                                                         if (value === "SELF") {
+                                                             delete updatedFiles.authorizationLetter;
+                                                             delete updatedPreviews.authorizationLetter;
+                                                         }
+                                                         setForm({ 
+                                                             ...form, 
+                                                             relationship: value,
+                                                             files: updatedFiles,
+                                                             previews: updatedPreviews
+                                                         });
+                                                     }}
+                                                 >
                                                     <SelectTrigger className={cn(
                                                         "h-10 w-full rounded-xl border-slate-950 dark:border-white focus:ring-blue-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold",
                                                         (showErrors && !form.relationship) && "!border-red-500 bg-red-50/10 focus:ring-red-500"
@@ -1677,6 +1699,25 @@ export default function CivilRegistryPage() {
                                                         error={showErrors && !form.files["validIdBack"] && !resident?.idBackUrl}
                                                     />
                                                 </div>
+
+                                                {form.relationship !== "SELF" && (
+                                                    <div className="w-full">
+                                                        <PremiumDocumentUpload
+                                                            label="Authorization Letter"
+                                                            required
+                                                            file={form.files["authorizationLetter"]}
+                                                            existingUrl={revisionTx?.additionalData?.authorizationLetter || form.previews["authorizationLetter"]}
+                                                            onFileSelect={(file) => {
+                                                                setForm(prev => ({
+                                                                    ...prev,
+                                                                    files: { ...prev.files, authorizationLetter: file }
+                                                                }));
+                                                            }}
+                                                            onView={() => handleViewFile(form.files["authorizationLetter"] || null, revisionTx?.additionalData?.authorizationLetter || form.previews["authorizationLetter"] || null, "Authorization Letter")}
+                                                            error={showErrors && !form.files["authorizationLetter"] && !revisionTx?.additionalData?.authorizationLetter && !form.previews["authorizationLetter"]}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1713,21 +1754,35 @@ export default function CivilRegistryPage() {
                                                     submitting ||
                                                     (!form.idTypeOverride && !resident?.idType) ||
                                                     (!form.files["validIdFront"] && !resident?.idFrontUrl) ||
-                                                    (!form.files["validIdBack"] && !resident?.idBackUrl)
+                                                    (!form.files["validIdBack"] && !resident?.idBackUrl) ||
+                                                    (form.relationship !== "SELF" && !form.files["authorizationLetter"] && !revisionTx?.additionalData?.authorizationLetter && !form.previews["authorizationLetter"])
                                                 }
                                                 className={cn(
                                                     "md:col-span-3 h-14 rounded-full font-black uppercase tracking-widest italic text-[11px] transition-all duration-300",
-                                                    (!form.idTypeOverride && !resident?.idType) || (!form.files["validIdFront"] && !resident?.idFrontUrl) || (!form.files["validIdBack"] && !resident?.idBackUrl)
+                                                    (!form.idTypeOverride && !resident?.idType) || 
+                                                    (!form.files["validIdFront"] && !resident?.idFrontUrl) || 
+                                                    (!form.files["validIdBack"] && !resident?.idBackUrl) ||
+                                                    (form.relationship !== "SELF" && !form.files["authorizationLetter"] && !revisionTx?.additionalData?.authorizationLetter && !form.previews["authorizationLetter"])
                                                         ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                                                         : "bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/20"
                                                 )}
-                                                style={(!form.idTypeOverride && !resident?.idType) || (!form.files["validIdFront"] && !resident?.idFrontUrl) || (!form.files["validIdBack"] && !resident?.idBackUrl) ? {} : { backgroundColor: themeColor }}
+                                                style={
+                                                    (!form.idTypeOverride && !resident?.idType) || 
+                                                    (!form.files["validIdFront"] && !resident?.idFrontUrl) || 
+                                                    (!form.files["validIdBack"] && !resident?.idBackUrl) ||
+                                                    (form.relationship !== "SELF" && !form.files["authorizationLetter"] && !revisionTx?.additionalData?.authorizationLetter && !form.previews["authorizationLetter"])
+                                                        ? {} 
+                                                        : { backgroundColor: themeColor }
+                                                }
                                             >
                                                 {submitting ? (
                                                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                                ) : (!form.idTypeOverride && !resident?.idType) || (!form.files["validIdFront"] && !resident?.idFrontUrl) || (!form.files["validIdBack"] && !resident?.idBackUrl) ? (
+                                                ) : (!form.idTypeOverride && !resident?.idType) || 
+                                                    (!form.files["validIdFront"] && !resident?.idFrontUrl) || 
+                                                    (!form.files["validIdBack"] && !resident?.idBackUrl) ||
+                                                    (form.relationship !== "SELF" && !form.files["authorizationLetter"] && !revisionTx?.additionalData?.authorizationLetter && !form.previews["authorizationLetter"]) ? (
                                                     <>
-                                                        Upload Identification to Submit
+                                                        Upload Required Documents to Submit
                                                         <AlertCircle className="w-5 h-5 ml-2" />
                                                     </>
                                                 ) : (
