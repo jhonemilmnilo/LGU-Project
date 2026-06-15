@@ -82,10 +82,10 @@ export default function PremiumDocumentUpload({
                lowerUrl.startsWith("data:application/pdf");
     };
 
-    const isPdf = previewUrl 
-        ? checkIsPdfUrl(previewUrl)
-        : file 
+    const isPdf = file 
         ? (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))
+        : previewUrl 
+        ? checkIsPdfUrl(previewUrl)
         : existingUrl
         ? checkIsPdfUrl(existingUrl)
         : false;
