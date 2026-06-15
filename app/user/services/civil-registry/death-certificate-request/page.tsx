@@ -14,7 +14,6 @@ import {
     Search,
     CheckCircle2,
     Heart,
-    MapPin,
     Home,
     AlertCircle,
     X
@@ -86,15 +85,14 @@ async function uploadFileClientSide(file: File, fieldName: string, userId: strin
 
 // --- TYPES ---
 
-type Step = "IDENTITY" | "DETAILS" | "PARENTS_DETAILS" | "PLACE_OF_DEATH" | "UPLOAD" | "CONFIRM";
+type Step = "STATUS" | "IDENTITY" | "DETAILS" | "UPLOAD" | "CONFIRM";
 
 const STEPS: { id: Step; label: string; icon: any }[] = [
-    { id: "IDENTITY", label: "Requester Details", icon: User },
-    { id: "DETAILS", label: "Deceased Details", icon: Search },
-    { id: "PARENTS_DETAILS", label: "Parents' Details", icon: Heart },
-    { id: "PLACE_OF_DEATH", label: "Place of Death", icon: MapPin },
-    { id: "UPLOAD", label: "Supporting Docs", icon: Upload },
-    { id: "CONFIRM", label: "Review & Submit", icon: CheckCircle2 },
+    { id: "STATUS", label: "Status", icon: Sparkles },
+    { id: "IDENTITY", label: "Identity", icon: User },
+    { id: "DETAILS", label: "Details", icon: FileText },
+    { id: "UPLOAD", label: "Documents", icon: Upload },
+    { id: "CONFIRM", label: "Submit", icon: CheckCircle2 },
 ];
 
 interface FormState {
@@ -350,6 +348,74 @@ export default function DeathCertificateRequestPage() {
         return val;
     };
 
+    const validateStep = (stepId: Step): boolean => {
+        if (stepId === "IDENTITY") {
+            const missing = [];
+            if (!form.relationship) missing.push("relationship");
+            if (form.relationship === "OTHER" && !form.relationshipOther) missing.push("relationshipOther");
+            if (!form.contactNumber) missing.push("contactNumber");
+
+            if (missing.length > 0) {
+                setShowErrors(true);
+                toast.error("Please fill in all required requester fields.");
+                setTimeout(() => {
+                    const firstInvalid = document.querySelector(".border-red-500, [class*='border-red-500']");
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                }, 100);
+                return false;
+            }
+        } else if (stepId === "DETAILS") {
+            const missingDeceased = !form.deceasedFirstName || !form.deceasedLastName;
+            const missingParents = !form.fatherFirstName || !form.fatherLastName || !form.motherFirstName || !form.motherLastName;
+            
+            if (missingDeceased || missingParents) {
+                setShowErrors(true);
+                toast.error("Please fill in all required deceased and parent name fields.");
+                setTimeout(() => {
+                    const firstInvalid = document.querySelector(".border-red-500, [class*='border-red-500']");
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                }, 100);
+                return false;
+            }
+        } else if (stepId === "UPLOAD") {
+            if (!form.dateOfDeath || !form.placeOfDeath) {
+                setShowErrors(true);
+                toast.error("Please fill in all required death event fields.");
+                setTimeout(() => {
+                    const firstInvalid = document.querySelector(".border-red-500, [class*='border-red-500']");
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                }, 100);
+                return false;
+            }
+            const isFutureDate = form.dateOfDeath && new Date(form.dateOfDeath) > new Date();
+            if (isFutureDate) {
+                setShowErrors(true);
+                toast.error("Date of death cannot be in the future.");
+                return false;
+            }
+            const idTypeSelected = form.idTypeOverride || resident?.idType;
+            if (!idTypeSelected) {
+                setShowErrors(true);
+                toast.error("Please select a Government ID type.");
+                return false;
+            }
+            const hasIdFront = form.files["validIdFront"] || resident?.idFrontUrl || form.previews["validIdFront"];
+            const hasIdBack = form.files["validIdBack"] || resident?.idBackUrl || form.previews["validIdBack"];
+            if (!hasIdFront || !hasIdBack) {
+                setShowErrors(true);
+                toast.error("Please upload front and back of your Government ID.");
+                return false;
+            }
+        }
+        return true;
+    };
+
     const renderIdCard = (label: string, fileKey: string) => {
         const file = form.files[fileKey] || null;
         const defaultUrl = fileKey === "validIdFront" ? resident?.idFrontUrl : resident?.idBackUrl;
@@ -507,8 +573,10 @@ export default function DeathCertificateRequestPage() {
                         },
                         previews: draft.previews || {},
                     });
-                    if (draft.currentStep) {
+                    if (draft.currentStep && STEPS.some(s => s.id === draft.currentStep)) {
                         setCurrentStep(draft.currentStep);
+                    } else {
+                        setCurrentStep("IDENTITY");
                     }
                 } else if (txData) {
                     const addData = txData.additionalData as any || {};
@@ -918,43 +986,60 @@ export default function DeathCertificateRequestPage() {
             </div>
 
             {/* Progress Stepper */}
-            <div className="relative px-2 py-4">
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 dark:bg-white/5 -translate-y-1/2" />
-                <motion.div
-                    className="absolute top-1/2 left-0 h-0.5 bg-slate-500 -translate-y-1/2 z-0"
-                    initial={{ width: 0 }}
-                    animate={{
-                        width: `${(STEPS.findIndex(s => s.id === currentStep) / (STEPS.length - 1)) * 100}%`
-                    }}
-                />
+            <div className="grid grid-cols-5 gap-1.5 md:gap-4 relative px-1 md:px-2 py-4">
+                {STEPS.map((step, idx) => {
+                    const isActive = currentStep === step.id;
+                    const stepIdx = STEPS.findIndex(s => s.id === currentStep);
+                    const isCompleted = stepIdx > idx;
+                    const Icon = step.icon;
 
-                <div className="flex justify-between items-center relative z-10">
-                    {STEPS.map((step, idx) => {
-                        const isActive = currentStep === step.id;
-                        const stepIdx = STEPS.findIndex(s => s.id === currentStep);
-                        const isCompleted = stepIdx > idx;
-                        const Icon = step.icon;
-
-                        return (
-                            <div key={idx} className="flex flex-col items-center gap-2">
-                                <div className={cn(
-                                    "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 bg-white dark:bg-[#08090d]",
-                                    isActive ? "border-slate-500 text-slate-500 shadow-lg shadow-slate-500/20 scale-110" :
-                                        isCompleted ? "bg-slate-500 border-slate-500 text-white" :
-                                            "border-slate-200 dark:border-white/10 text-slate-400"
-                                )}>
-                                    {isCompleted ? <Check className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
-                                </div>
-                                <span className={cn(
-                                    "text-[9px] font-black uppercase tracking-widest italic hidden md:block",
-                                    isActive ? "text-slate-500" : "text-slate-400"
-                                )}>
-                                    {step.label}
-                                </span>
+                    return (
+                        <div
+                            key={idx}
+                            className="flex flex-col items-center gap-2 md:gap-3 relative z-10 font-black group cursor-pointer"
+                            onClick={() => {
+                                if (step.id === "STATUS") {
+                                    router.push("/user/services/civil-registry");
+                                    return;
+                                }
+                                const targetIdx = STEPS.findIndex(s => s.id === step.id);
+                                const currentIdx = STEPS.findIndex(s => s.id === currentStep);
+                                if (targetIdx <= currentIdx) {
+                                    setCurrentStep(step.id);
+                                } else {
+                                    for (let i = currentIdx; i < targetIdx; i++) {
+                                        const stepToValidate = STEPS[i].id;
+                                        if (stepToValidate !== "STATUS" && !validateStep(stepToValidate)) {
+                                            return;
+                                        }
+                                    }
+                                    setCurrentStep(step.id);
+                                }
+                            }}
+                        >
+                            <div 
+                                className={cn(
+                                    "w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
+                                    isActive ? "text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105 md:scale-110" :
+                                        isCompleted ? "bg-slate-500/10 text-slate-500 border-slate-500/30" :
+                                            "bg-slate-100 dark:bg-white/5 text-slate-400 border-transparent group-hover:border-slate-500/30"
+                                )}
+                                style={isActive ? { backgroundColor: themeColor, borderColor: themeColor } : {}}
+                            >
+                                <Icon className="w-4 h-4 md:w-7 md:h-7" />
                             </div>
-                        );
-                    })}
-                </div>
+                            <span 
+                                className={cn(
+                                    "text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
+                                    isActive ? "opacity-100 font-black text-slate-500" : "opacity-40 group-hover:opacity-100 transition-opacity text-slate-400"
+                                )}
+                                style={isActive ? { color: themeColor } : {}}
+                            >
+                                {step.label}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
 
             {mounted && typeof document !== "undefined" && createPortal(
@@ -1194,7 +1279,7 @@ export default function DeathCertificateRequestPage() {
                                         setShowErrors(false);
                                         setCurrentStep("DETAILS");
                                     }}
-                                    className="rounded-full px-12 bg-slate-800 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl hover:opacity-90 transition-opacity"
+                                    className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20 transition-all duration-300"
                                 >
                                     Proceed to Deceased Details
                                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -1287,58 +1372,18 @@ export default function DeathCertificateRequestPage() {
                                         />
                                     </div>
                                 </div>
-                            </div>
+                                {/* Deceased Parents Details Header */}
+                                <div className="pt-6 border-t border-slate-200 dark:border-white/5 mt-8 space-y-1">
+                                    <h3 className="text-xs md:text-sm font-black uppercase italic tracking-wider text-slate-800 dark:text-white">
+                                        Deceased Parents <span className="text-slate-500">Details</span>
+                                    </h3>
+                                    <p className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-wider italic">
+                                        Provide the names of the deceased&apos;s parents for registry verification.
+                                    </p>
+                                </div>
 
-                            {/* Step Nav */}
-                            <div className="flex justify-end gap-3 pt-8">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setCurrentStep("IDENTITY")}
-                                    className="rounded-full px-8 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                >
-                                    <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                    Back
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        if (!form.deceasedFirstName || !form.deceasedLastName) {
-                                            setShowErrors(true);
-                                            toast.error("Please fill in all required deceased name fields.");
-                                            return;
-                                        }
-                                        setShowErrors(false);
-                                        setCurrentStep("PARENTS_DETAILS");
-                                    }}
-                                    className="rounded-full px-12 bg-slate-800 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl hover:opacity-90 transition-opacity"
-                                >
-                                    Proceed to Parents&apos; Details
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* STEP 3: PARENTS' DETAILS */}
-                    {currentStep === "PARENTS_DETAILS" && (
-                        <motion.div
-                            key="parents-step"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="space-y-6 md:space-y-8"
-                        >
-                            <div className="space-y-1">
-                                <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-tight">
-                                    Parents&apos; <span className="text-slate-500">Details</span>
-                                </h2>
-                                <p className="text-[10px] md:text-xs text-slate-500 font-medium italic">
-                                    Provide the names of the deceased&apos;s parents for registry verification.
-                                </p>
-                            </div>
-
-                            <div className="space-y-6">
                                 {/* Father's Details */}
-                                <div className="space-y-4 p-6 rounded-[2rem] bg-slate-500/5 border border-slate-200/50 dark:border-white/5">
+                                <div className="space-y-4 mt-6">
                                     <div className="flex items-center gap-2">
                                         <User className="w-4 h-4 text-slate-500" />
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -1377,7 +1422,7 @@ export default function DeathCertificateRequestPage() {
                                 </div>
 
                                 {/* Mother's Details */}
-                                <div className="space-y-4 p-6 rounded-[2rem] bg-slate-500/5 border border-slate-200/50 dark:border-white/5">
+                                <div className="space-y-4 mt-8">
                                     <div className="flex items-center gap-2">
                                         <Heart className="w-4 h-4 text-slate-500" />
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -1420,7 +1465,7 @@ export default function DeathCertificateRequestPage() {
                             <div className="flex justify-end gap-3 pt-8">
                                 <Button
                                     variant="ghost"
-                                    onClick={() => setCurrentStep("DETAILS")}
+                                    onClick={() => setCurrentStep("IDENTITY")}
                                     className="rounded-full px-8 font-black uppercase tracking-widest italic text-[10px] h-12"
                                 >
                                     <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
@@ -1428,43 +1473,47 @@ export default function DeathCertificateRequestPage() {
                                 </Button>
                                 <Button
                                     onClick={() => {
-                                        if (!form.fatherFirstName || !form.fatherLastName || !form.motherFirstName || !form.motherLastName) {
+                                        const missingDeceased = !form.deceasedFirstName || !form.deceasedLastName;
+                                        const missingParents = !form.fatherFirstName || !form.fatherLastName || !form.motherFirstName || !form.motherLastName;
+                                        
+                                        if (missingDeceased || missingParents) {
                                             setShowErrors(true);
-                                            toast.error("Please fill in all required parent name fields.");
+                                            toast.error("Please fill in all required deceased and parent name fields.");
                                             return;
                                         }
                                         setShowErrors(false);
-                                        setCurrentStep("PLACE_OF_DEATH");
+                                        setCurrentStep("UPLOAD");
                                     }}
-                                    className="rounded-full px-12 bg-slate-800 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl hover:opacity-90 transition-opacity"
+                                    className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20 transition-all duration-300"
                                 >
-                                    Proceed to Place of Death
+                                    Proceed to Verification
                                     <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>
                             </div>
                         </motion.div>
                     )}
 
-                    {/* STEP 4: PLACE OF DEATH */}
-                    {currentStep === "PLACE_OF_DEATH" && (
+                    {/* STEP 4: VERIFICATION (UPLOAD) */}
+                    {currentStep === "UPLOAD" && (
                         <motion.div
-                            key="place-of-death-step"
+                            key="upload-step"
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             className="space-y-6 md:space-y-8"
                         >
                             <div className="space-y-1">
-                                <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-tight">
-                                    Place of <span className="text-slate-500">Death</span>
+                                <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-tight text-slate-800 dark:text-white">
+                                    Event & ID <span className="text-slate-500">Verification</span>
                                 </h2>
                                 <p className="text-[10px] md:text-xs text-slate-500 font-medium italic">
-                                    Provide the date and location details of the death event.
+                                    Provide the event details and upload legal proofs to verify your identity and association.
                                 </p>
                             </div>
 
                             <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Event Details (Date & Place of Death) */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6 border-b border-slate-200/50 dark:border-white/5">
                                     <div className="space-y-1.5">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Date of Death <span className="text-red-500">*</span></Label>
                                         <Input
@@ -1472,7 +1521,7 @@ export default function DeathCertificateRequestPage() {
                                             value={form.dateOfDeath}
                                             max={new Date().toISOString().split("T")[0]}
                                             onChange={(e) => setForm(p => ({ ...p, dateOfDeath: e.target.value }))}
-                                            className={cn("h-10 rounded-xl font-bold text-xs md:text-sm", ((showErrors && !form.dateOfDeath) || (form.dateOfDeath && new Date(form.dateOfDeath) > new Date())) && "border-2 border-red-500")}
+                                            className={cn("h-10 rounded-xl font-bold text-xs md:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10", ((showErrors && !form.dateOfDeath) || (form.dateOfDeath && new Date(form.dateOfDeath) > new Date())) && "border-2 border-red-500")}
                                         />
                                         {form.dateOfDeath && new Date(form.dateOfDeath) > new Date() && (
                                             <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse mt-1">
@@ -1510,74 +1559,20 @@ export default function DeathCertificateRequestPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+
+                                    <div className="col-span-1 md:col-span-2 space-y-1.5 mt-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Cause of Death (Optional)</Label>
+                                        <Input
+                                            value={form.causeOfDeath || ""}
+                                            onChange={(e) => setForm(p => ({ ...p, causeOfDeath: e.target.value }))}
+                                            className="h-10 rounded-xl font-bold text-xs md:text-sm uppercase bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10"
+                                            placeholder="e.g. Cardiopulmonary Arrest"
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Cause of Death (Optional)</Label>
-                                    <Input
-                                        value={form.causeOfDeath || ""}
-                                        onChange={(e) => setForm(p => ({ ...p, causeOfDeath: e.target.value }))}
-                                        className="h-10 rounded-xl font-bold text-xs md:text-sm uppercase"
-                                        placeholder="e.g. Cardiopulmonary Arrest"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Step Nav */}
-                            <div className="flex justify-end gap-3 pt-8">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setCurrentStep("PARENTS_DETAILS")}
-                                    className="rounded-full px-8 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                >
-                                    <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                    Back
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        if (!form.dateOfDeath || !form.placeOfDeath) {
-                                            setShowErrors(true);
-                                            toast.error("Please fill in all required fields.");
-                                            return;
-                                        }
-                                        const isFutureDate = form.dateOfDeath && new Date(form.dateOfDeath) > new Date();
-                                        if (isFutureDate) {
-                                            toast.error("Date of death cannot be in the future.");
-                                            return;
-                                        }
-                                        setShowErrors(false);
-                                        setCurrentStep("UPLOAD");
-                                    }}
-                                    className="rounded-full px-12 bg-slate-800 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl hover:opacity-90 transition-opacity"
-                                >
-                                    Proceed to Document Upload
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* STEP 5: UPLOAD */}
-                    {currentStep === "UPLOAD" && (
-                        <motion.div
-                            key="upload-step"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="space-y-6 md:space-y-8"
-                        >
-                            <div className="space-y-1">
-                                <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-tight">
-                                    Supporting <span className="text-slate-500">Documents</span>
-                                </h2>
-                                <p className="text-[10px] md:text-xs text-slate-500 font-medium italic">
-                                    Upload legal proofs to verify your identity and association.
-                                </p>
-                            </div>
-
-                            <div className="space-y-6">
                                 {/* ID Type (from Resident Profile) */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 mt-6">
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Government ID Type <span className="text-red-500">*</span></Label>
                                     <Select
                                         value={form.idTypeOverride || resident?.idType || ""}
@@ -1619,7 +1614,7 @@ export default function DeathCertificateRequestPage() {
                             <div className="flex justify-end gap-3 pt-8">
                                 <Button
                                     variant="ghost"
-                                    onClick={() => setCurrentStep("PLACE_OF_DEATH")}
+                                    onClick={() => setCurrentStep("DETAILS")}
                                     className="rounded-full px-8 font-black uppercase tracking-widest italic text-[10px] h-12"
                                 >
                                     <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
@@ -1627,6 +1622,16 @@ export default function DeathCertificateRequestPage() {
                                 </Button>
                                 <Button
                                     onClick={() => {
+                                        if (!form.dateOfDeath || !form.placeOfDeath) {
+                                            setShowErrors(true);
+                                            toast.error("Please fill in all required death event fields.");
+                                            return;
+                                        }
+                                        const isFutureDate = form.dateOfDeath && new Date(form.dateOfDeath) > new Date();
+                                        if (isFutureDate) {
+                                            toast.error("Date of death cannot be in the future.");
+                                            return;
+                                        }
                                         const idTypeSelected = form.idTypeOverride || resident?.idType;
                                         if (!idTypeSelected) {
                                             setShowErrors(true);
@@ -1643,7 +1648,7 @@ export default function DeathCertificateRequestPage() {
                                         setShowErrors(false);
                                         setCurrentStep("CONFIRM");
                                     }}
-                                    className="rounded-full px-12 bg-slate-800 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl hover:opacity-90 transition-opacity"
+                                    className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20 transition-all duration-300"
                                 >
                                     Proceed to Review & Confirm
                                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -1673,7 +1678,7 @@ export default function DeathCertificateRequestPage() {
                             {/* Review panels */}
                             <div className="space-y-6">
                                 {/* Summary columns */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 rounded-[2.5rem] bg-slate-500/5 border border-slate-200/50 dark:border-white/5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
 
                                     {/* Requester Details */}
                                     <div className="space-y-4">
@@ -1794,7 +1799,7 @@ export default function DeathCertificateRequestPage() {
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={submitting}
-                                    className="rounded-full px-12 bg-slate-800 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl hover:opacity-90 transition-opacity flex items-center gap-2"
+                                    className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20 transition-all duration-300 flex items-center gap-2"
                                 >
                                     {submitting ? (
                                         <>
