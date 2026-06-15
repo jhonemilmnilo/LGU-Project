@@ -76,7 +76,7 @@ export async function releaseMarriagePsaEndorsement(
         }
 
         const mpeExisting = (transaction as any).marriagePsaEndorsementRequest;
-        if (!mpeExisting && targetStatus === "RELEASED") {
+        if (!mpeExisting && ["RELEASED", "FOR_PICKING", "FOR_CLAIM"].includes(targetStatus)) {
             const src: any = additionalData || {};
             
             // Required fields from marriage-psa-endorsement form

@@ -76,7 +76,7 @@ export async function releaseBirthPsaEndorsement(
         }
 
         const bpeExisting = (transaction as any).birthPsaEndorsementRequest;
-        if (!bpeExisting && targetStatus === "RELEASED") {
+        if (!bpeExisting && ["RELEASED", "FOR_PICKING", "FOR_CLAIM"].includes(targetStatus)) {
             const src: any = additionalData || {};
 
             // Required fields from birth-psa-endorsement form
