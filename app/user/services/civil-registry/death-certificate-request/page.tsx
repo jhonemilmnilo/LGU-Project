@@ -1604,7 +1604,7 @@ export default function DeathCertificateRequestPage() {
                                 </div>
 
                                 {/* Grid Uploaders */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                                     {renderIdCard("Valid Government ID (Front)", "validIdFront")}
                                     {renderIdCard("Valid Government ID (Back)", "validIdBack")}
                                 </div>

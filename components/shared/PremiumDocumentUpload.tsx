@@ -83,7 +83,7 @@ export default function PremiumDocumentUpload({
         <div className={cn(
             "p-4 md:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed flex flex-col gap-3 md:gap-4 transition-all duration-300 w-full hover:border-primary",
             error 
-                ? "border-red-500 dark:border-red-500/80 ring-2 ring-red-500/20 bg-red-50/10 animate-pulse" 
+                ? "!border-red-500 !border-solid !border-2 dark:!border-red-500/80 ring-2 ring-red-500/20 bg-red-50/10 animate-pulse" 
                 : "border-slate-200 dark:border-white/10"
         )}>
             {/* Hidden native input */}
