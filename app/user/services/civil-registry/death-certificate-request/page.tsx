@@ -268,7 +268,7 @@ export default function DeathCertificateRequestPage() {
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const [themeColor, setThemeColor] = useState("theme_color");
+    const [themeColor, setThemeColor] = useState("var(--primary-theme)");
 
     useEffect(() => {
         getSystemSettingAction("theme_color").then((res) => {
@@ -776,7 +776,7 @@ export default function DeathCertificateRequestPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4" />
+                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "var(--primary-theme)" }} />
                 <p className="text-sm font-black uppercase tracking-widest text-slate-400 italic">Syncing LCR Database...</p>
             </div>
         );
@@ -786,9 +786,11 @@ export default function DeathCertificateRequestPage() {
         <div className="container max-w-4xl mx-auto px-4 pt-0 pb-0 space-y-8">
             <style dangerouslySetInnerHTML={{
                 __html: `
+                ${themeColor !== "var(--primary-theme)" ? `
                 :root, * {
                     --primary-theme: ${themeColor} !important;
                 }
+                ` : ""}
                 .text-slate-500, [class*="text-slate-500"]:not(input):not(select):not(textarea) {
                     color: ${themeColor} !important;
                 }
@@ -808,20 +810,20 @@ export default function DeathCertificateRequestPage() {
                     border-color: ${themeColor} !important;
                 }
                 .bg-slate-500\\/10, [class*="bg-slate-500/10"] {
-                    background-color: ${themeColor}1a !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 10%, transparent)" : `${themeColor}1a`} !important;
                 }
                 .bg-slate-500\\/5, [class*="bg-slate-500/5"] {
-                    background-color: ${themeColor}0d !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 5%, transparent)" : `${themeColor}0d`} !important;
                 }
                 .shadow-slate-500\\/20, [class*="shadow-slate-500/20"] {
-                    --tw-shadow-color: ${themeColor}33 !important;
+                    --tw-shadow-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33`} !important;
                 }
                 .hover\\:bg-slate-600:hover, [class*="hover:bg-slate-600"]:hover {
                     background-color: ${themeColor} !important;
                     filter: brightness(0.9);
                 }
                 .hover\\:border-slate-500\\/50:hover, [class*="hover:border-slate-500/50"]:hover {
-                    border-color: ${themeColor}80 !important;
+                    border-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 50%, transparent)" : `${themeColor}80`} !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
                     color: #0f172a !important;
