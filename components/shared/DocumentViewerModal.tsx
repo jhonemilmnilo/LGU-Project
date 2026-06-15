@@ -612,10 +612,10 @@ export default function DocumentViewerModal({
                                                     handleReset();
                                                 }}
                                                 className={`relative w-24 h-16 rounded-xl overflow-hidden shrink-0 transition-all active:scale-95 border-2 ${isActive
-                                                        ? "scale-105 shadow-md"
-                                                        : hasDoc
-                                                            ? "border-transparent opacity-60 hover:opacity-100 hover:scale-102"
-                                                            : "opacity-20 cursor-not-allowed border-transparent"
+                                                    ? "scale-105 shadow-md"
+                                                    : hasDoc
+                                                        ? "border-transparent opacity-60 hover:opacity-100 hover:scale-102"
+                                                        : "opacity-20 cursor-not-allowed border-transparent"
                                                     }`}
                                                 style={isActive ? { borderColor: themeColor, boxShadow: `0 0 12px ${themeColor}40` } : undefined}
                                                 title={doc.label}

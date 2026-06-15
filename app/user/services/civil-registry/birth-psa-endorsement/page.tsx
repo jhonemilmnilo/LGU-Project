@@ -51,7 +51,6 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
-import { compressImage } from "@/lib/image-compression";
 import { supabase } from "@/lib/supabase";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 
@@ -416,17 +415,7 @@ export default function BirthPsaEndorsementPage() {
                         return;
                     }
 
-                    let fileToProcess = newFile;
-                    if (newFile.type.startsWith("image/")) {
-                        try {
-                            toast.loading("Compressing and optimizing document...", { id: `file-compress-${fileKey}` });
-                            fileToProcess = await compressImage(newFile);
-                            toast.success("Image optimized successfully!", { id: `file-compress-${fileKey}` });
-                        } catch (err) {
-                            console.error("Compression error:", err);
-                            toast.dismiss(`file-compress-${fileKey}`);
-                        }
-                    }
+                    const fileToProcess = newFile;
 
                     try {
                         toast.loading("Uploading and preparing document preview...", { id: `file-upload-${fileKey}` });
@@ -799,7 +788,7 @@ export default function BirthPsaEndorsementPage() {
                                     className="space-y-6"
                                 >
                                     <div className="space-y-2">
-                                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Informant Information</h2>
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Personal Information</h2>
                                         <p className="text-xs text-slate-500 font-medium italic">Your details as the requesting informant</p>
                                     </div>
 
