@@ -60,6 +60,8 @@ import { releaseMarriageLicense, evaluateMarriageLicenseTransaction } from "@/ap
 import { releaseMarriageRegistry, evaluateMarriageRegistrationTransaction } from "@/app/admin/transactions/marriage-regis-actions";
 import { evaluateStudentCedulaTransaction } from "@/app/admin/transactions/student-actions";
 import { releaseMarriagePsaEndorsement } from "@/app/admin/transactions/marriage-endorsement-actions";
+import { releaseBirthPsaEndorsement } from "@/app/admin/transactions/birth-endorsement-actions";
+import { releaseDeathPsaEndorsement } from "@/app/admin/transactions/death-endorsement-actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
 import { calculateBusinessPermit } from "@/lib/business-permit";
@@ -791,7 +793,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             ? await releaseMarriageLicense(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
                             : typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT"
                                 ? await releaseMarriagePsaEndorsement(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
-                                : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
+                                : typeCode === "LCR_PSA_ENDORSEMENT"
+                                    ? await releaseBirthPsaEndorsement(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                                    : typeCode === "LCR_DEATH_PSA_ENDORSEMENT"
+                                        ? await releaseDeathPsaEndorsement(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                                        : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -1533,7 +1539,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         ? releaseMarriageLicense
                                         : typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT"
                                             ? releaseMarriagePsaEndorsement
-                                            : releaseCedula;
+                                            : typeCode === "LCR_PSA_ENDORSEMENT"
+                                                ? releaseBirthPsaEndorsement
+                                                : typeCode === "LCR_DEATH_PSA_ENDORSEMENT"
+                                                    ? releaseDeathPsaEndorsement
+                                                    : releaseCedula;
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
@@ -1575,7 +1585,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         ? releaseMarriageLicense
                                         : typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT"
                                             ? releaseMarriagePsaEndorsement
-                                            : releaseCedula;
+                                            : typeCode === "LCR_PSA_ENDORSEMENT"
+                                                ? releaseBirthPsaEndorsement
+                                                : typeCode === "LCR_DEATH_PSA_ENDORSEMENT"
+                                                    ? releaseDeathPsaEndorsement
+                                                    : releaseCedula;
                 const rel = await releaseFn(
                     transaction.id, 
                     ctcNumber || transaction?.cedula?.ctcNumber || "",
