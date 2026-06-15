@@ -1112,7 +1112,8 @@ export default function DeathRegistrationPage() {
                                     className="space-y-6"
                                 >
                                     <div className="space-y-2">
-                                        <h2 className="text-xl font-black uppercase italic tracking-tight" style={{ color: themeColor }}>Informant Information</h2>
+
+                                        <h2 className="text-xl font-black uppercase italic tracking-tight" style={{ color: themeColor }}> Information</h2>
                                         <p className="text-xs text-slate-500 font-medium italic">Details of the person registering the death</p>
                                     </div>
 

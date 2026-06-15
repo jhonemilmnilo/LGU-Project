@@ -786,7 +786,7 @@ export default function BirthPsaEndorsementPage() {
                                     className="space-y-6"
                                 >
                                     <div className="space-y-2">
-                                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Informant Information</h2>
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Personal Information</h2>
                                         <p className="text-xs text-slate-500 font-medium italic">Your details as the requesting informant</p>
                                     </div>
 
