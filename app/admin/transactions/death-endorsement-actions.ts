@@ -180,7 +180,7 @@ export async function releaseDeathPsaEndorsement(
         }
 
         const dpeExisting = (transaction as any).deathPsaEndorsementRequest;
-        if (!dpeExisting && targetStatus === "RELEASED") {
+        if (!dpeExisting && ["RELEASED", "FOR_PICKING", "FOR_CLAIM"].includes(targetStatus)) {
             const src: any = additionalData || {};
 
             // Required fields from death-psa-endorsement form

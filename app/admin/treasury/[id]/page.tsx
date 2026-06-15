@@ -901,7 +901,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         );
     }
 
-    if ((typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") && !["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
+    const allowedStatuses = ["PAID", "PENDING_PAYMENT_VERIFICATION"];
+    if (typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
+        allowedStatuses.push("FOR_REQUESTING");
+    }
+
+    if ((typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || typeCode === "LCR_MARRIAGE_PSA_ENDORSEMENT") && !allowedStatuses.includes(transaction?.status)) {
         return (
             <div className="min-h-screen bg-white dark:bg-[#0c111d] flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in fade-in duration-700">
                 <div className="relative">
