@@ -16,7 +16,8 @@ import {
     Heart,
     MapPin,
     Home,
-    AlertCircle
+    AlertCircle,
+    X
 } from "lucide-react";
 import Link from "next/link";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
@@ -54,7 +55,6 @@ import {
 } from "@/app/admin/transactions/actions";
 import { searchResidents } from "@/app/admin/actions";
 import { toast } from "sonner";
-import { compressImage } from "@/lib/image-compression";
 import { useRouter } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 
@@ -369,17 +369,7 @@ export default function DeathCertificateRequestPage() {
                         return;
                     }
 
-                    let fileToProcess = newFile;
-                    if (newFile.type.startsWith("image/")) {
-                        try {
-                            toast.loading("Compressing and optimizing document...", { id: `file-compress-${fileKey}` });
-                            fileToProcess = await compressImage(newFile);
-                            toast.success("Image optimized successfully!", { id: `file-compress-${fileKey}` });
-                        } catch (err) {
-                            console.error("Compression error:", err);
-                            toast.dismiss(`file-compress-${fileKey}`);
-                        }
-                    }
+                    const fileToProcess = newFile;
 
                     try {
                         toast.loading("Uploading and preparing document preview...", { id: `file-upload-${fileKey}` });
@@ -1020,6 +1010,51 @@ export default function DeathCertificateRequestPage() {
                             )}
 
                             <div className="space-y-6">
+                                {/* Relationship to Owner */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="col-span-1 md:col-span-2 space-y-1.5">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Relationship to Owner <span className="text-red-500">*</span></Label>
+                                        {form.relationship === "OTHER" ? (
+                                            <div className="relative flex items-center">
+                                                <Input
+                                                    value={form.relationshipOther || ""}
+                                                    onChange={(e) => setForm(p => ({ ...p, relationshipOther: e.target.value }))}
+                                                    className={cn("h-10 rounded-xl text-xs md:text-sm font-bold uppercase pr-10 bg-slate-50 dark:bg-white/5 border-none", (showErrors && !form.relationshipOther) && "border-2 border-red-500")}
+                                                    placeholder="Specify relationship (e.g. Nephew, Friend)"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setForm(p => ({ ...p, relationship: "", relationshipOther: "" }))}
+                                                    className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                                                    title="Back to options"
+                                                >
+                                                    <X className="w-4.5 h-4.5" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <Select
+                                                value={form.relationship}
+                                                onValueChange={(val) => setForm(p => ({ ...p, relationship: val }))}
+                                            >
+                                                <SelectTrigger className={cn("h-10 rounded-xl text-xs md:text-sm font-bold uppercase", (showErrors && !form.relationship) && "border-2 border-red-500")}>
+                                                    <SelectValue placeholder="Select relationship" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="SPOUSE">Spouse</SelectItem>
+                                                    <SelectItem value="SON">Son</SelectItem>
+                                                    <SelectItem value="DAUGHTER">Daughter</SelectItem>
+                                                    <SelectItem value="MOTHER">Mother</SelectItem>
+                                                    <SelectItem value="FATHER">Father</SelectItem>
+                                                    <SelectItem value="SIBLING">Sibling</SelectItem>
+                                                    <SelectItem value="REPRESENTATIVE">Legal Representative</SelectItem>
+                                                    <SelectItem value="OTHER">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {/* Name Fields */}
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <div className="space-y-1.5">
@@ -1060,8 +1095,26 @@ export default function DeathCertificateRequestPage() {
                                     </div>
                                 </div>
 
-                                {/* Personal details & Relationship */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Personal details */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Birth Date</Label>
+                                        <Input
+                                            value={resident?.dateOfBirth ? new Date(resident.dateOfBirth).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ""}
+                                            readOnly
+                                            className="h-10 rounded-xl uppercase font-bold text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                            placeholder="MM/DD/YYYY"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Age</Label>
+                                        <Input
+                                            value={resident?.age != null ? String(resident.age) : ""}
+                                            readOnly
+                                            className="h-10 rounded-xl uppercase font-bold text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                            placeholder="Age"
+                                        />
+                                    </div>
                                     <div className="space-y-1.5">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Civil Status</Label>
                                         <Input
@@ -1071,74 +1124,41 @@ export default function DeathCertificateRequestPage() {
                                             placeholder="Civil Status"
                                         />
                                     </div>
-
                                     <div className="space-y-1.5">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Sex / Gender</Label>
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Citizenship</Label>
                                         <Input
-                                            value={form.gender}
+                                            value={resident?.citizenship || "FILIPINO"}
                                             readOnly
                                             className="h-10 rounded-xl uppercase font-bold text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-500"
-                                            placeholder="Sex / Gender"
+                                            placeholder="Citizenship"
                                         />
                                     </div>
+                                </div>
 
-                                    <div className="space-y-1.5">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Relationship to Owner <span className="text-red-500">*</span></Label>
-                                            <Select
-                                                value={form.relationship}
-                                                onValueChange={(val) => setForm(p => ({ ...p, relationship: val }))}
-                                            >
-                                                <SelectTrigger className={cn("h-10 rounded-xl text-xs md:text-sm font-bold uppercase", (showErrors && !form.relationship) && "border-2 border-red-500")}>
-                                                    <SelectValue placeholder="Select relationship" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="SPOUSE">Spouse</SelectItem>
-                                                    <SelectItem value="SON">Son</SelectItem>
-                                                    <SelectItem value="DAUGHTER">Daughter</SelectItem>
-                                                    <SelectItem value="MOTHER">Mother</SelectItem>
-                                                    <SelectItem value="FATHER">Father</SelectItem>
-                                                    <SelectItem value="SIBLING">Sibling</SelectItem>
-                                                    <SelectItem value="REPRESENTATIVE">Legal Representative</SelectItem>
-                                                    <SelectItem value="OTHER">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        {form.relationship === "OTHER" && (
-                                            <div className="space-y-1.5 animate-in fade-in duration-200">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Please specify relationship <span className="text-red-500">*</span></Label>
-                                                <Input
-                                                    value={form.relationshipOther || ""}
-                                                    onChange={(e) => setForm(p => ({ ...p, relationshipOther: e.target.value }))}
-                                                    className={cn("h-10 rounded-xl text-xs md:text-sm font-bold uppercase", (showErrors && !form.relationshipOther) && "border-2 border-red-500")}
-                                                    placeholder="Specify relationship (e.g. Nephew, Friend)"
-                                                />
-                                            </div>
-                                        )}
+                                {/* Occupation & Contact Number */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="col-span-1 md:col-span-2 space-y-1.5">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Occupation</Label>
+                                        <Input
+                                            value={resident?.occupation || "N/A"}
+                                            readOnly
+                                            className="h-10 rounded-xl uppercase font-bold text-xs md:text-sm bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                            placeholder="Occupation"
+                                        />
                                     </div>
-                                </div>
-
-                                {/* Informant Address */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Informant Address</Label>
-                                    <Input
-                                        value={form.informantAddress || ""}
-                                        readOnly
-                                        className="h-10 rounded-xl text-xs md:text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase"
-                                        placeholder="Informant Address"
-                                    />
-                                </div>
-
-                                {/* Contact Number */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        value={form.contactNumber}
-                                        onChange={(e) => setForm(p => ({ ...p, contactNumber: e.target.value.replace(/[^0-9]/g, '') }))}
-                                        className={cn("h-10 rounded-xl text-xs md:text-sm font-bold", (showErrors && !form.contactNumber) && "border-2 border-red-500")}
-                                        placeholder="e.g. 09123456789"
-                                    />
+                                    <div className="col-span-1 md:col-span-2 space-y-1.5">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={form.contactNumber}
+                                            onChange={(e) => setForm(p => ({ ...p, contactNumber: e.target.value.replace(/[^0-9]/g, '') }))}
+                                            className={cn("h-10 rounded-xl text-xs md:text-sm font-bold", (showErrors && !form.contactNumber) && "border-2 border-red-500")}
+                                            placeholder="e.g. 09123456789"
+                                            maxLength={11}
+                                        />
+                                        <p className="text-[9px] font-black text-amber-500 uppercase tracking-wider ml-1 animate-pulse">
+                                            * Note: Please use your active contact number. This will be used to contact you regarding your transaction.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 

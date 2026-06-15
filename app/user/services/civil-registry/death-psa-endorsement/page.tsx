@@ -53,7 +53,6 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
-import { compressImage } from "@/lib/image-compression";
 import { supabase } from "@/lib/supabase";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 
@@ -428,17 +427,7 @@ export default function DeathPsaEndorsementPage() {
                         return;
                     }
 
-                    let fileToProcess = newFile;
-                    if (newFile.type.startsWith("image/")) {
-                        try {
-                            toast.loading("Compressing and optimizing document...", { id: `file-compress-${fileKey}` });
-                            fileToProcess = await compressImage(newFile);
-                            toast.success("Image optimized successfully!", { id: `file-compress-${fileKey}` });
-                        } catch (err) {
-                            console.error("Compression error:", err);
-                            toast.dismiss(`file-compress-${fileKey}`);
-                        }
-                    }
+                    const fileToProcess = newFile;
 
                     try {
                         toast.loading("Uploading and preparing document preview...", { id: `file-upload-${fileKey}` });
