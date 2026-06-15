@@ -109,10 +109,10 @@ export default function DocumentViewerModal({
         if (file) {
             return URL.createObjectURL(file);
         }
-        if (fileUrl && /^https?:\/\//i.test(fileUrl)) {
-            return fileUrl;
+        if (currentDoc) {
+            return currentDoc.url || null;
         }
-        return currentDoc ? currentDoc.url : fileUrl;
+        return fileUrl;
     }, [file, currentDoc, fileUrl]);
 
     const activeTitle = currentDoc ? currentDoc.label : title;
