@@ -75,7 +75,7 @@ export default function PremiumDocumentUpload({
         try {
             const cleanUrl = url.split("?")[0].toLowerCase();
             if (cleanUrl.endsWith(".pdf")) return true;
-        } catch (e) {}
+        } catch {}
         const lowerUrl = url.toLowerCase();
         return lowerUrl.includes("application/pdf") || 
                lowerUrl.includes(".pdf?") || 
@@ -100,7 +100,7 @@ export default function PremiumDocumentUpload({
                 const fileNameWithTimestamp = decodeURIComponent(parts[parts.length - 1]);
                 const cleanName = fileNameWithTimestamp.replace(/^\d+_/, "");
                 if (cleanName) return cleanName;
-            } catch (e) {}
+            } catch {}
         }
         return "PDF Document";
     };
