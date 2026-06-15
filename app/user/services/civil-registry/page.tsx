@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import React from "react";
 import {
     Baby,
@@ -10,19 +10,22 @@ import {
     Home,
     User,
     Upload,
-    CheckCircle2
+    CheckCircle2,
+    Scroll,
+    FileSignature,
+    HeartHandshake
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { getSystemSettingAction } from "@/app/admin/transactions/actions";
-
+ 
 const REGISTRY_TYPES = [
     {
         id: "BIRTH_REQ",
         label: "Birth Certificate Request (True Copy)",
-        icon: FileText,
+        icon: Scroll,
         description: "Request a certified true copy of an existing birth certificate.",
         color: "blue",
         href: "/user/services/civil-registry/birth-certificate-request",
@@ -40,7 +43,7 @@ const REGISTRY_TYPES = [
     {
         id: "PSA_ENDORSEMENT",
         label: "Birth PSA Endorsement",
-        icon: FileText,
+        icon: FileSignature,
         description: "Request endorsement of a verified local birth certificate record to the PSA.",
         color: "blue",
         href: "/user/services/civil-registry/birth-psa-endorsement",
@@ -49,7 +52,7 @@ const REGISTRY_TYPES = [
     {
         id: "DEATH_PSA_ENDORSEMENT",
         label: "Death PSA Endorsement",
-        icon: FileText,
+        icon: FileSignature,
         description: "Request endorsement of a verified local death certificate record to the PSA.",
         color: "slate",
         href: "/user/services/civil-registry/death-psa-endorsement",
@@ -58,7 +61,7 @@ const REGISTRY_TYPES = [
     {
         id: "DEATH_REQ",
         label: "Death Certificate Request (True Copy)",
-        icon: FileText,
+        icon: Scroll,
         description: "Request a certified true copy of an existing death certificate.",
         color: "slate",
         href: "/user/services/civil-registry/death-certificate-request",
@@ -76,7 +79,7 @@ const REGISTRY_TYPES = [
     {
         id: "MARRIAGE_REQ",
         label: "Marriage Certificate Request (True Copy)",
-        icon: FileText,
+        icon: Scroll,
         description: "Request a certified true copy of an existing marriage certificate.",
         color: "rose",
         href: "/user/services/civil-registry/marriage-certificate-request",
@@ -85,7 +88,7 @@ const REGISTRY_TYPES = [
     {
         id: "MARRIAGE_PSA_ENDORSEMENT",
         label: "Marriage PSA Endorsement",
-        icon: FileText,
+        icon: FileSignature,
         description: "Request endorsement of a verified local marriage certificate record to the PSA.",
         color: "rose",
         href: "/user/services/civil-registry/marriage-psa-endorsement",
@@ -103,7 +106,7 @@ const REGISTRY_TYPES = [
     {
         id: "MARRIAGE_LICENSE",
         label: "Marriage License Application",
-        icon: FileText,
+        icon: HeartHandshake,
         description: "Apply for a legal license to be married in the Philippines.",
         color: "amber",
         href: "/user/services/civil-registry/marriage-license-application",
@@ -138,7 +141,7 @@ const REGISTRY_SECTIONS = [
 ];
 
 export default function CivilRegistryPage() {
-    const [themeColor, setThemeColor] = React.useState("theme_color");
+    const [themeColor, setThemeColor] = React.useState("var(--primary-theme)");
 
     React.useEffect(() => {
         getSystemSettingAction("theme_color").then((res) => {
@@ -153,7 +156,7 @@ export default function CivilRegistryPage() {
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .theme-icon-bg {
-                    background-color: ${themeColor}1a !important; /* 10% opacity */
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 10%, transparent)" : `${themeColor}1a`} !important; /* 10% opacity */
                 }
                 .theme-icon-text {
                     color: ${themeColor} !important;
@@ -203,7 +206,7 @@ export default function CivilRegistryPage() {
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 px-1 md:px-0">
                     <div className="space-y-1 md:space-y-2">
                         <h1 className="text-4xl md:text-7xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
-                            CIVIL <span className="text-primary underline decoration-[6px] md:decoration-8 decoration-primary/20 underline-offset-[6px] md:underline-offset-[12px]" style={{ textDecorationColor: `${themeColor}33` }}>REGISTRY</span>
+                            CIVIL <span className="text-primary underline decoration-[6px] md:decoration-8 decoration-primary/20 underline-offset-[6px] md:underline-offset-[12px]" style={{ textDecorationColor: themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33` }}>REGISTRY</span>
                         </h1>
                         <p className="text-[9px] md:text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] ml-1 md:ml-2 italic">Local Civil Registry (LCR) Services</p>
                     </div>

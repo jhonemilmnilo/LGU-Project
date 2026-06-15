@@ -100,7 +100,7 @@ export default function DeathPsaEndorsementPage() {
     const [currentStep, setCurrentStep] = useState<Step>("INFORMANT");
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [themeColor, setThemeColor] = useState("theme_color");
+    const [themeColor, setThemeColor] = useState("var(--primary-theme)");
 
     useEffect(() => {
         getSystemSettingAction("theme_color").then((res) => {
@@ -635,7 +635,7 @@ export default function DeathPsaEndorsementPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-                <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mb-4" />
+                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "var(--primary-theme)" }} />
                 <p className="font-black uppercase tracking-widest text-[10px] text-slate-400 italic">Initializing Endorsement Form...</p>
             </div>
         );
@@ -645,10 +645,18 @@ export default function DeathPsaEndorsementPage() {
         <>
             <style dangerouslySetInnerHTML={{
                 __html: `
+                ${themeColor !== "var(--primary-theme)" ? `
                 :root, * {
                     --primary-theme: ${themeColor} !important;
                 }
-                .bg-slate-500, [class*="bg-slate-500"] {
+                ` : ""}
+                .text-emerald-500, [class*="text-emerald-500"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .text-emerald-600, [class*="text-emerald-600"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .bg-emerald-500, [class*="bg-emerald-500"] {
                     background-color: ${themeColor} !important;
                 }
                 .bg-slate-600, [class*="bg-slate-600"] {
@@ -660,24 +668,24 @@ export default function DeathPsaEndorsementPage() {
                 .border-slate-600, [class*="border-slate-600"] {
                     border-color: ${themeColor} !important;
                 }
-                .bg-slate-500\\/10, [class*="bg-slate-500/10"] {
-                    background-color: ${themeColor}1a !important;
+                .bg-emerald-500\\/10, [class*="bg-emerald-500/10"] {
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 10%, transparent)" : `${themeColor}1a`} !important;
                 }
-                .bg-slate-500\\/20, [class*="bg-slate-500/20"] {
-                    background-color: ${themeColor}33 !important;
+                .bg-emerald-500\\/20, [class*="bg-emerald-500/20"] {
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33`} !important;
                 }
-                .bg-slate-500\\/5, [class*="bg-slate-500/5"] {
-                    background-color: ${themeColor}0d !important;
+                .bg-emerald-500\\/5, [class*="bg-emerald-500/5"] {
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 5%, transparent)" : `${themeColor}0d`} !important;
                 }
-                .shadow-slate-500\\/20, [class*="shadow-slate-500/20"] {
-                    --tw-shadow-color: ${themeColor}33 !important;
+                .shadow-emerald-500\\/20, [class*="shadow-emerald-500/20"] {
+                    --tw-shadow-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33`} !important;
                 }
                 .hover\\:bg-slate-600:hover, [class*="hover:bg-slate-600"]:hover {
                     background-color: ${themeColor} !important;
                     filter: brightness(0.9);
                 }
-                .hover\\:border-slate-500\\/50:hover, [class*="hover:border-slate-500/50"]:hover {
-                    border-color: ${themeColor}80 !important;
+                .hover\\:border-emerald-500\\/50:hover, [class*="hover:border-emerald-500/50"]:hover {
+                    border-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 50%, transparent)" : `${themeColor}80`} !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea, button[role="combobox"], [class*="SelectTrigger"] {
                     color: #0f172a !important;

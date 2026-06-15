@@ -156,7 +156,7 @@ export default function MarriageRegistrationPage() {
     const [revisionId, setRevisionId] = useState<string | null>(null);
     const [revisionTx, setRevisionTx] = useState<any>(null);
 
-    const [themeColor, setThemeColor] = useState("theme_color");
+    const [themeColor, setThemeColor] = useState("var(--primary-theme)");
     const [lateFee, setLateFee] = useState<number>(300);
     const [baseFee, setBaseFee] = useState<number>(0);
 
@@ -577,7 +577,7 @@ export default function MarriageRegistrationPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-                <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
+                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "var(--primary-theme)" }} />
                 <p className="font-black uppercase tracking-widest text-[10px] text-slate-400 italic">Initializing Registration Form...</p>
             </div>
         );
@@ -738,9 +738,11 @@ export default function MarriageRegistrationPage() {
         <>
             <style dangerouslySetInnerHTML={{
                 __html: `
+                ${themeColor !== "var(--primary-theme)" ? `
                 :root, * {
                     --primary-theme: ${themeColor} !important;
                 }
+                ` : ""}
                 .text-rose-500, [class*="text-rose-500"]:not(input):not(select):not(textarea) {
                     color: ${themeColor} !important;
                 }
@@ -760,13 +762,13 @@ export default function MarriageRegistrationPage() {
                     border-color: ${themeColor} !important;
                 }
                 .bg-rose-500\\/10, [class*="bg-rose-500/10"] {
-                    background-color: ${themeColor}1a !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 10%, transparent)" : `${themeColor}1a`} !important;
                 }
                 .bg-rose-500\\/5, [class*="bg-rose-500/5"] {
-                    background-color: ${themeColor}0d !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 5%, transparent)" : `${themeColor}0d`} !important;
                 }
                 .shadow-rose-500\\/20, [class*="shadow-rose-500/20"] {
-                    --tw-shadow-color: ${themeColor}33 !important;
+                    --tw-shadow-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33`} !important;
                 }
                 .hover\\:bg-rose-600:hover, [class*="hover:bg-rose-600"]:hover {
                     background-color: ${themeColor} !important;
@@ -777,7 +779,7 @@ export default function MarriageRegistrationPage() {
                     filter: brightness(0.85);
                 }
                 .hover\\:border-rose-500\\/50:hover, [class*="hover:border-rose-500/50"]:hover {
-                    border-color: ${themeColor}80 !important;
+                    border-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 50%, transparent)" : `${themeColor}80`} !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
                     color: #0f172a !important;

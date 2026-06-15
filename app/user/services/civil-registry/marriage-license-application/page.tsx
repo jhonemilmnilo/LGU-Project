@@ -145,7 +145,7 @@ export default function MarriageLicenseApplicationPage() {
 	const [loading, setLoading] = useState(true);
 	const [mounted, setMounted] = useState(false);
 
-	const [themeColor, setThemeColor] = useState("theme_color");
+	const [themeColor, setThemeColor] = useState("var(--primary-theme)");
 
 	useEffect(() => {
 		getSystemSettingAction("theme_color").then((res) => {
@@ -843,7 +843,7 @@ export default function MarriageLicenseApplicationPage() {
 	if (loading || !mounted) {
 		return (
 			<div className="flex items-center justify-center min-h-[60vh]">
-				<Loader2 className="w-8 h-8 animate-spin" style={{ color: themeColor }} />
+				<Loader2 className="w-8 h-8 animate-spin" style={{ color: "var(--primary-theme)" }} />
 			</div>
 		);
 	}
@@ -853,9 +853,11 @@ export default function MarriageLicenseApplicationPage() {
 		<>
 			<style dangerouslySetInnerHTML={{
 				__html: `
+				${themeColor !== "var(--primary-theme)" ? `
 				:root, * {
 					--primary-theme: ${themeColor} !important;
 				}
+				` : ""}
 				.text-amber-500, [class*="text-amber-500"]:not(input):not(select):not(textarea) {
 					color: ${themeColor} !important;
 				}
@@ -875,17 +877,17 @@ export default function MarriageLicenseApplicationPage() {
 					border-color: ${themeColor} !important;
 				}
 				.bg-amber-500\\/5, [class*="bg-amber-500/5"] {
-					background-color: ${themeColor}0d !important;
+					background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 5%, transparent)" : `${themeColor}0d`} !important;
 				}
 				.shadow-amber-500\\/20, [class*="shadow-amber-500/20"] {
-					--tw-shadow-color: ${themeColor}33 !important;
+					--tw-shadow-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33`} !important;
 				}
 				.hover\\:bg-amber-600:hover, [class*="hover:bg-amber-600"]:hover {
 					background-color: ${themeColor} !important;
 					filter: brightness(0.9);
 				}
 				.hover\\:ring-amber-500\\/50:hover, [class*="hover:ring-amber-500"]:hover {
-					--tw-ring-color: ${themeColor}80 !important;
+					--tw-ring-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 50%, transparent)" : `${themeColor}80`} !important;
 				}
 				input:not([type="button"]):not([type="submit"]), select, textarea {
 					color: #0f172a !important;

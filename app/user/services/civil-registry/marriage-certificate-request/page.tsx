@@ -130,7 +130,7 @@ export default function MarriageCertificateRequestPage() {
     const [submitting, setSubmitting] = useState(false);
     const [showErrors, setShowErrors] = useState(false);
     const [availableTypes, setAvailableTypes] = useState<any[]>([]);
-    const [themeColor, setThemeColor] = useState("#ec4899"); // default rose color for marriage
+    const [themeColor, setThemeColor] = useState("var(--primary-theme)"); // default rose color for marriage
 
     // Place of marriage dropdown and text states
     const [placeCountry, setPlaceCountry] = useState("PHILIPPINES");
@@ -476,7 +476,7 @@ export default function MarriageCertificateRequestPage() {
                 const [resResult, typesResult, themeResult] = await Promise.all([
                     getCurrentUserResident(),
                     getTransactionTypes(),
-                    getSystemSettingAction("theme_color", "#ec4899")
+                    getSystemSettingAction("theme_color", "var(--primary-theme)")
                 ]);
 
                 if (themeResult.success && themeResult.data) {
@@ -820,7 +820,7 @@ export default function MarriageCertificateRequestPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-                <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
+                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "var(--primary-theme)" }} />
                 <p className="text-sm font-black uppercase tracking-widest text-slate-400 italic">Syncing Registry Matrix...</p>
             </div>
         );
@@ -829,10 +829,11 @@ export default function MarriageCertificateRequestPage() {
     return (
         <div
             className="container max-w-4xl mx-auto px-4 pt-0 pb-0 space-y-8"
-            style={{ "--primary-theme": themeColor } as React.CSSProperties}
+            style={themeColor !== "var(--primary-theme)" ? { "--primary-theme": themeColor } as React.CSSProperties : {}}
         >
             <style dangerouslySetInnerHTML={{
                 __html: `
+                ${themeColor !== "var(--primary-theme)" ? `
                 :root, * {
                     --color-blue-500: ${themeColor} !important;
                     --color-blue-600: ${themeColor} !important;
@@ -840,6 +841,7 @@ export default function MarriageCertificateRequestPage() {
                     --primary-theme: ${themeColor} !important;
                     --color-primary: ${themeColor} !important;
                 }
+                ` : ""}
                 .text-rose-500, [class*="text-rose-500"] {
                     color: ${themeColor} !important;
                 }
@@ -862,32 +864,32 @@ export default function MarriageCertificateRequestPage() {
                     border-color: ${themeColor} !important;
                 }
                 .bg-rose-500\\/10, [class*="bg-rose-500/10"] {
-                    background-color: ${themeColor}1a !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 10%, transparent)" : `${themeColor}1a`} !important;
                 }
                 .bg-rose-500\\/5, [class*="bg-rose-500/5"] {
-                    background-color: ${themeColor}0d !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 5%, transparent)" : `${themeColor}0d`} !important;
                 }
                 .border-rose-500\\/10, [class*="border-rose-500/10"] {
-                    border-color: ${themeColor}1a !important;
+                    border-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 10%, transparent)" : `${themeColor}1a`} !important;
                 }
                 .shadow-rose-500\\/20, [class*="shadow-rose-500/20"] {
-                    --tw-shadow-color: ${themeColor}33 !important;
+                    --tw-shadow-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33`} !important;
                 }
                 .hover\\:bg-rose-700:hover, [class*="hover:bg-rose-700"]:hover {
                     background-color: ${themeColor} !important;
                     filter: brightness(0.9);
                 }
                 .hover\\:border-rose-500\\/50:hover, [class*="hover:border-rose-500/50"]:hover {
-                    border-color: ${themeColor}80 !important;
+                    border-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 50%, transparent)" : `${themeColor}80`} !important;
                 }
                 .focus\\:ring-rose-500:focus, [class*="focus:ring-rose-500"]:focus {
                     --tw-ring-color: ${themeColor} !important;
                 }
                 .bg-rose-50\\/50, [class*="bg-rose-50/50"] {
-                    background-color: ${themeColor}0d !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 5%, transparent)" : `${themeColor}0d`} !important;
                 }
                 .border-rose-500\\/50, [class*="border-rose-500/50"] {
-                    border-color: ${themeColor}80 !important;
+                    border-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 50%, transparent)" : `${themeColor}80`} !important;
                 }
                 .border-l-rose-500, [class*="border-l-rose-500"] {
                     border-left-color: ${themeColor} !important;

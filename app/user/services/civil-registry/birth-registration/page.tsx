@@ -56,7 +56,8 @@ import {
     ensureCivilRegistryTransactionTypes,
     submitCivilRegistryTransaction,
     getSystemSettingAction,
-    getTransactionById
+    getTransactionById,
+    getBarangaysList
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -182,7 +183,7 @@ export default function BirthRegistrationPage() {
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const [themeColor, setThemeColor] = useState("theme_color");
+    const [themeColor, setThemeColor] = useState("var(--primary-theme)");
 
     useEffect(() => {
         getSystemSettingAction("theme_color").then((res) => {
@@ -207,7 +208,7 @@ export default function BirthRegistrationPage() {
         registryType: "BIRTH_REG",
         children: [{ firstName: "", middleName: "", lastName: "", suffix: "", sex: "", birthTime: "" }],
         dateOfEvent: "",
-        placeOfEvent: "MUNICIPALITY OF MAPANDAN",
+        placeOfEvent: "",
         fatherFirstName: "",
         fatherMiddleName: "",
         fatherLastName: "",
@@ -253,9 +254,20 @@ export default function BirthRegistrationPage() {
     const [viewerFile, setViewerFile] = useState<File | null>(null);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerTitle, setViewerTitle] = useState("");
+    const [barangaysList, setBarangaysList] = useState<string[]>([]);
 
     // Dropdown open state for evidence menu
     const [evidenceMenuOpen, setEvidenceMenuOpen] = useState(false);
+
+    const getNormalizedPlaceOfEvent = (val: string) => {
+        if (!val) return "";
+        const upperVal = val.toUpperCase();
+        const found = barangaysList.find(b => upperVal.includes(b.toUpperCase()));
+        if (found) {
+            return `${found.toUpperCase()}, MAPANDAN, PANGASINAN`;
+        }
+        return val;
+    };
 
     const handleViewFile = (file: File | null, existingUrl: string | null, title: string) => {
         setViewerFile(file);
@@ -355,7 +367,7 @@ export default function BirthRegistrationPage() {
                     setForm(prev => ({
                         ...prev,
                         ...parsed,
-                        placeOfEvent: "MUNICIPALITY OF MAPANDAN",
+                        placeOfEvent: parsed.placeOfEvent || "",
                         supportingEvidenceTypes: parsedSupporting,
                         supportingEvidence1Type: parsed.supportingEvidence1Type || parsedSupporting[0] || "",
                         supportingEvidence2Type: parsed.supportingEvidence2Type || parsedSupporting[1] || ""
@@ -454,15 +466,6 @@ export default function BirthRegistrationPage() {
     }, [form.relationship, resident, loading]);
 
     useEffect(() => {
-        if (form.placeOfEvent !== "MUNICIPALITY OF MAPANDAN") {
-            setForm(prev => ({
-                ...prev,
-                placeOfEvent: "MUNICIPALITY OF MAPANDAN"
-            }));
-        }
-    }, [form.placeOfEvent]);
-
-    useEffect(() => {
         async function init() {
             try {
                 await ensureCivilRegistryTransactionTypes();
@@ -482,10 +485,15 @@ export default function BirthRegistrationPage() {
                     }
                 }
 
-                const [resResult, typesResult] = await Promise.all([
+                const [resResult, typesResult, brgyResult] = await Promise.all([
                     getCurrentUserResident(),
-                    getTransactionTypes()
+                    getTransactionTypes(),
+                    getBarangaysList()
                 ]);
+
+                if (brgyResult.success && brgyResult.data) {
+                    setBarangaysList(brgyResult.data);
+                }
 
                 if (resResult.success && resResult.data) {
                     const r = resResult.data;
@@ -1157,7 +1165,7 @@ export default function BirthRegistrationPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: themeColor }} />
+                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "var(--primary-theme)" }} />
                 <p className="font-black uppercase tracking-widest text-[10px] text-slate-400 italic">Initializing Registration Form...</p>
             </div>
         );
@@ -1167,9 +1175,11 @@ export default function BirthRegistrationPage() {
         <>
             <style dangerouslySetInnerHTML={{
                 __html: `
+                ${themeColor !== "var(--primary-theme)" ? `
                 :root, * {
                     --primary-theme: ${themeColor} !important;
                 }
+                ` : ""}
                 .text-blue-500, [class*="text-blue-500"]:not(input):not(select):not(textarea) {
                     color: ${themeColor} !important;
                 }
@@ -1189,20 +1199,20 @@ export default function BirthRegistrationPage() {
                     border-color: ${themeColor} !important;
                 }
                 .bg-blue-500\\/10, [class*="bg-blue-500/10"] {
-                    background-color: ${themeColor}1a !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 10%, transparent)" : `${themeColor}1a`} !important;
                 }
                 .bg-blue-500\\/5, [class*="bg-blue-500/5"] {
-                    background-color: ${themeColor}0d !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 5%, transparent)" : `${themeColor}0d`} !important;
                 }
                 .shadow-blue-500\\/20, [class*="shadow-blue-500/20"] {
-                    --tw-shadow-color: ${themeColor}33 !important;
+                    --tw-shadow-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33`} !important;
                 }
                 .hover\\:bg-blue-600:hover, [class*="hover:bg-blue-600"]:hover {
                     background-color: ${themeColor} !important;
                     filter: brightness(0.9);
                 }
                 .hover\\:border-blue-500\\/50:hover, [class*="hover:border-blue-500/50"]:hover {
-                    border-color: ${themeColor}80 !important;
+                    border-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 50%, transparent)" : `${themeColor}80`} !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
                     color: #0f172a !important;
@@ -1774,15 +1784,38 @@ export default function BirthRegistrationPage() {
                                              </div>
                                              <div className="space-y-2">
                                                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Place of Birth <span className="text-red-500">*</span></Label>
-                                                 <Input
-                                                     readOnly
-                                                     className={cn(
-                                                         "rounded-xl border-slate-950 dark:border-white bg-slate-50 dark:bg-slate-900/50 h-12 transition-all uppercase font-bold italic cursor-not-allowed",
-                                                         (errors.placeOfEvent) && "border-2 border-red-500"
-                                                     )}
-                                                     placeholder="Hospital/Municipality, Province"
-                                                     value={form.placeOfEvent || "MUNICIPALITY OF MAPANDAN"}
-                                                 />
+                                                 <Select
+                                                     value={getNormalizedPlaceOfEvent(form.placeOfEvent)}
+                                                     onValueChange={(val) => setForm(p => ({ ...p, placeOfEvent: val }))}
+                                                 >
+                                                     <SelectTrigger 
+                                                         style={{ height: '3rem' }}
+                                                         className={cn(
+                                                             "!h-12 w-full rounded-xl border border-slate-950 dark:border-white bg-white dark:bg-slate-900 shadow-sm text-xs text-left px-3 transition-all font-medium uppercase text-slate-800 dark:text-slate-100",
+                                                             (errors.placeOfEvent) && "!border-2 !border-red-500"
+                                                         )}
+                                                     >
+                                                         <SelectValue placeholder="SELECT PLACE OF BIRTH" />
+                                                     </SelectTrigger>
+                                                     <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
+                                                         {barangaysList.map((brgy) => (
+                                                             <SelectItem key={brgy} value={`${brgy.toUpperCase()}, MAPANDAN, PANGASINAN`}>
+                                                                 {brgy.toUpperCase()}
+                                                             </SelectItem>
+                                                         ))}
+                                                         {(() => {
+                                                             const normVal = getNormalizedPlaceOfEvent(form.placeOfEvent);
+                                                             if (normVal && !barangaysList.some(b => normVal.startsWith(b.toUpperCase()))) {
+                                                                 return (
+                                                                     <SelectItem value={normVal}>
+                                                                         {normVal}
+                                                                     </SelectItem>
+                                                                 );
+                                                             }
+                                                             return null;
+                                                         })()}
+                                                     </SelectContent>
+                                                 </Select>
                                                  {errors.placeOfEvent && (
                                                      <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.placeOfEvent}</p>
                                                  )}
@@ -2203,60 +2236,60 @@ export default function BirthRegistrationPage() {
                                                 {errors.documents && (
                                                     <p className="text-[10px] font-black text-red-500 uppercase italic tracking-widest mt-2">{errors.documents}</p>
                                                 )}
+
+                                                <div className="p-5 rounded-2xl border border-slate-200/20 bg-white/30 dark:bg-white/5 space-y-3">
+                                                    <div className="flex justify-between items-center text-xs font-semibold italic text-slate-500">
+                                                        <span>Registration Fee ({form.registrationType === "STANDARD" ? "Standard" : "Late"})</span>
+                                                        <span className="font-extrabold text-slate-800 dark:text-slate-200">₱{baseFee}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs font-semibold italic text-slate-500 pb-2 border-b border-dashed border-slate-200/50">
+                                                        <span>E-Copy & Hardcopy Fee</span>
+                                                        <span className="font-extrabold text-slate-800 dark:text-slate-200">₱215</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Total Amount Due</div>
+                                                            <div className="text-[9px] text-slate-400 italic">Payable upon municipal verification</div>
+                                                        </div>
+                                                        <div className="text-xl font-black text-blue-600 dark:text-blue-400">₱{totalAmount}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div className={cn(
+                                                    "p-6 rounded-3xl border flex items-center gap-5 transition-all duration-300",
+                                                    errors.policyAccepted
+                                                        ? "border-2 border-red-500"
+                                                        : "border-slate-200/20 bg-[#11131e]/90 dark:bg-[#11131e]/90"
+                                                )}>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setPolicyOpen(true)} 
+                                                        className={cn(
+                                                            "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-300", 
+                                                            policyAccepted 
+                                                                ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20" 
+                                                                : errors.policyAccepted
+                                                                    ? "border-2 border-red-500"
+                                                                    : "border-slate-500 hover:border-emerald-500"
+                                                        )}
+                                                    >
+                                                        {policyAccepted ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : null}
+                                                    </button>
+                                                    <div className="flex-1 cursor-pointer select-none" onClick={() => setPolicyOpen(true)}>
+                                                        <div className="font-black uppercase text-xs tracking-wider text-slate-100 italic">DATA PRIVACY AND TERMS AGREEMENT</div>
+                                                        <div className="text-[8px] text-slate-400 font-bold uppercase tracking-widest italic mt-2 leading-relaxed">
+                                                            I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. I CONFIRM ALL INFO IS TRUE AND CORRECT. CLICK TO REVIEW AGREEMENT.
+                                                        </div>
+                                                        {errors.policyAccepted && (
+                                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse mt-2">{errors.policyAccepted}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
-                                        <div className={cn(
-                                            "p-6 rounded-3xl border flex items-center gap-5 transition-all duration-300",
-                                            errors.policyAccepted
-                                                ? "border-2 border-red-500"
-                                                : "border-slate-200/20 bg-[#11131e]/90 dark:bg-[#11131e]/90"
-                                        )}>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setPolicyOpen(true)} 
-                                                className={cn(
-                                                    "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-300", 
-                                                    policyAccepted 
-                                                        ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/20" 
-                                                        : errors.policyAccepted
-                                                            ? "border-2 border-red-500"
-                                                            : "border-slate-500 hover:border-emerald-500"
-                                                )}
-                                            >
-                                                {policyAccepted ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : null}
-                                            </button>
-                                            <div className="flex-1 cursor-pointer select-none" onClick={() => setPolicyOpen(true)}>
-                                                <div className="font-black uppercase text-xs tracking-wider text-slate-100 italic">DATA PRIVACY AND TERMS AGREEMENT</div>
-                                                <div className="text-[8px] text-slate-400 font-bold uppercase tracking-widest italic mt-2 leading-relaxed">
-                                                    I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. I CONFIRM ALL INFO IS TRUE AND CORRECT. CLICK TO REVIEW AGREEMENT.
-                                                </div>
-                                                {errors.policyAccepted && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse mt-2">{errors.policyAccepted}</p>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="p-5 rounded-2xl border border-slate-200/20 bg-white/30 dark:bg-white/5 space-y-3">
-                                            <div className="flex justify-between items-center text-xs font-semibold italic text-slate-500">
-                                                <span>Registration Fee ({form.registrationType === "STANDARD" ? "Standard" : "Late"})</span>
-                                                <span className="font-extrabold text-slate-800 dark:text-slate-200">₱{baseFee}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs font-semibold italic text-slate-500 pb-2 border-b border-dashed border-slate-200/50">
-                                                <span>E-Copy & Hardcopy Fee</span>
-                                                <span className="font-extrabold text-slate-800 dark:text-slate-200">₱215</span>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <div>
-                                                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Total Amount Due</div>
-                                                    <div className="text-[9px] text-slate-400 italic">Payable upon municipal verification</div>
-                                                </div>
-                                                <div className="text-xl font-black text-blue-600 dark:text-blue-400">₱{totalAmount}</div>
-                                            </div>
-                                        </div>
-
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                             <Button
                                                 variant="ghost"

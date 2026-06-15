@@ -415,6 +415,70 @@ export default function DeathPsaEndorsementView(props: TreasuryViewProps) {
                             </div>
                         </div>
 
+                        {/* WAITING FOR REVISION NOTICE */}
+                        {transaction.status === "FOR_REVISION" && (() => {
+                            const revisionRemarks = transaction.rejectionRemarks || additional?.revisionRemarks || "";
+                            return (
+                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-6 shadow-xl dark:shadow-2xl border border-orange-200 dark:border-orange-500/20 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0 animate-[spin_3s_linear_infinite]">
+                                            <RotateCw className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400 leading-none">
+                                                Waiting for Citizen Revision
+                                            </h4>
+                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 italic mt-1 leading-relaxed">
+                                                Returned to citizen for corrections. Will reappear once resubmitted.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {revisionRemarks && (
+                                        <div className="bg-orange-50 dark:bg-orange-500/5 border border-orange-100 dark:border-orange-500/10 rounded-xl p-4 space-y-1.5">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">
+                                                Remarks Sent
+                                            </span>
+                                            <p className="text-xs font-bold text-orange-800 dark:text-orange-300 italic leading-relaxed">
+                                                &ldquo;{revisionRemarks}&rdquo;
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+
+                        {/* REJECTED REMARKS NOTICE */}
+                        {transaction.status === "REJECTED" && (() => {
+                            const rejectionRemarks = transaction.rejectionRemarks || additional?.rejectionRemarks || "";
+                            return (
+                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-6 shadow-xl dark:shadow-2xl border border-red-200 dark:border-red-500/20 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                                            <AlertCircle className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600 dark:text-red-400 leading-none">
+                                                Request Rejected
+                                            </h4>
+                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 italic mt-1 leading-relaxed">
+                                                This request has been declined.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {rejectionRemarks && (
+                                        <div className="bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-500/10 rounded-xl p-4 space-y-1.5">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-red-600 dark:text-red-400">
+                                                Rejection Remarks
+                                            </span>
+                                            <p className="text-xs font-bold text-red-800 dark:text-red-300 italic leading-relaxed">
+                                                &ldquo;{rejectionRemarks}&rdquo;
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+
                         <RejectionRevisionControls
                             actionLoading={actionLoading}
                             isRejecting={isRejecting}
@@ -439,12 +503,14 @@ export default function DeathPsaEndorsementView(props: TreasuryViewProps) {
                                 </Button>
 
                                 <div className="flex gap-2">
-                                    <Button
-                                        onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                        className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
-                                    >
-                                        Revision
-                                    </Button>
+                                    {(transaction.revisionCount || 0) < 3 && (
+                                        <Button
+                                                                                onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                                                                className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
+                                                                            >
+                                                                                Revision
+                                                                            </Button>
+                                    )}
                                     <Button
                                         onClick={() => { setIsRejecting(true); setRemarks(""); }}
                                         className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
@@ -467,12 +533,14 @@ export default function DeathPsaEndorsementView(props: TreasuryViewProps) {
                                 </Button>
 
                                 <div className="flex gap-2">
-                                    <Button
-                                        onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                        className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
-                                    >
-                                        Revision
-                                    </Button>
+                                    {(transaction.revisionCount || 0) < 3 && (
+                                        <Button
+                                                                                onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                                                                className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
+                                                                            >
+                                                                                Revision
+                                                                            </Button>
+                                    )}
                                     <Button
                                         onClick={() => { setIsRejecting(true); setRemarks(""); }}
                                         className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
@@ -646,6 +714,62 @@ export default function DeathPsaEndorsementView(props: TreasuryViewProps) {
                                         Complete & Release Endorsement
                                     </Button>
                                 </div>
+                            </div>
+                        )}
+
+                        {transaction.status === "FOR_CLAIM" && (
+                            <div className="space-y-6">
+                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-6">
+                                    <div className="text-center space-y-3">
+                                        <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mx-auto">
+                                            <Check className="w-8 h-8" />
+                                        </div>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.25em] text-slate-800 dark:text-slate-200 font-bold">Document Ready for Claiming</h4>
+                                        <p className="text-xs text-slate-400 italic max-w-sm mx-auto">
+                                            The document has been verified and processed. Please click below to officially release the document and notify the resident.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={handleRelease}
+                                    disabled={actionLoading}
+                                    className={`w-full h-14 rounded-2xl text-xs font-black uppercase tracking-wider italic text-white ${themeColor} shadow-lg active:scale-95 transition-all shadow-emerald-500/10`}
+                                >
+                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                    Release the Document
+                                </Button>
+                            </div>
+                        )}
+
+                        {["RELEASED", "DELIVERED", "COMPLETED"].includes(transaction.status) && (
+                            <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 text-center space-y-6">
+                                <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mx-auto">
+                                    <Check className="w-8 h-8" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                        {transaction.status === "DELIVERED" ? "Endorsement Delivered" : "Transaction Completed"}
+                                    </h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+                                        {transaction.status === "DELIVERED" ? "PSA Endorsement delivered to resident" : "Endorsement request finalized"}
+                                    </p>
+                                </div>
+                                {(transaction.eCopyUrl || additional.eCopyUrl) && (
+                                    <Button
+                                        onClick={() => handleViewFile?.(transaction.eCopyUrl || additional.eCopyUrl, "Transmitted PSA Endorsement Document")}
+                                        className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                    >
+                                        <Eye className="w-4 h-4" /> View Endorsement Doc
+                                    </Button>
+                                )}
+                                <Button
+                                    onClick={handlePrintWaybill}
+                                    variant="outline"
+                                    className="w-full h-12 border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                                >
+                                    Print Waybill / Slip
+                                </Button>
                             </div>
                         )}
                     </div>

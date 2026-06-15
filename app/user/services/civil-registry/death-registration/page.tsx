@@ -164,7 +164,7 @@ export default function DeathRegistrationPage() {
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const [themeColor, setThemeColor] = useState("theme_color");
+    const [themeColor, setThemeColor] = useState("var(--primary-theme)");
 
     useEffect(() => {
         getSystemSettingAction("theme_color").then((res) => {
@@ -841,7 +841,7 @@ export default function DeathRegistrationPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-                <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mb-4" />
+                <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: "var(--primary-theme)" }} />
                 <p className="font-black uppercase tracking-widest text-[10px] text-slate-400 italic">Initializing Registration Form...</p>
             </div>
         );
@@ -851,9 +851,11 @@ export default function DeathRegistrationPage() {
         <>
             <style dangerouslySetInnerHTML={{
                 __html: `
+                ${themeColor !== "var(--primary-theme)" ? `
                 :root, * {
                     --primary-theme: ${themeColor} !important;
                 }
+                ` : ""}
                 .text-emerald-500, [class*="text-emerald-500"]:not(input):not(select):not(textarea) {
                     color: ${themeColor} !important;
                 }
@@ -873,23 +875,23 @@ export default function DeathRegistrationPage() {
                     border-color: ${themeColor} !important;
                 }
                 .bg-emerald-500\\/10, [class*="bg-emerald-500/10"] {
-                    background-color: ${themeColor}1a !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 10%, transparent)" : `${themeColor}1a`} !important;
                 }
                 .bg-emerald-500\\/20, [class*="bg-emerald-500/20"] {
-                    background-color: ${themeColor}33 !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33`} !important;
                 }
                 .bg-emerald-500\\/5, [class*="bg-emerald-500/5"] {
-                    background-color: ${themeColor}0d !important;
+                    background-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 5%, transparent)" : `${themeColor}0d`} !important;
                 }
                 .shadow-emerald-500\\/20, [class*="shadow-emerald-500/20"] {
-                    --tw-shadow-color: ${themeColor}33 !important;
+                    --tw-shadow-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 20%, transparent)" : `${themeColor}33`} !important;
                 }
                 .hover\\:bg-emerald-600:hover, [class*="hover:bg-emerald-600"]:hover {
                     background-color: ${themeColor} !important;
                     filter: brightness(0.9);
                 }
                 .hover\\:border-emerald-500\\/50:hover, [class*="hover:border-emerald-500/50"]:hover {
-                    border-color: ${themeColor}80 !important;
+                    border-color: ${themeColor === "var(--primary-theme)" ? "color-mix(in srgb, var(--primary-theme) 50%, transparent)" : `${themeColor}80`} !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
                     color: #0f172a !important;

@@ -70,11 +70,40 @@ export default function PremiumDocumentUpload({
     };
 
     const hasFile = !!file || !!previewUrl || !!existingUrl;
-    const isPdf = file 
+    const checkIsPdfUrl = (url: string | null | undefined): boolean => {
+        if (!url) return false;
+        try {
+            const cleanUrl = url.split("?")[0].toLowerCase();
+            if (cleanUrl.endsWith(".pdf")) return true;
+        } catch {}
+        const lowerUrl = url.toLowerCase();
+        return lowerUrl.includes("application/pdf") || 
+               lowerUrl.includes(".pdf?") || 
+               lowerUrl.startsWith("data:application/pdf");
+    };
+
+    const isPdf = previewUrl 
+        ? checkIsPdfUrl(previewUrl)
+        : file 
         ? (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))
         : existingUrl
-        ? (existingUrl.toLowerCase().endsWith(".pdf") || existingUrl.includes("application/pdf") || existingUrl.includes(".pdf?"))
+        ? checkIsPdfUrl(existingUrl)
         : false;
+
+    const getFileName = () => {
+        if (file) return file.name;
+        const url = previewUrl || existingUrl;
+        if (url) {
+            try {
+                const cleanUrl = url.split("?")[0];
+                const parts = cleanUrl.split("/");
+                const fileNameWithTimestamp = decodeURIComponent(parts[parts.length - 1]);
+                const cleanName = fileNameWithTimestamp.replace(/^\d+_/, "");
+                if (cleanName) return cleanName;
+            } catch {}
+        }
+        return "PDF Document";
+    };
 
     // Use current state previewUrl, or fall back to object URL if file is present, or existingUrl
     const currentPreview = previewUrl || (file ? URL.createObjectURL(file) : existingUrl || null);
@@ -119,7 +148,7 @@ export default function PremiumDocumentUpload({
                             className="w-full p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between mt-1 cursor-pointer hover:bg-primary/10 transition-colors"
                         >
                             <span className="text-xs font-bold text-primary truncate max-w-[200px]">
-                                {file ? file.name : "PDF Document"}
+                                {getFileName()}
                             </span>
                             <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">🔍 Click to View</span>
                         </div>
