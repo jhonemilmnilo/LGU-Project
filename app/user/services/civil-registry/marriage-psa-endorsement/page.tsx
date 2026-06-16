@@ -100,7 +100,7 @@ export default function MarriagePsaEndorsementPage() {
             if (!formData.relationship || !formData.contactNumber) {
                 setShowErrors(true);
                 toast.error("Please fill in all required informant details.");
-                
+
                 setTimeout(() => {
                     let firstErrorId = "";
                     if (!formData.relationship) firstErrorId = "relationship";
@@ -117,7 +117,7 @@ export default function MarriagePsaEndorsementPage() {
                         }
                     }
                 }, 100);
-                
+
                 return false;
             }
         }
@@ -786,8 +786,8 @@ export default function MarriagePsaEndorsementPage() {
                             </p>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2 relative z-10 shrink-0">
-                            <div className="hidden md:block w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500 mb-2">
+                        <div className="hidden md:block relative z-10 shrink-0">
+                            <div className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500">
                                 <div className="absolute inset-0 bg-gradient-to-tr opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundImage: `linear-gradient(to top right, ${themeColor}, transparent)` }} />
                                 <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
                                 <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-tight">Secure Filing</p>
@@ -815,7 +815,7 @@ export default function MarriagePsaEndorsementPage() {
                                         }
                                         const targetIdx = STEPS.findIndex(s => s.id === step.id);
                                         const currentIdx = STEPS.findIndex(s => s.id === currentStep);
-                                        
+
                                         if (targetIdx <= currentIdx) {
                                             setCurrentStep(step.id);
                                         } else {
@@ -854,7 +854,7 @@ export default function MarriagePsaEndorsementPage() {
                                             isCompleted ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" :
                                                 "bg-slate-100 dark:bg-white/5 text-slate-400 border-transparent group-hover:border-primary/30"
                                     )}
-                                    style={isActive ? { backgroundColor: themeColor, borderColor: themeColor } : {}}
+                                        style={isActive ? { backgroundColor: themeColor, borderColor: themeColor } : {}}
                                     >
                                         <Icon className="w-4 h-4 md:w-7 md:h-7" />
                                     </div>
@@ -862,7 +862,7 @@ export default function MarriagePsaEndorsementPage() {
                                         "text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
                                         isActive ? "opacity-100 font-black" : "opacity-40 group-hover:opacity-100 transition-opacity"
                                     )}
-                                    style={isActive ? { color: themeColor } : {}}
+                                        style={isActive ? { color: themeColor } : {}}
                                     >
                                         {step.label}
                                     </span>

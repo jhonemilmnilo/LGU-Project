@@ -444,7 +444,7 @@ export default function MarriageLicenseApplicationPage() {
 			}
 			const targetApp1Gender = form.app1Gender || (app2Gender === "MALE" ? "FEMALE" : app2Gender === "FEMALE" ? "MALE" : "");
 			const targetApp2Gender = app2Gender || (targetApp1Gender === "MALE" ? "FEMALE" : targetApp1Gender === "FEMALE" ? "MALE" : "");
-			
+
 			const parts = [
 				r.houseNumber && `#${r.houseNumber}`,
 				r.street && `${r.street} St.`,
@@ -536,7 +536,7 @@ export default function MarriageLicenseApplicationPage() {
 		} catch (uploadErr) {
 			console.error(`[ClientUpload] Failed to upload ${key} on-the-fly:`, uploadErr);
 			toast.error("Upload failed. Local copy stored (preview limited).", { id: `file-upload-${key}` });
-			
+
 			// Fallback to local preview behavior if instant upload fails
 			if (file.type.startsWith("image/")) {
 				const reader = new FileReader();
@@ -994,7 +994,7 @@ export default function MarriageLicenseApplicationPage() {
 					<div className="hidden md:block relative z-10 shrink-0">
 						<div className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500">
 							<div className="absolute inset-0 bg-gradient-to-tr opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundImage: `linear-gradient(to top right, ${themeColor}, transparent)` }} />
-							<ShieldCheck className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
+							<CheckCircle2 className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
 							<p className="text-[7px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-tight">Secure Filing</p>
 						</div>
 					</div>
@@ -1033,7 +1033,7 @@ export default function MarriageLicenseApplicationPage() {
 										}
 									}}
 								>
-									<div 
+									<div
 										className={cn(
 											"w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
 											isActive ? "text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105 md:scale-110" :
@@ -1050,7 +1050,7 @@ export default function MarriageLicenseApplicationPage() {
 									>
 										<Icon className="w-4 h-4 md:w-7 md:h-7" />
 									</div>
-									<span 
+									<span
 										className={cn(
 											"text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
 											(isActive || isCompleted) ? "opacity-100 font-black" : "opacity-40 group-hover:opacity-100 transition-opacity text-slate-400"
@@ -1129,8 +1129,8 @@ export default function MarriageLicenseApplicationPage() {
 													disabled={!!resident?.gender}
 													value={form.app1Gender}
 													onValueChange={(val) => {
-														setForm((prev: any) => ({ 
-															...prev, 
+														setForm((prev: any) => ({
+															...prev,
 															app1Gender: val,
 															app2Gender: val === "MALE" ? "FEMALE" : val === "FEMALE" ? "MALE" : ""
 														}));
@@ -1326,20 +1326,20 @@ export default function MarriageLicenseApplicationPage() {
 																return;
 															}
 														}
-														setForm((prev: any) => ({ 
-															...prev, 
+														setForm((prev: any) => ({
+															...prev,
 															app2Gender: val,
 															app1Gender: val === "MALE" ? "FEMALE" : val === "FEMALE" ? "MALE" : prev.app1Gender
 														}));
 														setMissingInputs((m) => ({ ...m, app2Gender: false }));
 													}}
 												>
-													<SelectTrigger 
+													<SelectTrigger
 														className={cn(
 															"w-full h-10 px-3 rounded-md font-bold uppercase text-xs transition-all text-left",
 															missingInputs.app2Gender ? "!border-2 !border-red-500" : "border-none",
-															form.app2Resident 
-																? "bg-slate-100 dark:bg-white/5 opacity-75 cursor-not-allowed" 
+															form.app2Resident
+																? "bg-slate-100 dark:bg-white/5 opacity-75 cursor-not-allowed"
 																: "bg-slate-50 dark:bg-white/5"
 														)}
 													>

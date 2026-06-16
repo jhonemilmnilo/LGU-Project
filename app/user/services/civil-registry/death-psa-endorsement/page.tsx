@@ -825,7 +825,7 @@ export default function DeathPsaEndorsementPage() {
                                         }
                                     }}
                                 >
-                                    <div 
+                                    <div
                                         className={cn(
                                             "w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
                                             isActive ? "text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105 md:scale-110" :
@@ -836,7 +836,7 @@ export default function DeathPsaEndorsementPage() {
                                     >
                                         <Icon className="w-4 h-4 md:w-7 md:h-7" />
                                     </div>
-                                    <span 
+                                    <span
                                         className={cn(
                                             "text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
                                             isActive ? "opacity-100 font-black text-slate-500" : "opacity-40 group-hover:opacity-100 transition-opacity text-slate-400"
@@ -1009,12 +1009,12 @@ export default function DeathPsaEndorsementPage() {
                                                 )}
                                             </div>
                                         </div>
-                                        
-                                        <div 
+
+                                        <div
                                             className="p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-3 border animate-in fade-in duration-300"
-                                            style={{ 
-                                                backgroundColor: `${themeColor}0d`, 
-                                                borderColor: `${themeColor}26` 
+                                            style={{
+                                                backgroundColor: `${themeColor}0d`,
+                                                borderColor: `${themeColor}26`
                                             }}
                                         >
                                             <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: themeColor }} />

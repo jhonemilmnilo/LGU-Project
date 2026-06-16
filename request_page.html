@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMapandan Smart Municipality - Track Status</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons for modern visuals -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brandDark: '#070a0f',
+                        brandCard: '#11151d',
+                        brandCardHover: '#161c27',
+                        brandBorder: '#1e2633',
+                        brandAccent: '#00e676',
+                        brandAccentDark: '#00b050',
+                        brandTextMuted: '#94a3b8',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Pulse Animation for Live Tracker */
+        @keyframes custom-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .6; transform: scale(1.1); }
+        }
+        .animate-status-pulse {
+            animation: custom-pulse 2s infinite ease-in-out;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #070a0f;
+        }
+        ::-webkit-scrollbar-thumb {
+            
+<truncated 45214 bytes>
+ocessing;
+            document.getElementById('stat-evaluated').innerText = evaluated;
+            document.getElementById('stat-released').innerText = released;
+        }
+
+        // Trigger Toast Popups
+        function showToast(title, message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-title').innerText = title;
+            document.getElementById('toast-message').innerText = message;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Live Workflow simulator trigger
+        function simulateStatus(id, nextStatus) {
+            const index = mockData.findIndex(item => item.id === id);
+            if (index > -1) {
+                mockData[index].status = nextStatus;
+                
+                // Adjust history timestamps dynamically for a authentic feeling
+                const now = new Date();
+                const stampStr = now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase() + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                
+                if (nextStatus === 'SUBMITTED') {
+                    mockData[index].remarks = "Processing initiated. Checking payment clearing gates...";
+                    mockData[index].history[0].done = true;
+                    mockData[index].history[0].date = stampStr;
+                    mockData[index].history[1].done = false;
+                    mockData[index].history[1].date = 'Pending';
+                    mockData[i
+<truncated 6715 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.

@@ -230,7 +230,7 @@ export default function DeathRegistrationPage() {
             if (!formData.relationship || !formData.contactNumber || isSpecifyEmpty) {
                 setShowErrors(true);
                 toast.error("Please complete highlighted required fields.", { className: "font-black uppercase tracking-widest text-[10px] italic" });
-                
+
                 setTimeout(() => {
                     let firstErrorId = "";
                     if (!formData.relationship) firstErrorId = "relationship";
@@ -248,7 +248,7 @@ export default function DeathRegistrationPage() {
                         }
                     }
                 }, 100);
-                
+
                 return false;
             }
         }
@@ -269,7 +269,7 @@ export default function DeathRegistrationPage() {
             if (missingFields.length > 0) {
                 setShowErrors(true);
                 toast.error("Please complete highlighted required fields.", { className: "font-black uppercase tracking-widest text-[10px] italic" });
-                
+
                 setTimeout(() => {
                     const firstErrorId = missingFields[0];
                     let element = document.getElementById(firstErrorId);
@@ -616,7 +616,7 @@ export default function DeathRegistrationPage() {
 
     const renderDocCard = (label: string, fileKey: string, uploadId: string, isId = false) => {
         const file = files[fileKey] || null;
-        
+
         // Use preview from previews state, fallback to resident ID URL if it's an ID card, or fallback to existingUrl
         const defaultUrl = isId
             ? (fileKey === "validIdFront" ? resident?.idFrontUrl : resident?.idBackUrl)
@@ -730,7 +730,7 @@ export default function DeathRegistrationPage() {
                 return;
             }
         }
-        
+
 
 
         // Validate valid ID
@@ -1020,7 +1020,7 @@ export default function DeathRegistrationPage() {
                                         }
                                         const targetIdx = STEPS.findIndex(s => s.id === step.id);
                                         const currentIdx = STEPS.findIndex(s => s.id === currentStep);
-                                        
+
                                         if (targetIdx <= currentIdx) {
                                             setCurrentStep(step.id);
                                         } else {
@@ -1031,7 +1031,7 @@ export default function DeathRegistrationPage() {
                                             setCurrentStep(step.id);
                                         }
                                     }}
-                                    onKeyDown={(e) => { 
+                                    onKeyDown={(e) => {
                                         if (e.key === 'Enter' || e.key === ' ') {
                                             if (step.id === "STATUS") {
                                                 router.push("/user/services/civil-registry");
@@ -1068,7 +1068,7 @@ export default function DeathRegistrationPage() {
                                             isCompleted ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" :
                                                 "bg-slate-100 dark:bg-white/5 text-slate-400 border-transparent group-hover:border-primary/30"
                                     )}
-                                    style={isActive ? { backgroundColor: themeColor, borderColor: themeColor } : {}}
+                                        style={isActive ? { backgroundColor: themeColor, borderColor: themeColor } : {}}
                                     >
                                         <Icon className="w-4 h-4 md:w-7 md:h-7" />
                                     </div>
@@ -1076,7 +1076,7 @@ export default function DeathRegistrationPage() {
                                         "text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
                                         isActive ? "opacity-100 font-black" : "opacity-40 group-hover:opacity-100 transition-opacity"
                                     )}
-                                    style={isActive ? { color: themeColor } : {}}
+                                        style={isActive ? { color: themeColor } : {}}
                                     >
                                         {step.label}
                                     </span>
@@ -1139,7 +1139,7 @@ export default function DeathRegistrationPage() {
                                                     value={formData.relationship}
                                                     onValueChange={(v) => handleSelectChange("relationship", v)}
                                                 >
-                                                    <SelectTrigger 
+                                                    <SelectTrigger
                                                         id="relationship"
                                                         style={{ height: '3rem' }}
                                                         className={cn(
@@ -1162,7 +1162,7 @@ export default function DeathRegistrationPage() {
                                                     <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
                                                 )}
                                             </div>
- 
+
                                             {formData.relationship === "RELATIVE" ? (
                                                 <div className="col-span-2 md:col-span-1 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Specify Relationship <span className="text-red-500">*</span></Label>
@@ -1185,7 +1185,7 @@ export default function DeathRegistrationPage() {
                                                 <div />
                                             )}
                                         </div>
- 
+
                                         {/* Personal Details Grid */}
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                             <div className="md:col-span-1 space-y-2">
@@ -1205,7 +1205,7 @@ export default function DeathRegistrationPage() {
                                                 <Input readOnly value={formData.informantSuffix} className="rounded-xl border-slate-950 dark:border-white bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic text-slate-600" />
                                             </div>
                                         </div>
- 
+
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Birth Date</Label>
@@ -1224,7 +1224,7 @@ export default function DeathRegistrationPage() {
                                                 <Input readOnly value={formData.informantCitizenship} className="rounded-xl border-slate-950 dark:border-white bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic text-slate-600" />
                                             </div>
                                         </div>
- 
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Occupation</Label>
@@ -1256,11 +1256,11 @@ export default function DeathRegistrationPage() {
                                             </div>
                                         </div>
 
-                                        <div 
+                                        <div
                                             className="p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-3 border animate-in fade-in duration-300"
-                                            style={{ 
-                                                backgroundColor: `${themeColor}0d`, 
-                                                borderColor: `${themeColor}26` 
+                                            style={{
+                                                backgroundColor: `${themeColor}0d`,
+                                                borderColor: `${themeColor}26`
                                             }}
                                         >
                                             <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: themeColor }} />
@@ -1432,7 +1432,7 @@ export default function DeathRegistrationPage() {
                                                 value={formData.placeOfDeath}
                                                 onValueChange={(v) => handleSelectChange("placeOfDeath", v)}
                                             >
-                                                <SelectTrigger 
+                                                <SelectTrigger
                                                     id="placeOfDeath"
                                                     style={{ height: '3rem' }}
                                                     className={cn(
@@ -1478,7 +1478,7 @@ export default function DeathRegistrationPage() {
                                                 value={formData.gender}
                                                 onValueChange={(v) => handleSelectChange("gender", v)}
                                             >
-                                                <SelectTrigger 
+                                                <SelectTrigger
                                                     id="gender"
                                                     style={{ height: '3rem' }}
                                                     className={cn(
@@ -1503,7 +1503,7 @@ export default function DeathRegistrationPage() {
                                                 value={formData.civilStatus}
                                                 onValueChange={(v) => handleSelectChange("civilStatus", v)}
                                             >
-                                                <SelectTrigger 
+                                                <SelectTrigger
                                                     id="civilStatus"
                                                     style={{ height: '3rem' }}
                                                     className={cn(
@@ -1578,7 +1578,7 @@ export default function DeathRegistrationPage() {
                                             </div>
                                         </div>
                                     </div>
- 
+
                                     <div className="space-y-2 pt-4">
                                         <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Corpse Disposal</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1588,7 +1588,7 @@ export default function DeathRegistrationPage() {
                                                     value={formData.corpseDisposal}
                                                     onValueChange={(v) => handleSelectChange("corpseDisposal", v)}
                                                 >
-                                                    <SelectTrigger 
+                                                    <SelectTrigger
                                                         id="corpseDisposal"
                                                         style={{ height: '3rem' }}
                                                         className={cn(
@@ -1715,8 +1715,8 @@ export default function DeathRegistrationPage() {
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Registration Type:</span>
                                                     <span className={cn(
                                                         "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest italic",
-                                                        formData.registrationType === "STANDARD" 
-                                                            ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
+                                                        formData.registrationType === "STANDARD"
+                                                            ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                                                             : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
                                                     )}>
                                                         {formData.registrationType}
