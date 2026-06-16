@@ -18,8 +18,9 @@ import {
 import Link from "next/link";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
-import { supabase } from "@/lib/supabase";
+import { getSecureUploadUrlAction } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -53,30 +54,30 @@ import { useRouter } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 
 
-// --- UPLOAD FILE CLIENT-SIDE TO SUPABASE STORAGE ---
-async function uploadFileClientSide(file: File, fieldName: string, userId: string): Promise<string> {
+// --- UPLOAD FILE SECURELY VIA SIGNED UPLOAD URL ---
+async function uploadFileClientSide(file: File, fieldName: string): Promise<string> {
     const fileExt = file.name.split('.').pop() || 'bin';
-    const fileName = `${userId}/${fieldName}_${Date.now()}.${fileExt}`;
-    const filePath = `services/lcr/marriage_certificate_request/${fileName}`;
-
-    const { error } = await supabase.storage
-        .from("system-assets")
-        .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true
-        });
-
-    if (error) {
-        console.error(`[ClientUpload] Upload error for ${fieldName}:`, error);
-        throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+    
+    const res = await getSecureUploadUrlAction(fieldName, "lcr/marriage_certificate_request", fileExt);
+    if (!res.success || !res.signedUrl || !res.publicUrl) {
+        throw new Error(res.error || "Failed to generate secure upload destination");
     }
 
-    const { data: { publicUrl } } = supabase.storage
-        .from("system-assets")
-        .getPublicUrl(filePath);
+    const uploadRes = await fetch(res.signedUrl, {
+        method: "PUT",
+        headers: {
+            "Content-Type": file.type
+        },
+        body: file
+    });
 
-    return publicUrl;
+    if (!uploadRes.ok) {
+        throw new Error(`Upload direct to storage failed: ${uploadRes.statusText}`);
+    }
+
+    return res.publicUrl;
 }
+
 
 // --- TYPES ---
 
@@ -227,9 +228,8 @@ export default function MarriageCertificateRequestPage() {
 
                     try {
                         toast.loading("Uploading and preparing document preview...", { id: `file-upload-${fileKey}` });
-                        const userId = resident?.id || "anonymous";
                         const sanitizedKey = fileKey.replace(/[^a-zA-Z0-9_-]/g, '_');
-                        const publicUrl = await uploadFileClientSide(fileToProcess, sanitizedKey, userId);
+                        const publicUrl = await uploadFileClientSide(fileToProcess, sanitizedKey);
 
                         setForm(prev => ({
                             ...prev,
@@ -761,8 +761,7 @@ export default function MarriageCertificateRequestPage() {
 
                 try {
                     toast.loading(`Uploading document ${i + 1}/${fileEntries.length}...`, { id: "req-upload-toast" });
-                    const userId = resident?.id || "anonymous";
-                    const url = await uploadFileClientSide(file, sanitizedKey, userId);
+                    const url = await uploadFileClientSide(file, sanitizedKey);
                     fileUrls[key] = url;
                 } catch (uploadErr) {
                     console.error(`[ClientUpload] Failed to upload ${key}:`, uploadErr);
