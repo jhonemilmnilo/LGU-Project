@@ -66,6 +66,7 @@ export type Resident = {
     occupation?: string | null;
     employer?: string | null;
     educationalAttainment?: string | null;
+    degreeProgram?: string | null;
     otherEducationalAttainment?: string | null;
     employmentStatus?: string | null;
     otherEmploymentStatus?: string | null;

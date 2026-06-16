@@ -112,6 +112,13 @@ export function ResidentReviewModal({ resident, isOpen, onClose, themeColor }: R
         };
     }, [zoomedImage]);
 
+    // Reset activeTab when modal opens or resident changes
+    useEffect(() => {
+        if (isOpen) {
+            setActiveTab("profile");
+        }
+    }, [isOpen, resident?.id]);
+
     if (!isOpen || !resident) return null;
 
     const statusConfig = {
