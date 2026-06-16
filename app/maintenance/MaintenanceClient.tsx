@@ -42,14 +42,14 @@ export function MaintenanceClient({
                     className="flex flex-col items-center gap-8"
                 >
                     <div 
-                        className="w-28 h-28 rounded-[2.5rem] flex items-center justify-center shadow-3xl rotate-12 relative overflow-hidden group"
+                        className="w-28 h-28 rounded-[2.5rem] flex items-center justify-center shadow-3xl relative overflow-hidden group"
                         style={{ backgroundColor: themeColor, boxShadow: `0 35px 60px -15px ${themeColor}66` }}
                     >
                         {logoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={logoUrl} alt="Logo" className="w-full h-full object-cover p-3 -rotate-12 transition-transform group-hover:scale-110" />
+                            <img src={logoUrl} alt="Logo" className="w-full h-full object-cover p-3 transition-transform group-hover:scale-110" />
                         ) : (
-                            <Shield className="w-14 h-14 text-white -rotate-12" />
+                            <Shield className="w-14 h-14 text-white" />
                         )}
                         <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>

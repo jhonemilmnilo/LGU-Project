@@ -3,6 +3,7 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AboutClientView } from "./AboutClientView";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +15,14 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
         "site_logo",
         "brand_word_1",
         "brand_word_2",
-        "theme_color"
+        "theme_color",
+        "maintenance_mode"
     ]);
+
+    const isMaintenance = settings.get("maintenance_mode") === "true";
+    if (isMaintenance) {
+        redirect("/maintenance");
+    }
 
     const themeColor = settings.get("theme_color") || "#2563eb";
 

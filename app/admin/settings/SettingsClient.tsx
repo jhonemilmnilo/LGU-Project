@@ -33,6 +33,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
     const isAdmin = role === "ADMIN";
 
     const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenance_mode === "true");
+    const [kioskMaintenanceMode, setKioskMaintenanceMode] = useState(settings.kiosk_maintenance_mode === "true");
     const [logoUrl, setLogoUrl] = useState(settings.site_logo || "");
     const [portalName, setPortalName] = useState(settings.portal_name || "Municipality of Mapandan");
     const [emergencyPhone, setEmergencyPhone] = useState(settings.emergency_phone || "911");
@@ -71,6 +72,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
         setIsSaving(true);
         try {
             await updateSystemSetting("maintenance_mode", maintenanceMode.toString());
+            await updateSystemSetting("kiosk_maintenance_mode", kioskMaintenanceMode.toString());
 
             // Handle logo
             if (logoFile) {
@@ -169,8 +171,46 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
                                         </div>
                                         <Switch
                                             checked={maintenanceMode}
-                                            onCheckedChange={setMaintenanceMode}
+                                            onCheckedChange={async (checked) => {
+                                                setMaintenanceMode(checked);
+                                                try {
+                                                    await updateSystemSetting("maintenance_mode", checked.toString());
+                                                    toast.success(`Maintenance mode turned ${checked ? "ON" : "OFF"}`);
+                                                    router.refresh();
+                                                } catch {
+                                                    toast.error("Failed to update maintenance mode");
+                                                    setMaintenanceMode(!checked);
+                                                }
+                                            }}
                                             className="data-[state=checked]:bg-amber-600"
+                                        />
+                                    </div>
+
+                                    {/* Kiosk Maintenance Mode */}
+                                    <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-950/20 rounded-2xl border border-orange-200 dark:border-orange-900/50">
+                                        <div className="space-y-1">
+                                            <Label className="text-base font-bold text-orange-900 dark:text-orange-400 flex items-center gap-2">
+                                                <ShieldAlert className="w-4 h-4" />
+                                                Kiosk Maintenance Mode
+                                            </Label>
+                                            <p className="text-sm text-orange-700 dark:text-orange-500/80 italic">
+                                                Puts all local physical kiosk terminals into maintenance mode.
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            checked={kioskMaintenanceMode}
+                                            onCheckedChange={async (checked) => {
+                                                setKioskMaintenanceMode(checked);
+                                                try {
+                                                    await updateSystemSetting("kiosk_maintenance_mode", checked.toString());
+                                                    toast.success(`Kiosk maintenance mode turned ${checked ? "ON" : "OFF"}`);
+                                                    router.refresh();
+                                                } catch {
+                                                    toast.error("Failed to update kiosk maintenance mode");
+                                                    setKioskMaintenanceMode(!checked);
+                                                }
+                                            }}
+                                            className="data-[state=checked]:bg-orange-600"
                                         />
                                     </div>
 

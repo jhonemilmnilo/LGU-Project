@@ -34,8 +34,14 @@ export default async function UserLayout({
         "site_logo", 
         "brand_word_1", 
         "brand_word_2", 
-        "theme_color"
+        "theme_color",
+        "maintenance_mode"
     ]);
+
+    const isMaintenance = settings.get("maintenance_mode") === "true";
+    if (isMaintenance) {
+        redirect("/maintenance");
+    }
 
     return (
         <UserLayoutClient 
