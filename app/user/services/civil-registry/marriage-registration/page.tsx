@@ -224,7 +224,7 @@ export default function MarriageRegistrationPage() {
         previews: {} as Record<string, string | null>,
     });
 
-    const [hasDraft, setHasDraft] = useState(false);
+    const [, setHasDraft] = useState(false);
 
 
     // Privacy / Terms modal state (shared key across LCR pages)
@@ -232,9 +232,9 @@ export default function MarriageRegistrationPage() {
     const [policyAccepted, setPolicyAccepted] = useState(false);
     const [showConfirmErrors, setShowConfirmErrors] = useState(false);
 
-    const handleAcceptPolicy = () => { 
-        setPolicyOpen(false); 
-        setPolicyAccepted(true); 
+    const handleAcceptPolicy = () => {
+        setPolicyOpen(false);
+        setPolicyAccepted(true);
         setShowConfirmErrors(false);
     };
 
@@ -817,40 +817,40 @@ export default function MarriageRegistrationPage() {
                 themeColor="var(--primary-theme)"
             />
             <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
-            <div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
-                <Breadcrumb>
-                    <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200/60 dark:border-white/5 w-fit shadow-sm">
-                        <BreadcrumbItem>
-                            <BreadcrumbLink asChild>
-                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
-                                    <Home className="w-3.5 h-3.5 mb-0.5" />
-                                    Home
-                                </Link>
-                            </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
-                        <BreadcrumbItem>
-                            <BreadcrumbLink asChild>
-                                <Link href="/user/services" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
-                                    Services
-                                </Link>
-                            </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
-                        <BreadcrumbItem>
-                            <BreadcrumbLink asChild>
-                                <Link href="/user/services/civil-registry" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
-                                    Civil Registry
-                                </Link>
-                            </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
-                        <BreadcrumbItem>
-                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic text-emerald-700 dark:text-emerald-400">Marriage Registration</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
-            </div>
+                <div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
+                    <Breadcrumb>
+                        <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200/60 dark:border-white/5 w-fit shadow-sm">
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                        <Home className="w-3.5 h-3.5 mb-0.5" />
+                                        Home
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link href="/user/services" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                        Services
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link href="/user/services/civil-registry" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                        Civil Registry
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic text-emerald-700 dark:text-emerald-400">Marriage Registration</BreadcrumbPage>
+                            </BreadcrumbItem>
+                        </BreadcrumbList>
+                    </Breadcrumb>
+                </div>
 
                 <div className="space-y-4">
                     {/* Premium Header/Banner with Ambient Gradient Backdrop */}
@@ -877,25 +877,12 @@ export default function MarriageRegistrationPage() {
                             </p>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2 relative z-10 shrink-0">
-                            <div className="hidden md:block w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500 mb-2">
+                        <div className="hidden md:block relative z-10 shrink-0">
+                            <div className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500">
                                 <div className="absolute inset-0 bg-gradient-to-tr opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundImage: `linear-gradient(to top right, ${themeColor}, transparent)` }} />
                                 <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
                                 <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-tight">Secure Filing</p>
                             </div>
-                            {hasDraft && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                        localStorage.removeItem(STORAGE_KEY);
-                                        window.location.reload();
-                                    }}
-                                    className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-colors"
-                                >
-                                    Reset Form
-                                </Button>
-                            )}
                         </div>
                     </div>
 
@@ -931,7 +918,7 @@ export default function MarriageRegistrationPage() {
                                         }
                                     }}
                                 >
-                                    <div 
+                                    <div
                                         className={cn(
                                             "w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
                                             isActive ? "text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105 md:scale-110" :
@@ -948,7 +935,7 @@ export default function MarriageRegistrationPage() {
                                     >
                                         <Icon className="w-4 h-4 md:w-6 md:h-6" />
                                     </div>
-                                    <span 
+                                    <span
                                         className={cn(
                                             "text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
                                             (isActive || isCompleted) ? "opacity-100 font-black" : "opacity-40 group-hover:opacity-100 transition-opacity text-slate-400"
@@ -1221,7 +1208,7 @@ export default function MarriageRegistrationPage() {
                             {currentStep === "DETAILS" && (
                                 <div className="space-y-8 animate-in fade-in duration-300">
                                     <Card className="p-6 md:p-10 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0f1117] shadow-xl dark:shadow-2xl overflow-hidden space-y-8">
-                                        
+
                                         {/* Marriage Details */}
                                         <div className="space-y-6">
                                             <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
@@ -1345,8 +1332,8 @@ export default function MarriageRegistrationPage() {
                                         <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest">
                                             Back
                                         </Button>
-                                        <Button 
-                                            onClick={nextStep} 
+                                        <Button
+                                            onClick={nextStep}
                                             className="h-14 px-10 rounded-2xl text-white font-black uppercase italic tracking-widest hover:opacity-90 transition-opacity"
                                             style={{ backgroundColor: themeColor }}
                                         >
@@ -1425,8 +1412,8 @@ export default function MarriageRegistrationPage() {
                                                     <div className="space-y-1">
                                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Registration Fee</span>
                                                         <p className="text-xs font-bold text-slate-500 italic">
-                                                            {form.registrationType === "LATE" 
-                                                                ? "Required processing fee for late filings." 
+                                                            {form.registrationType === "LATE"
+                                                                ? "Required processing fee for late filings."
                                                                 : baseFee > 0
                                                                     ? "Standard registration fee."
                                                                     : "Standard timely registration is free of charge."}
@@ -1437,10 +1424,10 @@ export default function MarriageRegistrationPage() {
                                                             "text-2xl font-black uppercase italic tracking-tight",
                                                             form.registrationType === "LATE" ? "text-rose-500" : (baseFee > 0 ? "text-[#1e293b] dark:text-white" : "text-emerald-500")
                                                         )}>
-                                                            {form.registrationType === "LATE" 
-                                                                ? `₱${lateFee.toFixed(2)}` 
-                                                                : baseFee > 0 
-                                                                    ? `₱${baseFee.toFixed(2)}` 
+                                                            {form.registrationType === "LATE"
+                                                                ? `₱${lateFee.toFixed(2)}`
+                                                                : baseFee > 0
+                                                                    ? `₱${baseFee.toFixed(2)}`
                                                                     : "FREE"}
                                                         </span>
                                                     </div>
@@ -1456,13 +1443,13 @@ export default function MarriageRegistrationPage() {
                                                     ? "border-2 border-red-500"
                                                     : "border-slate-200/40"
                                             )}>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => setPolicyOpen(true)} 
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPolicyOpen(true)}
                                                     className={cn(
-                                                        "w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-all", 
-                                                        policyAccepted 
-                                                            ? "text-white" 
+                                                        "w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-all",
+                                                        policyAccepted
+                                                            ? "text-white"
                                                             : showConfirmErrors
                                                                 ? "border-2 border-red-500"
                                                                 : "border-slate-300"
