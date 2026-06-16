@@ -323,11 +323,17 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                         // Auto-set admin portal cookie so page.tsx won't redirect to landing
                         document.cookie = `active_portal=admin; path=/; max-age=86400; SameSite=Lax`;
                         toast.success("Logged in successfully");
-                        const dept = session.user?.department;
-                        if (dept && (dept.toUpperCase() === "REGISTRAR" || dept.toUpperCase() === "CIVIL_REGISTRY")) {
-                            router.push("/admin/registrar");
+                        
+                        const pages = session.user?.accessiblePages;
+                        if (pages && pages.length > 0) {
+                            router.push(pages[0]);
                         } else {
-                            router.push("/admin/dashboard");
+                            const dept = session.user?.department;
+                            if (dept && (dept.toUpperCase() === "REGISTRAR" || dept.toUpperCase() === "CIVIL_REGISTRY")) {
+                                router.push("/admin/registrar");
+                            } else {
+                                router.push("/admin/dashboard");
+                            }
                         }
                     }
                 };
