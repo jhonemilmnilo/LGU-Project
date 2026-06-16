@@ -95,7 +95,8 @@ export default function DocumentViewerModal({
                 setCurrentIndex(0);
             }
         }
-    }, [isOpen, initialIndex, documents, fileUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
 
     const currentDoc = React.useMemo(() => {
         if (documents && documents.length > 0 && currentIndex >= 0 && currentIndex < documents.length) {
@@ -342,7 +343,7 @@ export default function DocumentViewerModal({
     return (
         <AnimatePresence>
             {isOpen && activeUrl && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-6 overflow-y-auto">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-6 overflow-y-auto pointer-events-auto">
                     {/* Backdrop Overlay */}
                     <motion.div
                         initial={{ opacity: 0 }}
