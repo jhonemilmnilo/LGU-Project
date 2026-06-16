@@ -2575,6 +2575,7 @@ export async function createUser(formData: FormData) {
         const role = formData.get("role") as any;
         const managedBarangay = formData.get("managedBarangay") as string;
         const department = formData.get("department") as string;
+        const accessiblePages = formData.getAll("accessiblePages") as string[];
 
         if (!name || !email || !password || !role) {
             return { success: false, error: "Missing required fields" };
@@ -2595,6 +2596,7 @@ export async function createUser(formData: FormData) {
                 role,
                 managedBarangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
                 department: department || null,
+                accessiblePages: accessiblePages || [],
                 isEmailVerified: true,
                 isPasswordChanged: true, // Admin set, bypass forced change
                 emailVerified: new Date(),
@@ -2620,6 +2622,7 @@ export async function updateUser(userId: string, formData: FormData) {
         const role = formData.get("role") as any;
         const managedBarangay = formData.get("managedBarangay") as string;
         const department = formData.get("department") as string;
+        const accessiblePages = formData.getAll("accessiblePages") as string[];
 
         if (!name || !email || !role) {
             return { success: false, error: "Missing required fields" };
@@ -2637,6 +2640,7 @@ export async function updateUser(userId: string, formData: FormData) {
             role,
             managedBarangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
             department: department || null,
+            accessiblePages: accessiblePages || [],
         };
 
         if (password && password.trim() !== "") {

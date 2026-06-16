@@ -25,6 +25,7 @@ interface SidebarProps {
             role?: string;
             managedBarangay?: string | null;
             department?: string | null;
+            accessiblePages?: string[];
         };
     };
     logoUrl?: string;
@@ -258,47 +259,87 @@ export function Sidebar({
         "Household Map"
     ];
 
+    const accessiblePages = session?.user?.accessiblePages;
+    const hasCustomPages = accessiblePages && accessiblePages.length > 0;
+
     let menuItems = allMenuItems;
 
-    if (role === "ADMIN") {
-        if (department) {
-            const deptUpper = department.toUpperCase();
-            if (deptUpper === "BPLO") {
-                menuItems = [
-                    { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
-                ];
-            } else if (deptUpper === "REGISTRAR" || deptUpper === "CIVIL_REGISTRY") {
-                const registrarHubItem = allMenuItems.find(item => item.label === "Registrar Hub");
-                menuItems = [
-                    ...(registrarHubItem ? [registrarHubItem] : [])
-                ];
-            } else if (deptUpper === "TREASURY") {
-                menuItems = allMenuItems.filter(item => 
-                    ["Treasury Hub", "Payments Ledger", "Payment Settings"].includes(item.label)
-                );
-            } else if (deptUpper === "LGU") {
-                menuItems = allMenuItems.filter(item => 
-                    !["Registrar Hub", "Treasury Hub", "Payments Ledger", "BPLO Permits", "Payment Settings"].includes(item.label)
-                );
+    if (!hasCustomPages) {
+        if (role === "ADMIN") {
+            if (department) {
+                const deptUpper = department.toUpperCase();
+                if (deptUpper === "BPLO") {
+                    menuItems = [
+                        { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
+                    ];
+                } else if (deptUpper === "REGISTRAR" || deptUpper === "CIVIL_REGISTRY") {
+                    const registrarHubItem = allMenuItems.find(item => item.label === "Registrar Hub");
+                    menuItems = [
+                        ...(registrarHubItem ? [registrarHubItem] : [])
+                    ];
+                } else if (deptUpper === "TREASURY") {
+                    menuItems = allMenuItems.filter(item => 
+                        ["Treasury Hub", "Payments Ledger", "Payment Settings"].includes(item.label)
+                    );
+                } else if (deptUpper === "LGU") {
+                    menuItems = allMenuItems.filter(item => 
+                        !["Registrar Hub", "Treasury Hub", "Payments Ledger", "BPLO Permits", "Payment Settings"].includes(item.label)
+                    );
+                } else {
+                    menuItems = [
+                        { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }
+                    ];
+                }
             } else {
-                menuItems = [
-                    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }
-                ];
+                // ADMIN without department gets allMenuItems
+                menuItems = allMenuItems;
             }
-        } else {
-            // ADMIN without department gets allMenuItems
-            menuItems = allMenuItems;
+        } else if (role === "CONTENT_ADMIN") {
+            menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
+        } else if (role === "BARANGAY_ADMIN") {
+            menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
+        } else if (role === "TREASURY_STAFF") {
+            menuItems = allMenuItems.filter(item => ["Treasury Hub", "Payments Ledger", "Payment Settings"].includes(item.label));
+        } else if (role === "ADMIN_AIDE") {
+            menuItems = allMenuItems.filter(item => ["BPLO Permits"].includes(item.label));
+        } else if (role === "ENGINEER") {
+            menuItems = [{ href: "/admin/engineer", label: "Engineer Hub", icon: HardHat, category: "Engineering" }];
         }
-    } else if (role === "CONTENT_ADMIN") {
-        menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
-    } else if (role === "BARANGAY_ADMIN") {
-        menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
-    } else if (role === "TREASURY_STAFF") {
-        menuItems = allMenuItems.filter(item => ["Treasury Hub", "Payments Ledger", "Payment Settings"].includes(item.label));
-    } else if (role === "ADMIN_AIDE") {
-        menuItems = allMenuItems.filter(item => ["BPLO Permits"].includes(item.label));
-    } else if (role === "ENGINEER") {
-        menuItems = [{ href: "/admin/engineer", label: "Engineer Hub", icon: HardHat, category: "Engineering" }];
+    }
+
+    // Filter menuItems dynamically based on accessiblePages if assigned
+    if (accessiblePages && accessiblePages.length > 0) {
+        const isPageAccessible = (href: string) => {
+            return accessiblePages.some(page => {
+                if (page === href) return true;
+                if (page.includes("?") && href.includes("?")) {
+                    const [pagePath, pageQuery] = page.split("?");
+                    const [hrefPath, hrefQuery] = href.split("?");
+                    return pagePath === hrefPath && hrefQuery.includes(pageQuery);
+                }
+                if (!page.includes("?")) {
+                    const [hrefPath] = href.split("?");
+                    return page === hrefPath;
+                }
+                return false;
+            });
+        };
+
+        menuItems = menuItems.map(item => {
+            if (item.isDropdown) {
+                const filteredSubItems = item.subItems?.filter(sub => isPageAccessible(sub.href)) || [];
+                return {
+                    ...item,
+                    subItems: filteredSubItems
+                };
+            }
+            return item;
+        }).filter(item => {
+            if (item.isDropdown) {
+                return item.subItems && item.subItems.length > 0;
+            }
+            return item.href ? isPageAccessible(item.href) : false;
+        });
     }
 
     const normalizedQuery = searchQuery.trim().toLowerCase();
