@@ -28,7 +28,8 @@ import { getCurrentUserResident, getTransactionTypes, ensureCivilRegistryTransac
 import { submitMarriageLicenseTransaction } from "@/app/admin/transactions/marriage-license-actions";
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
-import { supabase } from "@/lib/supabase";
+import { getSecureUploadUrlAction } from "@/app/auth/actions";
+
 
 
 
@@ -73,30 +74,30 @@ function formatCurrency(amount: number) {
 	}
 }
 
-// --- UPLOAD FILE CLIENT-SIDE TO SUPABASE STORAGE (bypasses Vercel 4.5MB limit) ---
-async function uploadFileClientSide(file: File, fieldName: string, userId: string): Promise<string> {
-	const fileExt = file.name.split('.').pop() || 'bin';
-	const fileName = `${userId}/${fieldName}_${Date.now()}.${fileExt}`;
-	const filePath = `services/lcr/marriage_license/${fileName}`;
+// --- UPLOAD FILE SECURELY VIA SIGNED UPLOAD URL ---
+async function uploadFileClientSide(file: File, fieldName: string): Promise<string> {
+    const fileExt = file.name.split('.').pop() || 'bin';
+    
+    const res = await getSecureUploadUrlAction(fieldName, "lcr/marriage_license", fileExt);
+    if (!res.success || !res.signedUrl || !res.publicUrl) {
+        throw new Error(res.error || "Failed to generate secure upload destination");
+    }
 
-	const { error } = await supabase.storage
-		.from("system-assets")
-		.upload(filePath, file, {
-			cacheControl: '3600',
-			upsert: true
-		});
+    const uploadRes = await fetch(res.signedUrl, {
+        method: "PUT",
+        headers: {
+            "Content-Type": file.type
+        },
+        body: file
+    });
 
-	if (error) {
-		console.error(`[ClientUpload] Upload error for ${fieldName}:`, error);
-		throw new Error(`Failed to upload ${file.name}: ${error.message}`);
-	}
+    if (!uploadRes.ok) {
+        throw new Error(`Upload direct to storage failed: ${uploadRes.statusText}`);
+    }
 
-	const { data: { publicUrl } } = supabase.storage
-		.from("system-assets")
-		.getPublicUrl(filePath);
-
-	return publicUrl;
+    return res.publicUrl;
 }
+
 
 
 // Resident search component (copied from marriage-registration)
@@ -522,9 +523,8 @@ export default function MarriageLicenseApplicationPage() {
 		});
 		try {
 			toast.loading("Uploading and preparing document preview...", { id: `file-upload-${key}` });
-			const userId = resident?.id || "anonymous";
 			const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
-			const publicUrl = await uploadFileClientSide(file, sanitizedKey, userId);
+			const publicUrl = await uploadFileClientSide(file, sanitizedKey);
 
 			setForm((prev: any) => ({
 				...prev,
@@ -730,7 +730,6 @@ export default function MarriageLicenseApplicationPage() {
 
 			// Upload ALL files directly to Supabase Storage from client-side
 			// This bypasses the Vercel 4.5MB serverless function payload limit
-			const userId = resident?.id || "anonymous";
 			const fileUrls: Record<string, string> = {};
 
 			// First, copy any existing public URLs from previews
@@ -752,7 +751,7 @@ export default function MarriageLicenseApplicationPage() {
 				}
 
 				try {
-					const url = await uploadFileClientSide(file, sanitizedKey, userId);
+					const url = await uploadFileClientSide(file, sanitizedKey);
 					fileUrls[key] = url;
 					console.log(`[ClientUpload] ${i + 1}/${fileEntries.length} uploaded: ${key}`);
 				} catch (uploadErr) {
