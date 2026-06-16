@@ -224,7 +224,7 @@ export default function MarriageRegistrationPage() {
         previews: {} as Record<string, string | null>,
     });
 
-    const [hasDraft, setHasDraft] = useState(false);
+    const [, setHasDraft] = useState(false);
 
 
     // Privacy / Terms modal state (shared key across LCR pages)
