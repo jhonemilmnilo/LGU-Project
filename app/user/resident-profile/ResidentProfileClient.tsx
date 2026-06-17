@@ -5,11 +5,11 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     User, MapPin, Phone, Briefcase, Shield,
-    Users, FileText, Printer, Edit,
+    Users, FileText, Printer,
     X, ZoomIn, ZoomOut, RotateCw, RefreshCw,
     Activity, Clock, XCircle
 } from "lucide-react";
-import { toast } from "sonner";
+
 
 interface ResidentProfileClientProps {
     resident: any;
