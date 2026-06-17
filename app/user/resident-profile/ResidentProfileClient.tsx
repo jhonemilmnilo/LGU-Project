@@ -5,10 +5,14 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     User, MapPin, Phone, Briefcase, Shield,
-    Users, FileText, Printer,
+    Users, FileText, Printer, Camera,
     X, ZoomIn, ZoomOut, RotateCw, RefreshCw,
     Activity, Clock, XCircle
 } from "lucide-react";
+import { toast } from "sonner";
+import { getSecureUploadUrlAction } from "@/app/auth/actions";
+import { updateResidentProfileImage } from "./actions";
+
 
 
 interface ResidentProfileClientProps {
@@ -24,6 +28,158 @@ export default function ResidentProfileClient({ resident, themeColor = "#2563eb"
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [profileImage, setProfileImage] = useState(resident?.imageUrl || resident?.livenessUrl || "");
+
+    // Crop state variables
+    const [cropModalOpen, setCropModalOpen] = useState(false);
+    const [selectedImageSrc, setSelectedImageSrc] = useState("");
+    const [cropScale, setCropScale] = useState(1);
+    const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+    const [isDraggingCrop, setIsDraggingCrop] = useState(false);
+    const [dragStartCrop, setDragStartCrop] = useState({ x: 0, y: 0 });
+
+    const viewportRef = React.useRef<HTMLDivElement>(null);
+    const imageRef = React.useRef<HTMLImageElement>(null);
+    const cutoutRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (resident) {
+            setProfileImage(resident.imageUrl || resident.livenessUrl || "");
+        }
+    }, [resident]);
+
+    const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            toast.error("Please upload an image file");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setSelectedImageSrc(reader.result as string);
+            setCropScale(1);
+            setCropOffset({ x: 0, y: 0 });
+            setCropModalOpen(true);
+        };
+        reader.readAsDataURL(file);
+        
+        e.target.value = "";
+    };
+
+    const handleMouseDownCrop = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsDraggingCrop(true);
+        setDragStartCrop({ x: e.clientX - cropOffset.x, y: e.clientY - cropOffset.y });
+    };
+
+    const handleMouseMoveCrop = (e: React.MouseEvent) => {
+        if (!isDraggingCrop) return;
+        e.preventDefault();
+        setCropOffset({
+            x: e.clientX - dragStartCrop.x,
+            y: e.clientY - dragStartCrop.y
+        });
+    };
+
+    const handleMouseUpCrop = () => {
+        setIsDraggingCrop(false);
+    };
+
+
+    const handleTouchStartCrop = (e: React.TouchEvent) => {
+        if (e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        setIsDraggingCrop(true);
+        setDragStartCrop({ x: touch.clientX - cropOffset.x, y: touch.clientY - cropOffset.y });
+    };
+
+    const handleTouchMoveCrop = (e: React.TouchEvent) => {
+        if (!isDraggingCrop || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        setCropOffset({
+            x: touch.clientX - dragStartCrop.x,
+            y: touch.clientY - dragStartCrop.y
+        });
+    };
+
+    const uploadCroppedPhoto = async (file: File) => {
+        const toastId = toast.loading("Uploading cropped profile photo...");
+
+        try {
+            const fileExt = "jpg";
+            const uploadRes = await getSecureUploadUrlAction("profile_image", "resident_profile", fileExt);
+            if (!uploadRes.success || !uploadRes.signedUrl || !uploadRes.publicUrl) {
+                throw new Error(uploadRes.error || "Failed to generate secure upload destination");
+            }
+
+            const putRes = await fetch(uploadRes.signedUrl, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": file.type
+                },
+                body: file
+            });
+
+            if (!putRes.ok) {
+                throw new Error(`Upload failed: ${putRes.statusText}`);
+            }
+
+            const dbRes = await updateResidentProfileImage(uploadRes.publicUrl);
+            if (!dbRes.success) {
+                throw new Error(dbRes.error || "Failed to save profile photo link");
+            }
+
+            setProfileImage(uploadRes.publicUrl);
+            toast.success("Profile photo updated successfully!", { id: toastId });
+        } catch (error: any) {
+            console.error("Profile photo update error:", error);
+            toast.error(error.message || "Failed to update profile photo", { id: toastId });
+        }
+    };
+
+    const handleCropSave = () => {
+        if (!viewportRef.current || !imageRef.current || !cutoutRef.current || !selectedImageSrc) return;
+
+        const img = new window.Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+
+            const cutoutRect = cutoutRef.current!.getBoundingClientRect();
+            const imageRect = imageRef.current!.getBoundingClientRect();
+
+            const scaleX = img.naturalWidth / imageRect.width;
+            const scaleY = img.naturalHeight / imageRect.height;
+
+            const sx = (cutoutRect.left - imageRect.left) * scaleX;
+            const sy = (cutoutRect.top - imageRect.top) * scaleY;
+            const sw = cutoutRect.width * scaleX;
+            const sh = cutoutRect.height * scaleY;
+
+            canvas.width = 400;
+            canvas.height = 400;
+
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 400, 400);
+
+            canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    toast.error("Failed to crop image");
+                    return;
+                }
+
+                setCropModalOpen(false);
+                const croppedFile = new File([blob], "profile_cropped.jpg", { type: "image/jpeg" });
+                await uploadCroppedPhoto(croppedFile);
+            }, "image/jpeg", 0.9);
+        };
+        img.src = selectedImageSrc;
+    };
+
 
     const openLightbox = (src: string, label: string) => {
         setZoomedImage({ src, label });
@@ -189,26 +345,66 @@ export default function ResidentProfileClient({ resident, themeColor = "#2563eb"
                 <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 lg:gap-8">
                     {/* Avatar Block */}
                     <div className="relative flex-shrink-0">
+                        {/* Hidden file input */}
+                        <input 
+                            type="file" 
+                            id="profile-photo-input"
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={handleProfilePhotoChange} 
+                        />
+
+                        {/* Avatar Button triggers file picker */}
                         <button
                             type="button"
-                            onClick={() => (resident.livenessUrl || resident.imageUrl) && openLightbox(resident.livenessUrl || resident.imageUrl, "Resident Portrait")}
-                            className={`group relative w-36 h-36 rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 shadow-lg block ${(resident.livenessUrl || resident.imageUrl) ? 'cursor-zoom-in' : 'cursor-default'}`}
-                            disabled={!(resident.livenessUrl || resident.imageUrl)}
+                            onClick={() => document.getElementById("profile-photo-input")?.click()}
+                            className="group relative w-36 h-36 rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 shadow-lg block cursor-pointer"
                         >
-                            {(resident.livenessUrl || resident.imageUrl) ? (
-                                <Image
-                                    src={resident.livenessUrl || resident.imageUrl}
-                                    alt="Resident Photo"
-                                    fill
-                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                />
+                            {profileImage ? (
+                                <>
+                                    <Image
+                                        src={profileImage}
+                                        alt="Resident Photo"
+                                        fill
+                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                    />
+                                    {/* Hover Overlay */}
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center text-white gap-1 z-10">
+                                        <Camera className="w-5 h-5" />
+                                        <span className="text-[9px] font-black uppercase tracking-widest">Change Photo</span>
+                                    </div>
+                                </>
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                                    <User className="w-12 h-12 stroke-[1.5]" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest mt-2">NO PHOTO</span>
+                                    <Camera className="w-12 h-12 stroke-[1.5]" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest mt-2">UPLOAD PHOTO</span>
                                 </div>
                             )}
                         </button>
+
+                        {/* Camera Upload Button */}
+                        <button 
+                            type="button"
+                            onClick={() => document.getElementById("profile-photo-input")?.click()}
+                            className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 p-2.5 rounded-full shadow-lg border border-slate-200 dark:border-slate-800 cursor-pointer z-20 transition-all hover:scale-110 active:scale-95 flex items-center justify-center" 
+                            title="Change Profile Photo"
+                        >
+                            <Camera className="w-4 h-4" />
+                        </button>
+
+                        {/* Zoom Button on top-right */}
+                        {profileImage && (
+                            <button
+                                type="button"
+                                onClick={() => openLightbox(profileImage, "Resident Portrait")}
+                                className="absolute -top-1.5 -right-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white p-2 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 z-20 transition-all hover:scale-110 active:scale-95 flex items-center justify-center"
+                                title="View Full Photo"
+                            >
+                                <ZoomIn className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+
+
 
                         {/* RFID Badge */}
                         <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-slate-950 text-white rounded-full px-3 py-1 flex items-center gap-1.5 shadow-md border border-white/10 z-10 whitespace-nowrap">
@@ -517,10 +713,10 @@ export default function ResidentProfileClient({ resident, themeColor = "#2563eb"
                 </div>
 
                 <div style={{ display: "flex", gap: "30px", marginBottom: "30px" }}>
-                    {(resident.livenessUrl || resident.imageUrl) && (
+                    {profileImage && (
                         <div style={{ width: "150px", height: "150px", border: "1px solid #ccc", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={resident.livenessUrl || resident.imageUrl} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img src={profileImage} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         </div>
                     )}
                     <div>
@@ -682,6 +878,123 @@ export default function ResidentProfileClient({ resident, themeColor = "#2563eb"
                                 />
                             </div>
                         </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ── Image Crop / Reposition Modal ── */}
+            <AnimatePresence>
+                {cropModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+                    >
+                        <div className="absolute inset-0" onClick={() => setCropModalOpen(false)} />
+
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 20 }}
+                            className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 rounded-[2rem] p-6 shadow-2xl w-full max-w-sm relative z-10 space-y-6 flex flex-col items-center"
+                        >
+                            <div className="w-full text-center">
+                                <h3 className="text-lg font-black uppercase tracking-tight italic text-slate-900 dark:text-white leading-none">
+                                    Adjust Profile Photo
+                                </h3>
+                                <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest leading-none">
+                                    Drag to reposition and use slider to zoom
+                                </p>
+                            </div>
+
+                            {/* Viewport container */}
+                            <div 
+                                ref={viewportRef}
+                                className="relative w-64 h-64 rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center select-none cursor-move"
+                                onMouseDown={handleMouseDownCrop}
+                                onMouseMove={handleMouseMoveCrop}
+                                onMouseUp={handleMouseUpCrop}
+                                onMouseLeave={handleMouseUpCrop}
+                                onTouchStart={handleTouchStartCrop}
+                                onTouchMove={handleTouchMoveCrop}
+                                onTouchEnd={handleMouseUpCrop}
+                            >
+                                {/* The Image */}
+                                {selectedImageSrc && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        ref={imageRef}
+                                        src={selectedImageSrc}
+                                        alt="Reposition Preview"
+                                        className="max-w-full max-h-full object-contain pointer-events-none select-none"
+                                        style={{
+                                            transform: `translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropScale})`,
+                                            transformOrigin: "center"
+                                        }}
+                                    />
+                                )}
+
+                                {/* Circular Cutout Mask Overlay */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                                    <div 
+                                        ref={cutoutRef}
+                                        className="w-[200px] h-[200px] rounded-full border-2 border-dashed border-white shadow-[0_0_0_9999px_rgba(15,23,42,0.6)] relative overflow-hidden" 
+                                    >
+                                        {/* Grid Lines inside the circle */}
+                                        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-30">
+                                            <div className="border-r border-b border-white/40" />
+                                            <div className="border-r border-b border-white/40" />
+                                            <div className="border-b border-white/40" />
+                                            
+                                            <div className="border-r border-b border-white/40" />
+                                            <div className="border-r border-b border-white/40" />
+                                            <div className="border-b border-white/40" />
+                                            
+                                            <div className="border-r border-white/40" />
+                                            <div className="border-r border-white/40" />
+                                            <div className="border-none" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Zoom Slider Control */}
+                            <div className="w-full space-y-2">
+                                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    <span>Zoom</span>
+                                    <span>{Math.round(cropScale * 100)}%</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0.5"
+                                    max="3"
+                                    step="0.01"
+                                    value={cropScale}
+                                    onChange={(e) => setCropScale(parseFloat(e.target.value))}
+                                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none"
+                                />
+                            </div>
+
+                            {/* Actions Buttons */}
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    type="button"
+                                    onClick={() => setCropModalOpen(false)}
+                                    className="flex-1 py-3 px-4 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCropSave}
+                                    className="flex-1 py-3 px-4 rounded-2xl text-xs font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                    style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                >
+                                    Save & Upload
+                                </button>
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
