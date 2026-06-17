@@ -5,9 +5,9 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     User, MapPin, Phone, Briefcase, Shield,
-    Heart, Users, FileText, Printer, Edit,
+    Users, FileText, Printer, Edit,
     X, ZoomIn, ZoomOut, RotateCw, RefreshCw,
-    Activity, Clock, CheckCircle, XCircle
+    Activity, Clock, XCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -131,35 +131,7 @@ export default function ResidentProfileClient({ resident, themeColor = "#2563eb"
 
     const status = statusConfig[resident.registrationStatus as "APPROVED" | "PENDING" | "REJECTED" | "DRAFT"] || statusConfig.PENDING;
 
-    // Grid details display helper
-    const Field = ({ label, value }: { label: string; value: any }) => {
-        const displayValue = value === null || value === undefined || value === "" ? (
-            <span className="text-slate-400 dark:text-slate-600 italic text-xs font-semibold">N/A</span>
-        ) : typeof value === "boolean" ? (
-            <span className={`text-xs font-bold ${value ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>{value ? "Yes" : "No"}</span>
-        ) : (
-            <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight">{String(value)}</span>
-        );
 
-        return (
-            <div className="flex flex-col gap-0.5 py-2">
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{label}</span>
-                {displayValue}
-            </div>
-        );
-    };
-
-    const Section = ({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) => (
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-3xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
-                <Icon className="w-4 h-4 text-slate-400" style={{ color: themeColor }} />
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">{title}</h4>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
-                {children}
-            </div>
-        </div>
-    );
 
     return (
         <div className="space-y-6">
@@ -326,7 +298,14 @@ export default function ResidentProfileClient({ resident, themeColor = "#2563eb"
 
                     {/* Action buttons (Right) */}
                     <div className="flex flex-row lg:flex-col items-center gap-2.5 w-full lg:w-auto shrink-0 no-print">
-
+                        <button
+                            type="button"
+                            onClick={() => toast.info("Profile modifications must be submitted via the Pre-Screening office or verified on site.")}
+                            className="flex-1 lg:w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-95 bg-transparent text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5"
+                        >
+                            <Edit className="w-4 h-4" />
+                            Edit Profile
+                        </button>
 
                         <button
                             type="button"
@@ -657,6 +636,21 @@ export default function ResidentProfileClient({ resident, themeColor = "#2563eb"
                                     Rotate 90°
                                 </button>
 
+                                {/* Reset Button */}
+                                {(rotation !== 0 || scale !== 1 || position.x !== 0 || position.y !== 0) && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleReset();
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold transition-all shadow-md animate-in slide-in-from-right duration-200"
+                                        title="Reset Zoom & Rotation"
+                                    >
+                                        <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+                                        Reset
+                                    </button>
+                                )}
+
                                 <button
                                     onClick={() => setZoomedImage(null)}
                                     className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-all shadow-md"
@@ -703,3 +697,34 @@ export default function ResidentProfileClient({ resident, themeColor = "#2563eb"
         </div>
     );
 }
+
+// Grid details display helper component declared outside main render
+const Field = ({ label, value }: { label: string; value: any }) => {
+    const displayValue = value === null || value === undefined || value === "" ? (
+        <span className="text-slate-400 dark:text-slate-600 italic text-xs font-semibold">N/A</span>
+    ) : typeof value === "boolean" ? (
+        <span className={`text-xs font-bold ${value ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>{value ? "Yes" : "No"}</span>
+    ) : (
+        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-tight">{String(value)}</span>
+    );
+
+    return (
+        <div className="flex flex-col gap-0.5 py-2">
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{label}</span>
+            {displayValue}
+        </div>
+    );
+};
+
+// Section card helper component declared outside main render
+const Section = ({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) => (
+    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-3xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+            <Icon className="w-4 h-4 text-slate-400" style={{ color: "var(--primary-theme, #2563eb)" }} />
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">{title}</h4>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
+            {children}
+        </div>
+    </div>
+);
