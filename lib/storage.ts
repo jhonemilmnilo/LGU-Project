@@ -118,6 +118,27 @@ export async function verifyFileSignature(url: string, bucket: string = DEFAULT_
 
         // PDF signature check: Starts with %PDF- (25 50 44 46)
         if (hex.startsWith("25504446")) {
+            // Fetch the full file content to inspect the PDF internal structure
+            const fullResponse = await fetch(signedData.signedUrl);
+            if (!fullResponse.ok) {
+                return { isValid: false, error: "Failed to download PDF for deep scanning" };
+            }
+            const pdfBuffer = Buffer.from(await fullResponse.arrayBuffer());
+            const pdfText = pdfBuffer.toString("utf8");
+
+            const suspiciousPatterns = [
+                /\/JavaScript/i,
+                /\/JS/i,
+                /\/Launch/i,
+                /\/OpenAction/i,
+                /\/AA/i
+            ];
+
+            const hasMaliciousPattern = suspiciousPatterns.some(pattern => pattern.test(pdfText));
+            if (hasMaliciousPattern) {
+                return { isValid: false, error: "Suspicious script or launch action detected in PDF file." };
+            }
+
             return { isValid: true };
         }
         // PNG signature check: Starts with 89 50 4E 47 0D 0A 1A 0A

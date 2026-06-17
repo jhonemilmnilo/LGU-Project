@@ -12,7 +12,7 @@ import fs from "fs";
 import { unlink } from "fs/promises";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { uploadFile, deleteFileByUrl } from "@/lib/storage";
+import { uploadFile, deleteFileByUrl, validatePayloadFiles } from "@/lib/storage";
 import { isRateLimited, getClientIp } from "@/lib/rate-limit";
 
 async function getSessionBarangay(): Promise<string | null> {
@@ -2274,6 +2274,12 @@ export async function addCommunityReport(formData: FormData) {
         }
 
         const images = await processMultipleImages(formData, "images");
+
+        // Verify images integrity and perform static malware scanning
+        const fileCheck = await validatePayloadFiles(images);
+        if (!fileCheck.success) {
+            return { success: false, error: fileCheck.error || "File security check failed." };
+        }
 
         const latRaw = formData.get("latitude");
         const lngRaw = formData.get("longitude");
