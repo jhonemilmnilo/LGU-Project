@@ -76,7 +76,7 @@ export default async function Home({
     if (session && role && role !== "USER" && activePortal !== "citizen") {
         const department = (session.user as any)?.department;
         if (department && (department.toUpperCase() === "REGISTRAR" || department.toUpperCase() === "CIVIL_REGISTRY")) {
-            redirect("/admin/registrar");
+            redirect("/admin/registrar?category=Birth Registration");
         } else {
             redirect("/admin/dashboard");
         }
