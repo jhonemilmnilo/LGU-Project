@@ -323,7 +323,7 @@ export default function MarriageRegistrationPage() {
                         app2Citizenship: addData.applicant2?.citizenship || "",
                         app2Address: addData.applicant2?.address || "",
                         dateOfMarriage: addData.dateOfMarriage || "",
-                        placeOfMarriage: addData.placeOfMarriage || "MAPANDAN, PANGASINAN",
+                        placeOfMarriage: addData.placeOfMarriage || "",
                         email: addData.email || resSnapshot.email || "",
                         contactNumber: addData.contactNumber || resSnapshot.contactNumber || "",
                         relationship: addData.relationship || "",
@@ -367,7 +367,7 @@ export default function MarriageRegistrationPage() {
                             r.purok && `Purok ${r.purok}`,
                             r.sitio && `Sitio ${r.sitio}`,
                             r.barangay && `Brgy. ${r.barangay}`,
-                            r.municipality || "Mapandan",
+                            r.municipality || "",
                             r.province || "Pangasinan"
                         ].filter(Boolean);
                         const constructedAddr = parts.join(", ").toUpperCase();
@@ -683,7 +683,7 @@ export default function MarriageRegistrationPage() {
                 r.purok && `Purok ${r.purok}`,
                 r.sitio && `Sitio ${r.sitio}`,
                 r.barangay && `Brgy. ${r.barangay}`,
-                r.municipality || "Mapandan",
+                r.municipality || "",
                 r.province || "Pangasinan"
             ].filter(Boolean);
             const constructedAddr = parts.join(", ").toUpperCase();

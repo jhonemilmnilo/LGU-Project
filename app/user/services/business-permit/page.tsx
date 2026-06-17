@@ -376,7 +376,7 @@ export default function BusinessPermitWizardPage() {
                         barangay: resident.barangay || "",
                         deliveryPhone: resident.contactNumber || "",
                         deliveryAddress: resident.houseNumber
-                            ? `${resident.houseNumber} ${resident.street || ""}, Brgy. ${resident.barangay || ""}, Mapandan`
+                            ? `${resident.houseNumber} ${resident.street || ""}, Brgy. ${resident.barangay || ""}, ${resident?.municipality || ""}`
                             : ""
                     }));
                 }

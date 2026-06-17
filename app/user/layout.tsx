@@ -34,14 +34,20 @@ export default async function UserLayout({
         "site_logo", 
         "brand_word_1", 
         "brand_word_2", 
-        "theme_color"
+        "theme_color",
+        "maintenance_mode"
     ]);
+
+    const isMaintenance = settings.get("maintenance_mode") === "true";
+    if (isMaintenance) {
+        redirect("/maintenance");
+    }
 
     return (
         <UserLayoutClient 
             logoUrl={settings.get("site_logo") || ""}
             brandWord1={settings.get("brand_word_1") || "E"}
-            brandWord2={settings.get("brand_word_2") || "Mapandan"}
+            brandWord2={settings.get("brand_word_2") || ""}
             themeColor={settings.get("theme_color") || "#2563eb"}
         >
             {children}
