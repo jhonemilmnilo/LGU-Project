@@ -4,6 +4,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { HashScrollHandler } from "@/components/shared/HashScrollHandler";
 import { ClientOnly } from "@/components/shared/ClientOnly";
+import { cn } from "@/lib/utils";
 import { HeroSkeleton } from "@/components/sections/landing/skeletons/HeroSkeleton";
 import { GovernmentSkeleton } from "@/components/sections/landing/skeletons/GovernmentSkeleton";
 import { DiningLodgingSkeleton } from "@/components/sections/landing/skeletons/DiningLodgingSkeleton";
@@ -71,12 +72,13 @@ export default async function Home({
 
     const cookieStore = await cookies();
     const activePortal = cookieStore.get("active_portal")?.value;
+    const bypassMaintenanceCookieValue = cookieStore.get("bypass_maintenance")?.value;
 
     // Completely block any Admin/Content Admin from the landing page unless they chose Citizen view
     if (session && role && role !== "USER" && activePortal !== "citizen") {
         const department = (session.user as any)?.department;
         if (department && (department.toUpperCase() === "REGISTRAR" || department.toUpperCase() === "CIVIL_REGISTRY")) {
-            redirect("/admin/registrar");
+            redirect("/admin/registrar?category=Birth Registration");
         } else {
             redirect("/admin/dashboard");
         }
@@ -88,6 +90,7 @@ export default async function Home({
 
     const settings = await getMultipleSystemSettings([
         "maintenance_mode",
+        "maintenance_mode_updated_at",
         "site_logo",
         "brand_word_1",
         "brand_word_2",
@@ -111,6 +114,12 @@ export default async function Home({
 
     // Check Maintenance Mode
     const maintenance = settings.get("maintenance_mode") === "true";
+    const maintenanceUpdatedAt = settings.get("maintenance_mode_updated_at") || "0";
+    const bypassMaintenance = bypassMaintenanceCookieValue === maintenanceUpdatedAt;
+
+    if (maintenance && !bypassMaintenance) {
+      redirect("/maintenance");
+    }
 
     const logoUrl = settings.get("site_logo") || "";
     const brandWord1 = settings.get("brand_word_1") || "E";
@@ -324,7 +333,10 @@ export default async function Home({
 
     return (
         <main
-            className="min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-primary/30"
+            className={cn(
+                "min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-primary/30",
+                maintenance && "pt-10 sm:pt-12 md:pt-14"
+            )}
             style={{ "--primary-theme": themeColor } as React.CSSProperties}
         >
             <HashScrollHandler />
@@ -334,10 +346,11 @@ export default async function Home({
                 brandWord2={brandWord2}
                 themeColor={themeColor}
                 barangays={barangays}
+                isMaintenanceActive={maintenance}
             />
 
             {maintenance && (
-                <div className="bg-amber-500 text-slate-950 font-bold text-center py-3 px-4 z-[90] sticky top-[64px] sm:top-[80px] md:top-[96px] shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
+                <div className="bg-amber-500 text-slate-950 font-bold text-center px-4 h-10 sm:h-12 md:h-14 z-[110] fixed top-0 left-0 right-0 shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
                     <span className="animate-pulse inline-block w-2.5 h-2.5 rounded-full bg-red-600 mr-1" />
                     <strong>Maintenance Mode Active:</strong> Some online transactional features and forms are temporarily disabled.
                 </div>

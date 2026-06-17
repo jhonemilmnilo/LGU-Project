@@ -14,7 +14,7 @@ import {
     DialogDescription,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
+import { updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting, updateMultipleSystemSettings } from "./actions";
 import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send, X, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -74,10 +74,42 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
     const handleSaveSettings = async () => {
         setIsSaving(true);
         try {
-            await updateSystemSetting("maintenance_mode", maintenanceMode.toString());
-            await updateSystemSetting("kiosk_maintenance_mode", kioskMaintenanceMode.toString());
+            const settingsToUpdate: { key: string; value: string }[] = [];
 
-            // Handle logo
+            // Detect changes (dirty tracking) compared to initial props
+            if (maintenanceMode !== (settings.maintenance_mode === "true")) {
+                settingsToUpdate.push({ key: "maintenance_mode", value: maintenanceMode.toString() });
+            }
+            if (kioskMaintenanceMode !== (settings.kiosk_maintenance_mode === "true")) {
+                settingsToUpdate.push({ key: "kiosk_maintenance_mode", value: kioskMaintenanceMode.toString() });
+            }
+            if (portalName !== (settings.portal_name || "")) {
+                settingsToUpdate.push({ key: "portal_name", value: portalName });
+            }
+            if (emergencyPhone !== (settings.emergency_phone || "")) {
+                settingsToUpdate.push({ key: "emergency_phone", value: emergencyPhone });
+            }
+            if (brandWord1 !== (settings.brand_word_1 || "")) {
+                settingsToUpdate.push({ key: "brand_word_1", value: brandWord1 });
+            }
+            if (brandWord2 !== (settings.brand_word_2 || "")) {
+                settingsToUpdate.push({ key: "brand_word_2", value: brandWord2 });
+            }
+            if (themeColor !== (settings.theme_color || "")) {
+                settingsToUpdate.push({ key: "theme_color", value: themeColor });
+            }
+            if (googlePlayUrl !== (settings.app_google_play_url || "")) {
+                settingsToUpdate.push({ key: "app_google_play_url", value: googlePlayUrl });
+            }
+            if (appStoreUrl !== (settings.app_app_store_url || "")) {
+                settingsToUpdate.push({ key: "app_app_store_url", value: appStoreUrl });
+            }
+            if (apkDownloadUrl !== (settings.app_apk_download_url || "")) {
+                settingsToUpdate.push({ key: "app_apk_download_url", value: apkDownloadUrl });
+            }
+
+            let logoUpdated = false;
+            // Handle logo separately if uploaded
             if (logoFile) {
                 const formData = new FormData();
                 formData.append("logo", logoFile);
@@ -87,22 +119,29 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
                     setLogoUrl(result.imageUrl);
                     setLogoFile(null);
                     setLogoPreview(null);
+                    logoUpdated = true;
                 }
-            } else {
-                await updateSystemSetting("site_logo", logoUrl);
+            } else if (logoUrl !== (settings.site_logo || "")) {
+                settingsToUpdate.push({ key: "site_logo", value: logoUrl });
             }
 
-            await updateSystemSetting("portal_name", portalName);
-            await updateSystemSetting("emergency_phone", emergencyPhone);
-            await updateSystemSetting("brand_word_1", brandWord1);
-            await updateSystemSetting("brand_word_2", brandWord2);
-            await updateSystemSetting("theme_color", themeColor);
-            await updateSystemSetting("app_google_play_url", googlePlayUrl);
-            await updateSystemSetting("app_app_store_url", appStoreUrl);
-            await updateSystemSetting("app_apk_download_url", apkDownloadUrl);
-            toast.success("Settings updated successfully!");
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // Only run transaction if there is something to update
+            if (settingsToUpdate.length > 0) {
+                const result = await updateMultipleSystemSettings(settingsToUpdate);
+                if (result.success) {
+                    toast.success("Settings updated successfully!");
+                    router.refresh();
+                } else {
+                    toast.error(result.error || "Failed to save settings");
+                }
+            } else if (logoUpdated) {
+                toast.success("Settings updated successfully!");
+                router.refresh();
+            } else {
+                toast.info("No changes detected.");
+            }
         } catch (error) {
+            console.error("Error saving settings:", error);
             toast.error("Failed to save settings");
         } finally {
             setIsSaving(false);

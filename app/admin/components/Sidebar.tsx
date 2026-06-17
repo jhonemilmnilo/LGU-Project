@@ -58,7 +58,8 @@ export function Sidebar({
     const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
     const [isBarangaysOpen, setIsBarangaysOpen] = React.useState(pathname.startsWith("/admin/barangays"));
     const [isTreasuryOpen, setIsTreasuryOpen] = React.useState(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
-    const [isRegistrarOpen, setIsRegistrarOpen] = React.useState(pathname.startsWith("/admin/registrar"));
+    const [isRegistrarOpen, setIsRegistrarOpen] = React.useState(pathname.startsWith("/admin/registrar") && !pathname.startsWith("/admin/registrar/ledger"));
+    const [isLedgerOpen, setIsLedgerOpen] = React.useState(pathname.startsWith("/admin/registrar/ledger"));
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
@@ -72,7 +73,8 @@ export function Sidebar({
         setIsAboutOpen(pathname.startsWith("/admin/about"));
         setIsBarangaysOpen(pathname.startsWith("/admin/barangays"));
         setIsTreasuryOpen(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
-        setIsRegistrarOpen(pathname.startsWith("/admin/registrar"));
+        setIsRegistrarOpen(pathname.startsWith("/admin/registrar") && !pathname.startsWith("/admin/registrar/ledger"));
+        setIsLedgerOpen(pathname.startsWith("/admin/registrar/ledger"));
     }, [pathname]);
 
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -112,7 +114,7 @@ export function Sidebar({
         return () => {
             timers.forEach(clearTimeout);
         };
-    }, [pathname, mounted, isSettingsOpen, isAboutOpen, isBarangaysOpen, isTreasuryOpen, scrollToActive]);
+    }, [pathname, mounted, isSettingsOpen, isAboutOpen, isBarangaysOpen, isTreasuryOpen, isLedgerOpen, scrollToActive]);
 
     const allMenuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -199,6 +201,26 @@ export function Sidebar({
             ]
         },
         {
+            label: "Transaction Ledger",
+            icon: FileText,
+            category: "Registrar",
+            isDropdown: true,
+            isOpen: isLedgerOpen,
+            onToggle: () => {
+                if (isLedgerOpen) {
+                    setIsLedgerOpen(false);
+                } else {
+                    setIsLedgerOpen(true);
+                    router.push("/admin/registrar/ledger?type=BIRTH");
+                }
+            },
+            subItems: [
+                { href: "/admin/registrar/ledger?type=BIRTH", label: "Birth Registration" },
+                { href: "/admin/registrar/ledger?type=DEATH", label: "Death Registration" },
+                { href: "/admin/registrar/ledger?type=MARRIAGE", label: "Marriage Registration" },
+            ]
+        },
+        {
             label: "Treasury Hub",
             icon: LayoutDashboard,
             category: "Treasury",
@@ -273,17 +295,16 @@ export function Sidebar({
                         { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
                     ];
                 } else if (deptUpper === "REGISTRAR" || deptUpper === "CIVIL_REGISTRY") {
-                    const registrarHubItem = allMenuItems.find(item => item.label === "Registrar Hub");
-                    menuItems = [
-                        ...(registrarHubItem ? [registrarHubItem] : [])
-                    ];
+                    menuItems = allMenuItems.filter(item =>
+                        ["Registrar Hub", "Transaction Ledger"].includes(item.label)
+                    );
                 } else if (deptUpper === "TREASURY") {
                     menuItems = allMenuItems.filter(item => 
                         ["Treasury Hub", "Payments Ledger", "Payment Settings"].includes(item.label)
                     );
                 } else if (deptUpper === "LGU") {
                     menuItems = allMenuItems.filter(item => 
-                        !["Registrar Hub", "Treasury Hub", "Payments Ledger", "BPLO Permits", "Payment Settings"].includes(item.label)
+                        !["Registrar Hub", "Transaction Ledger", "Treasury Hub", "Payments Ledger", "BPLO Permits", "Payment Settings"].includes(item.label)
                     );
                 } else {
                     menuItems = [
@@ -466,18 +487,21 @@ export function Sidebar({
                                                     {(normalizedQuery && !parentMatches ? subMatches : item.subItems)?.map((sub) => {
                                                         const currentCategory = searchParams.get("category") || "ALL";
                                                         const currentTab = searchParams.get("tab") || "general";
+                                                        const currentType = searchParams.get("type") || "BIRTH";
 
                                                         const urlObj = new URL(sub.href, "http://localhost");
                                                         const subCategory = urlObj.searchParams.get("category");
                                                         const subTab = urlObj.searchParams.get("tab");
+                                                        const subType = urlObj.searchParams.get("type");
 
                                                         const isSubActive = (
                                                             pathname === urlObj.pathname ||
                                                             (pathname.startsWith("/admin/treasury/") && !pathname.includes("/payment-settings") && !pathname.includes("/payments") && urlObj.pathname === "/admin/treasury") ||
-                                                            (pathname.startsWith("/admin/registrar/") && urlObj.pathname === "/admin/registrar")
+                                                            (pathname.startsWith("/admin/registrar/") && !pathname.startsWith("/admin/registrar/ledger") && urlObj.pathname === "/admin/registrar")
                                                         ) &&
                                                             (subCategory ? currentCategory === subCategory : true) &&
-                                                            (subTab ? currentTab === subTab : true);
+                                                            (subTab ? currentTab === subTab : true) &&
+                                                            (subType ? currentType === subType : true);
                                                         return (
                                                             <Link
                                                                 key={sub.href}

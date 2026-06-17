@@ -6,6 +6,25 @@ export default withAuth(
     const url = req.nextUrl.clone();
     const token = req.nextauth.token;
 
+    const isPublicUserPath = 
+      url.pathname.startsWith("/user/dining") ||
+      url.pathname.startsWith("/user/accommodation") ||
+      url.pathname.startsWith("/user/tourism") ||
+      url.pathname.startsWith("/user/news") ||
+      url.pathname.startsWith("/user/events") ||
+      url.pathname.startsWith("/user/projects") ||
+      url.pathname.startsWith("/user/officials") ||
+      url.pathname.startsWith("/user/hotlines");
+
+    const isUserPath = url.pathname.startsWith("/user");
+    const isAdminPath = url.pathname.startsWith("/admin");
+
+    // Clean redirect if trying to access protected paths without a session
+    if (!token && (isAdminPath || (isUserPath && !isPublicUserPath))) {
+      const redirectUrl = new URL("/auth/login", req.url);
+      return NextResponse.redirect(redirectUrl);
+    }
+
     // Guard: USER role is never allowed to access admin routes
     if (token?.role === "USER" && url.pathname.startsWith("/admin")) {
       const redirectUrl = new URL("/", req.url);
@@ -65,11 +84,18 @@ export default withAuth(
       }
     }
 
-    return NextResponse.next();
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-pathname", url.pathname);
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      }
+    });
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: () => true,
     },
   }
 );
@@ -77,6 +103,6 @@ export default withAuth(
 export const config = {
   matcher: [
     "/admin/:path*",
-    // Add other protected routes if needed
+    "/user/:path*",
   ],
 };
