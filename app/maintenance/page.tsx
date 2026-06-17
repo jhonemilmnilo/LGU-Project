@@ -11,7 +11,8 @@ export default async function MaintenancePage() {
         "brand_word_1",
         "brand_word_2",
         "theme_color",
-        "maintenance_mode"
+        "maintenance_mode",
+        "maintenance_mode_updated_at"
     ]);
 
     const isMaintenance = settings.get("maintenance_mode") === "true";
@@ -23,6 +24,7 @@ export default async function MaintenancePage() {
     const brandWord2 = settings.get("brand_word_2") || "";
     const themeColor = settings.get("theme_color") || "#2563eb";
     const logoUrl = settings.get("site_logo");
+    const maintenanceUpdatedAt = settings.get("maintenance_mode_updated_at") || "0";
 
     return (
         <MaintenanceClient 
@@ -30,6 +32,7 @@ export default async function MaintenancePage() {
             brandWord2={brandWord2}
             themeColor={themeColor}
             logoUrl={logoUrl}
+            maintenanceUpdatedAt={maintenanceUpdatedAt}
         />
     );
 }

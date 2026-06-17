@@ -76,6 +76,8 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
                 if (role === "USER") {
                     if (isMaintenanceActive) {
                         signOut({ redirect: false });
+                        document.cookie = "bypass_maintenance=true; path=/; max-age=1800";
+                        router.push("/");
                     } else {
                         router.push("/");
                     }
@@ -312,6 +314,14 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
                 handleSuccessAttempt(normalizedEmail);
                 const { role, isPasswordChanged } = session.user;
 
+                if (isMaintenanceActive && role === "USER") {
+                    await signOut({ redirect: false });
+                    document.cookie = "bypass_maintenance=true; path=/; max-age=1800";
+                    toast.error("The portal is currently under maintenance. Citizens are not allowed to sign in at this time.");
+                    router.push("/");
+                    return;
+                }
+
                 // Check if user needs to change password
                 if (isPasswordChanged === false) {
                     setUserEmail(data.email);
@@ -361,7 +371,7 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
             toast.error("An unexpected error occurred");
             console.error("Login error:", error);
         }
-    }, [lockout, handleFailedAttempt, handleSuccessAttempt, router, triggerLeave]);
+    }, [lockout, handleFailedAttempt, handleSuccessAttempt, router, triggerLeave, isMaintenanceActive]);
 
     const handlePasswordChangeSuccess = () => {
         setShowChangeModal(false);

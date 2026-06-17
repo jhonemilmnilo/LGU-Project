@@ -3,6 +3,7 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AboutClientView } from "./AboutClientView";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -67,15 +68,19 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
 
     if (!aboutData) {
         return (
-            <div className="min-h-screen bg-slate-50 flex flex-col">
+            <div className={cn(
+                "min-h-screen bg-slate-50 flex flex-col",
+                isMaintenance && "pt-10 sm:pt-12 md:pt-14"
+            )}>
                 <Navbar 
                     logoUrl={settings.get("site_logo") || ""} 
                     brandWord1={settings.get("brand_word_1") || "LGU"} 
                     brandWord2={settings.get("brand_word_2") || ""} 
                     themeColor={themeColor} 
+                    isMaintenanceActive={isMaintenance}
                 />
                 {isMaintenance && (
-                    <div className="bg-amber-500 text-slate-950 font-bold text-center py-3 px-4 z-[90] sticky top-[64px] sm:top-[80px] md:top-[96px] shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
+                    <div className="bg-amber-500 text-slate-950 font-bold text-center px-4 h-10 sm:h-12 md:h-14 z-[110] fixed top-0 left-0 right-0 shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
                         <span className="animate-pulse inline-block w-2.5 h-2.5 rounded-full bg-red-600 mr-1" />
                         <strong>Maintenance Mode Active:</strong> Some online transactional features and forms are temporarily disabled.
                     </div>
@@ -95,16 +100,23 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col selection:bg-primary/30 font-sans" style={{ "--primary-theme": themeColor } as React.CSSProperties}>
+        <div 
+            className={cn(
+                "min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col selection:bg-primary/30 font-sans",
+                isMaintenance && "pt-10 sm:pt-12 md:pt-14"
+            )} 
+            style={{ "--primary-theme": themeColor } as React.CSSProperties}
+        >
             <Navbar 
                 logoUrl={settings.get("site_logo") || ""} 
                 brandWord1={settings.get("brand_word_1") || "LGU"} 
                 brandWord2={settings.get("brand_word_2") || ""} 
                 themeColor={themeColor} 
+                isMaintenanceActive={isMaintenance}
             />
             
             {isMaintenance && (
-                <div className="bg-amber-500 text-slate-950 font-bold text-center py-3 px-4 z-[90] sticky top-[64px] sm:top-[80px] md:top-[96px] shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
+                <div className="bg-amber-500 text-slate-950 font-bold text-center px-4 h-10 sm:h-12 md:h-14 z-[110] fixed top-0 left-0 right-0 shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
                     <span className="animate-pulse inline-block w-2.5 h-2.5 rounded-full bg-red-600 mr-1" />
                     <strong>Maintenance Mode Active:</strong> Some online transactional features and forms are temporarily disabled.
                 </div>

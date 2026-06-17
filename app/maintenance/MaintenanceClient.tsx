@@ -3,20 +3,21 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import { Hammer, Shield, HardHat, Clock, ArrowRight } from "lucide-react";
-import Link from "next/link";
 
 interface MaintenanceClientProps {
     brandWord1: string;
     brandWord2: string;
     themeColor: string;
     logoUrl?: string;
+    maintenanceUpdatedAt: string;
 }
 
 export function MaintenanceClient({ 
     brandWord1, 
     brandWord2, 
     themeColor, 
-    logoUrl 
+    logoUrl,
+    maintenanceUpdatedAt
 }: MaintenanceClientProps) {
     return (
         <main 
@@ -108,8 +109,11 @@ export function MaintenanceClient({
                     transition={{ delay: 0.9 }}
                     className="flex items-center justify-center pt-12 max-w-md mx-auto relative z-20"
                 >
-                    <Link
-                        href="/"
+                    <button
+                        onClick={() => {
+                            document.cookie = `bypass_maintenance=${maintenanceUpdatedAt}; path=/; max-age=1800`;
+                            window.location.href = "/";
+                        }}
                         className="w-full sm:w-auto px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all duration-300 border flex items-center justify-center gap-2 hover:scale-105 active:scale-[0.98]"
                         style={{
                             backgroundColor: themeColor,
@@ -120,7 +124,7 @@ export function MaintenanceClient({
                     >
                         Go to Landing Page
                         <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    </button>
                 </motion.div>
 
                 <div className="pt-20 text-[10px] font-black uppercase tracking-[0.6em] text-slate-600">

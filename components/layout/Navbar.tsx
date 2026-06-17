@@ -24,6 +24,7 @@ interface NavbarProps {
     brandWord2?: string;
     themeColor?: string;
     barangays?: string[];
+    isMaintenanceActive?: boolean;
 }
 
 export function Navbar({
@@ -31,7 +32,8 @@ export function Navbar({
     brandWord1 = "E",
     brandWord2 = "Mapandan",
     themeColor = "#2563eb",
-    barangays = []
+    barangays = [],
+    isMaintenanceActive = false
 }: NavbarProps) {
     const { data: session, status } = useSession();
     const pathname = usePathname();
@@ -234,7 +236,10 @@ export function Navbar({
                 backdropFilter: backdropBlur,
                 boxShadow: shadow,
             }}
-            className="fixed top-0 left-0 right-0 z-[100] transition-colors duration-300"
+            className={cn(
+                "fixed left-0 right-0 z-[100] transition-colors duration-300",
+                isMaintenanceActive ? "top-10 sm:top-12 md:top-14" : "top-0"
+            )}
         >
             <motion.div
                 style={{ opacity: borderOpacity }}

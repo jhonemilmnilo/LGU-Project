@@ -5,7 +5,7 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import UserLayoutClient from "./UserLayoutClient";
 import * as React from "react";
 import prisma from "@/lib/db/prisma";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -51,11 +51,18 @@ export default async function UserLayout({
         "brand_word_1", 
         "brand_word_2", 
         "theme_color",
-        "maintenance_mode"
+        "maintenance_mode",
+        "maintenance_mode_updated_at"
     ]);
 
+    const cookieStore = await cookies();
+    const bypassMaintenanceCookieValue = cookieStore.get("bypass_maintenance")?.value;
+
     const isMaintenance = settings.get("maintenance_mode") === "true";
-    if (isMaintenance) {
+    const maintenanceUpdatedAt = settings.get("maintenance_mode_updated_at") || "0";
+    const bypassMaintenance = bypassMaintenanceCookieValue === maintenanceUpdatedAt;
+
+    if (isMaintenance && !bypassMaintenance) {
         redirect("/maintenance");
     }
 
