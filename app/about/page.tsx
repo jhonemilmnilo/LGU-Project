@@ -3,7 +3,6 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AboutClientView } from "./AboutClientView";
-import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +19,6 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
     ]);
 
     const isMaintenance = settings.get("maintenance_mode") === "true";
-    if (isMaintenance) {
-        redirect("/maintenance");
-    }
 
     const themeColor = settings.get("theme_color") || "#2563eb";
 
@@ -78,6 +74,12 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
                     brandWord2={settings.get("brand_word_2") || ""} 
                     themeColor={themeColor} 
                 />
+                {isMaintenance && (
+                    <div className="bg-amber-500 text-slate-950 font-bold text-center py-3 px-4 z-[90] sticky top-[64px] sm:top-[80px] md:top-[96px] shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
+                        <span className="animate-pulse inline-block w-2.5 h-2.5 rounded-full bg-red-600 mr-1" />
+                        <strong>Maintenance Mode Active:</strong> Some online transactional features and forms are temporarily disabled.
+                    </div>
+                )}
                 <main className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500">
                     <h1 className="text-3xl font-bold mb-4">About Page Not Setup</h1>
                     <p>The Administrator has not provided any content for the about page yet.</p>
@@ -100,6 +102,13 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
                 brandWord2={settings.get("brand_word_2") || ""} 
                 themeColor={themeColor} 
             />
+            
+            {isMaintenance && (
+                <div className="bg-amber-500 text-slate-950 font-bold text-center py-3 px-4 z-[90] sticky top-[64px] sm:top-[80px] md:top-[96px] shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
+                    <span className="animate-pulse inline-block w-2.5 h-2.5 rounded-full bg-red-600 mr-1" />
+                    <strong>Maintenance Mode Active:</strong> Some online transactional features and forms are temporarily disabled.
+                </div>
+            )}
             
             <AboutClientView 
                 aboutData={aboutData} 
