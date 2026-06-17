@@ -28,6 +28,7 @@ const Government = nextDynamic(() => import("@/components/sections/landing/Gover
 const Services = nextDynamic(() => import("@/components/sections/landing/Services").then(m => m.Services), { loading: () => <ServicesSkeleton /> });
 const EmergencyReport = nextDynamic(() => import("@/components/sections/landing/EmergencyReport").then(m => m.EmergencyReport), { loading: () => <EmergencyReportSkeleton /> });
 const ParishCorner = nextDynamic(() => import("../components/sections/landing/ParishCorner"), { loading: () => <ParishCornerSkeleton /> });
+const AppDownloadSection = nextDynamic(() => import("@/components/sections/landing/AppDownloadSection").then(m => m.AppDownloadSection));
 import prisma from "@/lib/db/prisma";
 import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
@@ -85,7 +86,6 @@ export default async function Home({
     // 0. Cinematic Delay - specifically for seeing the full animation as requested
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // 1. Fetch all needed system settings first in one query
     const settings = await getMultipleSystemSettings([
         "maintenance_mode",
         "site_logo",
@@ -102,7 +102,11 @@ export default async function Home({
         "section_services",
         "section_emergency",
         "section_church",
-        "section_map"
+        "section_map",
+        "section_app_download",
+        "app_google_play_url",
+        "app_app_store_url",
+        "app_apk_download_url"
     ]);
 
     // Check Maintenance Mode
@@ -113,7 +117,7 @@ export default async function Home({
 
     const logoUrl = settings.get("site_logo") || "";
     const brandWord1 = settings.get("brand_word_1") || "E";
-    const brandWord2 = settings.get("brand_word_2") || "Mapandan";
+    const brandWord2 = settings.get("brand_word_2") || "";
     const themeColor = settings.get("theme_color") || "#2563eb";
 
     // Section visibility settings (default to true if not set)
@@ -128,6 +132,11 @@ export default async function Home({
     const showEmergency = settings.get("section_emergency") !== "false";
     const showChurch = settings.get("section_church") !== "false";
     const showMap = settings.get("section_map") !== "false";
+    const showAppDownload = settings.get("section_app_download") !== "false";
+
+    const googlePlayUrl = settings.get("app_google_play_url") || "";
+    const appStoreUrl = settings.get("app_app_store_url") || "";
+    const apkDownloadUrl = settings.get("app_apk_download_url") || "";
 
     const slides = await 
         prisma.heroSlide.findMany({
@@ -333,6 +342,18 @@ export default async function Home({
             <ClientOnly delay={1000} fallback={<HeroSkeleton />}>
                 <Hero slides={slides} themeColor={themeColor} />
             </ClientOnly>
+
+            {showAppDownload && (
+                <ClientOnly delay={1000}>
+                    <AppDownloadSection
+                        themeColor={themeColor}
+                        googlePlayUrl={googlePlayUrl}
+                        appStoreUrl={appStoreUrl}
+                        apkDownloadUrl={apkDownloadUrl}
+                        isLoggedIn={!!session}
+                    />
+                </ClientOnly>
+            )}
 
             <div className="space-y-4 pb-6 md:pb-0">
                 {showDiningLodging && (

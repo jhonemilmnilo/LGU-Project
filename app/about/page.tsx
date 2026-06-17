@@ -75,7 +75,7 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
                 <Navbar 
                     logoUrl={settings.get("site_logo") || ""} 
                     brandWord1={settings.get("brand_word_1") || "LGU"} 
-                    brandWord2={settings.get("brand_word_2") || "Portal"} 
+                    brandWord2={settings.get("brand_word_2") || ""} 
                     themeColor={themeColor} 
                 />
                 <main className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500">
@@ -85,7 +85,7 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
                 <Footer 
                     logoUrl={settings.get("site_logo") || ""} 
                     brandWord1={settings.get("brand_word_1") || "LGU"} 
-                    brandWord2={settings.get("brand_word_2") || "Portal"} 
+                    brandWord2={settings.get("brand_word_2") || ""} 
                     themeColor={themeColor} 
                 />
             </div>
@@ -97,7 +97,7 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
             <Navbar 
                 logoUrl={settings.get("site_logo") || ""} 
                 brandWord1={settings.get("brand_word_1") || "LGU"} 
-                brandWord2={settings.get("brand_word_2") || "Portal"} 
+                brandWord2={settings.get("brand_word_2") || ""} 
                 themeColor={themeColor} 
             />
             
@@ -106,14 +106,14 @@ export default async function AboutPage(props: { searchParams: Promise<{ baranga
                 pastMayors={pastMayors}
                 themeColor={themeColor} 
                 brandWord1={isBarangayView ? "Barangay" : (settings.get("brand_word_1") || "LGU")} 
-                brandWord2={isBarangayView ? (barangay || "") : (settings.get("brand_word_2") || "Portal")} 
+                brandWord2={isBarangayView ? (barangay || "") : (settings.get("brand_word_2") || "")} 
                 isBarangayView={isBarangayView}
             />
 
             <Footer 
                 logoUrl={settings.get("site_logo") || ""} 
                 brandWord1={settings.get("brand_word_1") || "LGU"} 
-                brandWord2={settings.get("brand_word_2") || "Portal"} 
+                brandWord2={settings.get("brand_word_2") || ""} 
                 themeColor={themeColor} 
             />
         </div>

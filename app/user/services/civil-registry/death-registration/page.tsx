@@ -468,7 +468,7 @@ export default function DeathRegistrationPage() {
                         r.purok && `Purok ${r.purok}`,
                         r.sitio && `Sitio ${r.sitio}`,
                         r.barangay && `Brgy. ${r.barangay}`,
-                        r.municipality || "Mapandan",
+                        r.municipality || "",
                         r.province || "Pangasinan"
                     ].filter(Boolean);
                     const constructedAddr = parts.join(", ").toUpperCase();
@@ -762,7 +762,7 @@ export default function DeathRegistrationPage() {
                 contactNumber: resident?.contactNumber || "",
                 email: resident?.user?.email || "",
                 residentId: resident?.residentId || "",
-                address: resident ? `Brgy. ${resident.barangay}, Mapandan` : ""
+                address: resident ? `Brgy. ${resident.barangay}, ${resident?.municipality || ""}` : ""
             };
 
             data.append("residentSnapshot", JSON.stringify(residentSnapshot));

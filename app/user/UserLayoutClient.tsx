@@ -17,7 +17,7 @@ export default function UserLayoutClient({
     children,
     logoUrl,
     brandWord1 = "E",
-    brandWord2 = "Mapandan",
+    brandWord2 = "",
     themeColor = "#2563eb"
 }: UserLayoutClientProps) {
     const { status } = useSession();

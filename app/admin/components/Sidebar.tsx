@@ -41,7 +41,7 @@ export function Sidebar({
     session,
     logoUrl,
     brandWord1 = "E",
-    brandWord2 = "Mapandan",
+    brandWord2 = "",
     themeColor = "#2563eb",
     pendingReportsCount = 0,
     pendingResidentsCount = 0,

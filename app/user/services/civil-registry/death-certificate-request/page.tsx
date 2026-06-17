@@ -522,7 +522,7 @@ export default function DeathCertificateRequestPage() {
                         residentData.purok && `Purok ${residentData.purok}`,
                         residentData.sitio && `Sitio ${residentData.sitio}`,
                         residentData.barangay && `Brgy. ${residentData.barangay}`,
-                        residentData.municipality || "Mapandan",
+                        residentData.municipality || "",
                         residentData.province || "Pangasinan"
                     ].filter(Boolean);
                     constructedAddr = parts.join(", ").toUpperCase();
@@ -743,8 +743,8 @@ export default function DeathCertificateRequestPage() {
                 email: form.email.trim(),
                 civilStatus: form.civilStatus || resident?.civilStatus || "",
                 gender: form.gender || resident?.gender || "",
-                barangay: resident?.barangay || "Mapandan",
-                municipality: resident?.municipality || "Mapandan",
+                barangay: resident?.barangay || "",
+                municipality: resident?.municipality || "",
                 province: resident?.province || "Pangasinan"
             }));
 

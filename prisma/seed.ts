@@ -46,6 +46,12 @@ async function main() {
     { key: "section_emergency", value: "true", description: "Toggle Emergency Hotlines section" },
     { key: "section_church", value: "true", description: "Toggle Parish Corner section" },
     { key: "section_map", value: "true", description: "Toggle Interactive Municipality Map section" },
+    { key: "section_app_download", value: "true", description: "Toggle App Download Section" },
+
+    // Mobile App Links
+    { key: "app_google_play_url", value: "", description: "Google Play Store Link for Mobile App" },
+    { key: "app_app_store_url", value: "", description: "Apple App Store Link for Mobile App" },
+    { key: "app_apk_download_url", value: "", description: "Direct APK Link for Mobile App" },
 
     // Treasury Details
     { key: "gcash_account_name", value: "MUNICIPALITY OF MAPANDAN", description: "Official GCash receiver name" },

@@ -432,7 +432,7 @@ export default function CivilRegistryPage() {
                         r.purok && `Purok ${r.purok}`,
                         r.sitio && `Sitio ${r.sitio}`,
                         r.barangay && `Brgy. ${r.barangay}`,
-                        r.municipality || "Mapandan",
+                        r.municipality || "",
                         r.province || "Pangasinan"
                     ].filter(Boolean);
                     const constructedAddr = parts.join(", ").toUpperCase();

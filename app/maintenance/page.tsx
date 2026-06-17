@@ -20,7 +20,7 @@ export default async function MaintenancePage() {
     }
 
     const brandWord1 = settings.get("brand_word_1") || "E";
-    const brandWord2 = settings.get("brand_word_2") || "Mapandan";
+    const brandWord2 = settings.get("brand_word_2") || "";
     const themeColor = settings.get("theme_color") || "#2563eb";
     const logoUrl = settings.get("site_logo");
 

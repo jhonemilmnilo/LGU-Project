@@ -74,7 +74,7 @@ function formatSegment(seg: string): string {
     return SEGMENT_LABELS[seg] ?? seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function TopNav({ session, themeColor = "#2563eb", brandWord1 = "E", brandWord2 = "Mapandan", logoUrl }: TopNavProps) {
+export function TopNav({ session, themeColor = "#2563eb", brandWord1 = "E", brandWord2 = "", logoUrl }: TopNavProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { theme, setTheme } = useTheme();
