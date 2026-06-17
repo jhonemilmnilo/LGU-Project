@@ -300,15 +300,6 @@ export default function ResidentProfileClient({ resident, themeColor = "#2563eb"
                     <div className="flex flex-row lg:flex-col items-center gap-2.5 w-full lg:w-auto shrink-0 no-print">
                         <button
                             type="button"
-                            onClick={() => toast.info("Profile modifications must be submitted via the Pre-Screening office or verified on site.")}
-                            className="flex-1 lg:w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-95 bg-transparent text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-white/5"
-                        >
-                            <Edit className="w-4 h-4" />
-                            Edit Profile
-                        </button>
-
-                        <button
-                            type="button"
                             onClick={() => window.print()}
                             className="flex-1 lg:w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-250 active:scale-95 text-white shadow-lg shadow-blue-500/20"
                             style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
