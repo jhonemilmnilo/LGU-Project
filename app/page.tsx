@@ -111,9 +111,6 @@ export default async function Home({
 
     // Check Maintenance Mode
     const maintenance = settings.get("maintenance_mode") === "true";
-    if (maintenance) {
-        redirect("/maintenance");
-    }
 
     const logoUrl = settings.get("site_logo") || "";
     const brandWord1 = settings.get("brand_word_1") || "E";
@@ -339,8 +336,15 @@ export default async function Home({
                 barangays={barangays}
             />
 
+            {maintenance && (
+                <div className="bg-amber-500 text-slate-950 font-bold text-center py-3 px-4 z-[90] sticky top-[64px] sm:top-[80px] md:top-[96px] shadow-lg flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
+                    <span className="animate-pulse inline-block w-2.5 h-2.5 rounded-full bg-red-600 mr-1" />
+                    <strong>Maintenance Mode Active:</strong> Some online transactional features and forms are temporarily disabled.
+                </div>
+            )}
+
             <ClientOnly delay={1000} fallback={<HeroSkeleton />}>
-                <Hero slides={slides} themeColor={themeColor} />
+                <Hero slides={slides} themeColor={themeColor} isMaintenanceActive={maintenance} />
             </ClientOnly>
 
             {showAppDownload && (
@@ -390,7 +394,7 @@ export default async function Home({
 
                 {showJobs && (
                     <ClientOnly delay={1000} fallback={<JobBoardSkeleton />}>
-                        <JobBoard jobs={jobs} />
+                        <JobBoard jobs={jobs} isMaintenanceActive={maintenance} />
                     </ClientOnly>
                 )}
                 {showGovernment && (
@@ -400,7 +404,7 @@ export default async function Home({
                 )}
                 {showServices && (
                     <ClientOnly delay={1000} fallback={<ServicesSkeleton />}>
-                        <Services services={services} themeColor={themeColor} />
+                        <Services services={services} themeColor={themeColor} isMaintenanceActive={maintenance} />
                     </ClientOnly>
                 )}
             </div>
@@ -416,7 +420,7 @@ export default async function Home({
             )}
             {showEmergency && (
                 <ClientOnly delay={1000} fallback={<EmergencyReportSkeleton />}>
-                    <EmergencyReport initialHotlines={hotlines} showMap={showMap} />
+                    <EmergencyReport initialHotlines={hotlines} showMap={showMap} isMaintenanceActive={maintenance} />
                 </ClientOnly>
             )}
             <Footer

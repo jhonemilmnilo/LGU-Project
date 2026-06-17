@@ -18,7 +18,7 @@ interface InitialHotline {
     address: string | null;
 }
 
-export function EmergencyReport({ initialHotlines = [], showMap = true }: { initialHotlines?: InitialHotline[], showMap?: boolean }) {
+export function EmergencyReport({ initialHotlines = [], showMap = true, isMaintenanceActive = false }: { initialHotlines?: InitialHotline[], showMap?: boolean, isMaintenanceActive?: boolean }) {
     const [copied, setCopied] = React.useState<string | null>(null);
     const [isMobile, setIsMobile] = React.useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
@@ -234,7 +234,7 @@ export function EmergencyReport({ initialHotlines = [], showMap = true }: { init
                 {/* Report Form Component */}
                 {isMobile ? (
                     <div className="relative">
-                        <ReportForm />
+                        <ReportForm isMaintenanceActive={isMaintenanceActive} />
                     </div>
                 ) : (
                     <motion.div
@@ -243,7 +243,7 @@ export function EmergencyReport({ initialHotlines = [], showMap = true }: { init
                         viewport={{ once: true }}
                         className="relative"
                     >
-                        <ReportForm />
+                        <ReportForm isMaintenanceActive={isMaintenanceActive} />
                     </motion.div>
                 )}
             </div>

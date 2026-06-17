@@ -41,9 +41,10 @@ const DEFAULT_STATE: LockoutState = {
 interface LoginFormProps {
     onSuccess?: () => void;
     themeColor?: string;
+    isMaintenanceActive?: boolean;
 }
 
-export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
+export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false }: LoginFormProps) {
     const { triggerLeave } = React.useContext(AuthTransitionContext);
     const [showPassword, setShowPassword] = React.useState(false);
     const [showChangeModal, setShowChangeModal] = React.useState(false);
@@ -73,7 +74,11 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 const role = (session.user as any).role;
                 const dept = (session.user as any).department ? (session.user as any).department.toUpperCase() : "";
                 if (role === "USER") {
-                    router.push("/");
+                    if (isMaintenanceActive) {
+                        signOut({ redirect: false });
+                    } else {
+                        router.push("/");
+                    }
                 } else if (role === "TREASURY_STAFF" || (role === "ADMIN" && dept === "TREASURY")) {
                     router.push("/admin/treasury?category=CEDULA");
                 } else if (role === "ADMIN_AIDE" || (role === "ADMIN" && dept === "BPLO")) {
@@ -87,7 +92,7 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 }
             }
         }
-    }, [session, status, router]);
+    }, [session, status, router, isMaintenanceActive]);
 
     const [lockout, setLockout] = React.useState<LockoutState>(DEFAULT_STATE);
     const [timeLeft, setTimeLeft] = React.useState<number>(0); // remaining seconds

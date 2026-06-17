@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Hammer, Shield, HardHat, Clock } from "lucide-react";
+import { Hammer, Shield, HardHat, Clock, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 interface MaintenanceClientProps {
     brandWord1: string;
@@ -99,6 +100,28 @@ export function MaintenanceClient({
                         </motion.div>
                     ))}
                 </div>
+
+                {/* Premium Interactive Action Section */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 }}
+                    className="flex items-center justify-center pt-12 max-w-md mx-auto relative z-20"
+                >
+                    <Link
+                        href="/"
+                        className="w-full sm:w-auto px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all duration-300 border flex items-center justify-center gap-2 hover:scale-105 active:scale-[0.98]"
+                        style={{
+                            backgroundColor: themeColor,
+                            borderColor: themeColor,
+                            color: "#ffffff",
+                            boxShadow: `0 10px 25px -5px ${themeColor}66`
+                        }}
+                    >
+                        Go to Landing Page
+                        <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                </motion.div>
 
                 <div className="pt-20 text-[10px] font-black uppercase tracking-[0.6em] text-slate-600">
                     © {new Date().getFullYear()} {brandWord1}{brandWord2} • Digital Infrastructure
