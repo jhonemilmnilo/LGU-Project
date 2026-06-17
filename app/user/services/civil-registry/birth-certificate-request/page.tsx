@@ -866,6 +866,14 @@ export default function CivilRegistryPage() {
                             Request a certified true copy of your Birth Certificate. Complete the form and upload required identifications to verify your request.
                         </p>
                     </div>
+
+                    <div className="hidden md:block relative z-10 shrink-0">
+                        <div className="w-28 h-28 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 shadow-sm dark:shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500">
+                            <div className="absolute inset-0 bg-gradient-to-tr opacity-0 group-hover:opacity-10 transition-opacity" style={{ backgroundImage: `linear-gradient(to top right, ${themeColor}, transparent)` }} />
+                            <CheckCircle2 className="w-8 h-8 mb-1.5 opacity-80" style={{ color: themeColor }} />
+                            <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-tight">Secure Filing</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="space-y-6">
