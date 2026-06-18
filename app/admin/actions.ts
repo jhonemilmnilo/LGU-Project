@@ -1313,6 +1313,22 @@ export async function addHousehold(formData: FormData) {
             }
         });
 
+        // Link the head resident profile and all their family members to this household
+        if (headId) {
+            await (prisma as any).resident.update({
+                where: { id: headId },
+                data: {
+                    householdId: household.id,
+                    isHead: true
+                }
+            });
+
+            await (prisma as any).resident.updateMany({
+                where: { familyHeadId: headId },
+                data: { householdId: household.id }
+            });
+        }
+
         // Cascade coordinates to all associated residents (Head + Members)
         await (prisma as any).resident.updateMany({
             where: {
@@ -1355,6 +1371,12 @@ export async function updateHousehold(id: string, formData: FormData) {
         const lat = formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null;
         const lng = formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null;
 
+        // Find the old head of this household first to reset their head status
+        const oldHousehold = await (prisma as any).household.findUnique({
+            where: { id },
+            select: { headId: true }
+        });
+
         const household = await (prisma as any).household.update({
             where: { id },
             data: {
@@ -1371,6 +1393,30 @@ export async function updateHousehold(id: string, formData: FormData) {
                 head: true
             }
         });
+
+        // Reset old head's status if head changed
+        if (oldHousehold && oldHousehold.headId && oldHousehold.headId !== headId) {
+            await (prisma as any).resident.update({
+                where: { id: oldHousehold.headId },
+                data: { isHead: false }
+            });
+        }
+
+        // Link the new head resident profile and all their family members to this household
+        if (headId) {
+            await (prisma as any).resident.update({
+                where: { id: headId },
+                data: {
+                    householdId: household.id,
+                    isHead: true
+                }
+            });
+
+            await (prisma as any).resident.updateMany({
+                where: { familyHeadId: headId },
+                data: { householdId: household.id }
+            });
+        }
 
         // Cascade coordinates to all associated residents
         await (prisma as any).resident.updateMany({
@@ -1481,6 +1527,20 @@ export async function addResident(formData: FormData) {
                 householdId = newHousehold.id;
             }
 
+            // Sync coordinates from household
+            let lat = null;
+            let lng = null;
+            if (householdId) {
+                const hh = await tx.household.findUnique({
+                    where: { id: householdId },
+                    select: { latitude: true, longitude: true }
+                });
+                if (hh) {
+                    lat = hh.latitude;
+                    lng = hh.longitude;
+                }
+            }
+
             let barangayValue = formData.get("barangay") as string || await getSessionBarangay() || null;
             if (!barangayValue && categoryIds.length > 0) {
                 const categoryObj = await tx.residentCategory.findUnique({
@@ -1516,6 +1576,8 @@ export async function addResident(formData: FormData) {
                     purok: formData.get("purok") as string || null,
                     municipality: (formData.get("municipality") as string || "Mapandan").toUpperCase(),
                     province: (formData.get("province") as string || "Pangasinan").toUpperCase(),
+                    latitude: lat,
+                    longitude: lng,
                     contactNumber: formData.get("contactNumber") as string || null,
                     isHead: isHead,
                     relationshipToHead: formData.get("relationshipToHead") as string || null,
@@ -1858,6 +1920,18 @@ export async function updateResident(id: string, formData: FormData) {
                     } catch (err) {
                         console.error("Automatic household creation failed during update:", err);
                     }
+                }
+            }
+
+            // Sync coordinates from household to resident profile
+            if (householdId) {
+                const hh = await tx.household.findUnique({
+                    where: { id: householdId },
+                    select: { latitude: true, longitude: true }
+                });
+                if (hh) {
+                    dataToUpdate.latitude = hh.latitude;
+                    dataToUpdate.longitude = hh.longitude;
                 }
             }
 

@@ -633,8 +633,11 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
         // Automatically sanitize the Google App Password by removing any spaces
         const sanitizedPass = emailPass.replace(/\s+/g, "");
 
+        // Configure custom SMTP transport (Brevo / Sendinblue)
         const transporter = nodemailer.createTransport({
-            service: "gmail",
+            host: "smtp-relay.brevo.com",
+            port: 587,
+            secure: false, // true for 465, false for other ports
             auth: {
                 user: emailUser,
                 pass: sanitizedPass,

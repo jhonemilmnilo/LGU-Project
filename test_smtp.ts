@@ -14,7 +14,9 @@ if (!emailUser || !emailPass) {
 const sanitizedPass = emailPass.replace(/\s+/g, "");
 
 const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp-relay.brevo.com",
+    port: 587,
+    secure: false,
     auth: {
         user: emailUser,
         pass: sanitizedPass,
