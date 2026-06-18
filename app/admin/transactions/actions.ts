@@ -1947,7 +1947,7 @@ export async function rejectTransaction(id: string, remarks: string) {
 
             let maxCategoryRejections;
             if (tx.type?.code === "BUILDING_PERMIT") {
-                maxCategoryRejections = activeRejectedTransactions.filter(rTx => rTx.type?.code === "BUILDING_PERMIT").length;
+                maxCategoryRejections = activeRejectedTransactions.filter((rTx: any) => rTx.type?.code === "BUILDING_PERMIT").length;
             } else {
                 // Group and find the maximum rejection count in any single category
                 const categoryCounts: Record<string, number> = {};
@@ -2060,7 +2060,7 @@ export async function sendForRevision(id: string, remarks: string) {
 
                 let maxCategoryRejections;
                 if (tx.type?.code === "BUILDING_PERMIT") {
-                    maxCategoryRejections = rejectedTransactions.filter(rTx => rTx.type?.code === "BUILDING_PERMIT").length;
+                    maxCategoryRejections = rejectedTransactions.filter((rTx: any) => rTx.type?.code === "BUILDING_PERMIT").length;
                 } else {
                     const categoryCounts: Record<string, number> = {};
                     for (const rTx of rejectedTransactions) {
@@ -4453,6 +4453,44 @@ export async function getRegistrarActiveCounts() {
     } catch (error) {
         console.error("Get registrar counts error:", error);
         return { success: false, error: "Failed to get active transaction counts" };
+    }
+}
+
+export async function markTransactionAsViewed(id: string) {
+    try {
+        const session = await getSession();
+        const userId = session?.user?.id;
+        if (!userId) {
+            return { success: false, error: "Unauthorized" };
+        }
+
+        const tx = await prisma.transaction.findUnique({
+            where: { id },
+            select: { viewedAt: true }
+        });
+        if (!tx) {
+            return { success: false, error: "Transaction not found" };
+        }
+
+        let currentViewedAt: Record<string, string> = {};
+        if (tx.viewedAt && typeof tx.viewedAt === "object" && !Array.isArray(tx.viewedAt)) {
+            currentViewedAt = { ...tx.viewedAt } as Record<string, string>;
+        }
+
+        currentViewedAt[userId] = new Date().toISOString();
+
+        await prisma.transaction.update({
+            where: { id },
+            data: {
+                viewedAt: currentViewedAt
+            }
+        });
+
+        revalidatePath("/admin/registrar");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error marking transaction as viewed:", error);
+        return { success: false, error: error?.message || "Failed to mark transaction as viewed" };
     }
 }
 
