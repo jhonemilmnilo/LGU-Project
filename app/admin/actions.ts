@@ -94,17 +94,20 @@ async function processImageUpload(formData: FormData, fieldName: string = "image
             const buffer = Buffer.from(await file.arrayBuffer());
             const publicUrl = await uploadFile(buffer, storagePath, undefined, file.type);
 
-            if (!publicUrl) throw new Error("Upload failed");
-
+            if (!publicUrl) {
+                throw new Error("Upload failed. Please ensure the file is not corrupted and its format is supported by the storage settings (like PNG, JPEG, PDF, or WebP).");
+            }
+            
             // Auto-delete old file if it exists and we have a new upload
             if (existingUrl) {
                 await deleteUploadedFile(existingUrl);
             }
 
             return publicUrl;
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error processing image upload to Supabase:", error);
-            return existingUrl;
+            // Propagate the error so that the operation stops and notifies the frontend
+            throw new Error(error.message || "Failed to upload file to storage.");
         }
     }
     return existingUrl;
@@ -2070,28 +2073,111 @@ export async function deleteResident(id: string) {
             }
         });
 
-        // Delete files
+        let canDeleteUser = true;
+
+        if (resident?.userId) {
+            // Find all transactions for this user
+            const transactions = await prisma.transaction.findMany({
+                where: { userId: resident.userId },
+                select: {
+                    id: true,
+                    status: true,
+                    eCopyUrl: true,
+                    orUrl: true,
+                    podUrl: true
+                }
+            });
+
+            // Group into Keep vs Delete
+            const transactionsToKeep = transactions.filter(
+                t => t.status === "DELIVERED" || t.status === "RELEASED"
+            );
+            const transactionsToDelete = transactions.filter(
+                t => t.status !== "DELIVERED" && t.status !== "RELEASED"
+            );
+
+            // Clean up files for deleted transactions from storage
+            for (const t of transactionsToDelete) {
+                if (t.eCopyUrl) await deleteUploadedFile(t.eCopyUrl);
+                if (t.orUrl) await deleteUploadedFile(t.orUrl);
+                if (t.podUrl) await deleteUploadedFile(t.podUrl);
+            }
+
+            // Delete non-completed transactions from db (cascades to child tables)
+            if (transactionsToDelete.length > 0) {
+                const deleteIds = transactionsToDelete.map(t => t.id);
+                await prisma.transaction.deleteMany({
+                    where: { id: { in: deleteIds } }
+                });
+            }
+
+            // Clean up report files from storage if we are going to delete the user
+            if (transactionsToKeep.length === 0) {
+                const reports = await (prisma as any).report.findMany({
+                    where: { userId: resident.userId },
+                    select: { images: true }
+                });
+
+                for (const r of reports) {
+                    if (r.images && r.images.length > 0) {
+                        for (const img of r.images) {
+                            await deleteUploadedFile(img);
+                        }
+                    }
+                }
+
+                // Delete reports
+                await (prisma as any).report.deleteMany({
+                    where: { userId: resident.userId }
+                });
+            } else {
+                canDeleteUser = false;
+            }
+        }
+
+        // Delete resident profile files from storage
         if (resident?.imageUrl) await deleteUploadedFile(resident.imageUrl);
         if (resident?.livenessUrl) await deleteUploadedFile(resident.livenessUrl);
         if (resident?.idFrontUrl) await deleteUploadedFile(resident.idFrontUrl);
         if (resident?.idBackUrl) await deleteUploadedFile(resident.idBackUrl);
 
-        // 1. Delete associated user if exists (important for cleanup)
-        if (resident?.userId) {
-            await prisma.user.delete({ where: { id: resident.userId } }).catch(err => {
-                console.warn("Could not delete associated user:", err);
-            });
-        }
-
-        // 2. Delete the resident
+        // Delete the resident profile record
         await (prisma as any).resident.delete({ where: { id } });
 
-        // 3. Update household size
+        // Update household size
         if (resident?.householdId) {
             await (prisma as any).household.update({
                 where: { id: resident.householdId },
                 data: { householdSize: { decrement: 1 } }
             });
+        }
+
+        // Delete or Deactivate the User account depending on completed transactions
+        if (resident?.userId) {
+            if (canDeleteUser) {
+                await prisma.user.delete({ where: { id: resident.userId } }).catch(err => {
+                    console.warn("Could not delete associated user:", err);
+                });
+            } else {
+                // Fetch the user's current email so we can rename/anonymize it and free up the original email
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: resident.userId },
+                    select: { email: true }
+                });
+                const originalEmail = dbUser?.email || "";
+                const anonymizedEmail = originalEmail ? `deleted_${Date.now()}_${originalEmail}` : null;
+
+                await prisma.user.update({
+                    where: { id: resident.userId },
+                    data: {
+                        isEmailVerified: false,
+                        password: null, // Revoke credential access entirely
+                        email: anonymizedEmail,
+                    }
+                }).catch(err => {
+                    console.warn("Could not deactivate associated user:", err);
+                });
+            }
         }
 
         revalidatePath("/admin/residents");
