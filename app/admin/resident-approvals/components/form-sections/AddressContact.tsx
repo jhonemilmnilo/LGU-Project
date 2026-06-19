@@ -280,9 +280,9 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                                 }}
                                 placeholder="Search for a resident to add as family member..."
                                 excludeIds={data?.id ? [data.id] : []}
+                                suggestEmpty={true}
                             />
                         </div>
-
                         {familyMembers.length > 0 && (
                             <div className="bg-white dark:bg-black/20 rounded-xl border border-blue-100 dark:border-blue-900/30 overflow-hidden">
                                 <table className="w-full text-left text-xs">

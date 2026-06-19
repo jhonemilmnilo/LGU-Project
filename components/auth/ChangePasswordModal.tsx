@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { sendOTP, finalizePasswordChange } from "@/app/auth/actions";
+import { sendOTP, finalizePasswordChange, verifyOTPOnly } from "@/app/auth/actions";
 
 const setupSchema = z.object({
     otp: z.string().length(6, "OTP must be exactly 6 digits"),
@@ -112,6 +112,13 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess, th
                         }
                     }
                 }
+            } else if (storedEmail) {
+                // Clear state from sessionStorage if email has changed to prevent leakage
+                sessionStorage.removeItem("setup_step");
+                sessionStorage.removeItem("setup_timer_expiry");
+                sessionStorage.removeItem("setup_email");
+                sessionStorage.removeItem("setup_otp_value");
+                setStep('identity');
             }
         }
     }, [isOpen, email, form]);
@@ -145,6 +152,17 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess, th
                 password: "",
                 confirmPassword: ""
             });
+            
+            // Check if timer has expired before clearing. If still active, preserve it so they can resume!
+            const storedExpiry = sessionStorage.getItem("setup_timer_expiry");
+            const isTimerActive = storedExpiry && parseInt(storedExpiry, 10) > Date.now();
+            
+            if (!isTimerActive) {
+                sessionStorage.removeItem("setup_step");
+                sessionStorage.removeItem("setup_timer_expiry");
+                sessionStorage.removeItem("setup_email");
+                sessionStorage.removeItem("setup_otp_value");
+            }
         }
     }, [isOpen, form]);
 
@@ -186,9 +204,27 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess, th
             form.setError("otp", { message: "6 digits required" });
             return;
         }
-        setStep('password');
-        sessionStorage.setItem("setup_step", 'password');
-        sessionStorage.setItem("setup_otp_value", otp);
+        setIsLoading(true);
+        try {
+            const result = await verifyOTPOnly(email, otp);
+            if (result.success && result.token) {
+                // Clear state from sessionStorage
+                sessionStorage.removeItem("setup_step");
+                sessionStorage.removeItem("setup_timer_expiry");
+                sessionStorage.removeItem("setup_email");
+                sessionStorage.removeItem("setup_otp_value");
+                
+                // Redirect user to the new setup page
+                window.location.href = `/auth/setup-password?email=${encodeURIComponent(email)}&token=${encodeURIComponent(result.token)}`;
+            } else {
+                form.setError("otp", { message: result.error || "Invalid OTP" });
+                toast.error(result.error || "Invalid OTP");
+            }
+        } catch {
+            toast.error("An error occurred during verification");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleFinalize = async (data: SetupValues) => {

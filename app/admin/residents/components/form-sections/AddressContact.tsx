@@ -316,6 +316,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                                 }}
                                 placeholder="Search for a resident to add as family member..."
                                 excludeIds={data?.id ? [data.id] : []}
+                                suggestEmpty={true}
                             />
                         </div>
 
