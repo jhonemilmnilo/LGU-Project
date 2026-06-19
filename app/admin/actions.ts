@@ -1454,14 +1454,18 @@ export async function deleteHousehold(id: string) {
 // ==========================================
 
 export async function addResident(formData: FormData) {
+    let livenessUrl: string | null = null;
+    let idFrontUrl: string | null = null;
+    let idBackUrl: string | null = null;
+
     try {
         const session = await getServerSession(authOptions);
         const activeUserName = session?.user?.name || "System Admin";
         const activeUserRole = (session?.user as any)?.role || "ADMIN";
 
-        const livenessUrl = await processImageUpload(formData, "livenessUrl");
-        const idFrontUrl = await processImageUpload(formData, "idFrontUrl");
-        const idBackUrl = await processImageUpload(formData, "idBackUrl");
+        livenessUrl = await processImageUpload(formData, "livenessUrl");
+        idFrontUrl = await processImageUpload(formData, "idFrontUrl");
+        idBackUrl = await processImageUpload(formData, "idBackUrl");
 
         const familyMembersData = formData.get("familyMembers") as string;
         const familyMembers = familyMembersData ? JSON.parse(familyMembersData) : [];
@@ -1689,13 +1693,32 @@ export async function addResident(formData: FormData) {
             } : resident;
 
             return mappedAdd;
-        });
+        }, { timeout: 25000 });
 
         revalidatePath("/admin/residents");
         revalidatePath("/admin/households");
         return { success: true, data: result };
     } catch (error) {
         console.error("Error adding resident:", error);
+        
+        // Clean up newly uploaded files to prevent orphaned files in Supabase Storage
+        try {
+            if (livenessUrl) {
+                console.log("[Cleanup] Deleting livenessUrl due to registration failure:", livenessUrl);
+                await deleteUploadedFile(livenessUrl);
+            }
+            if (idFrontUrl) {
+                console.log("[Cleanup] Deleting idFrontUrl due to registration failure:", idFrontUrl);
+                await deleteUploadedFile(idFrontUrl);
+            }
+            if (idBackUrl) {
+                console.log("[Cleanup] Deleting idBackUrl due to registration failure:", idBackUrl);
+                await deleteUploadedFile(idBackUrl);
+            }
+        } catch (cleanupError) {
+            console.error("[Cleanup] Failed to clean up files:", cleanupError);
+        }
+
         return { success: false, error: "Failed to add resident" };
     }
 }
@@ -2022,7 +2045,7 @@ export async function updateResident(id: string, formData: FormData) {
             } : resident;
 
             return mappedUpdate;
-        });
+        }, { timeout: 25000 });
 
         revalidatePath("/admin/residents");
         revalidatePath("/admin/households");

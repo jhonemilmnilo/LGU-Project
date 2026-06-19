@@ -20,6 +20,7 @@ interface SendEmailProps {
 export async function sendEmail({ type, to, name, remarks, transactionId, amount, resetLink, serviceName }: SendEmailProps) {
     const emailUser = process.env.EMAIL_USER;
     const emailPass = process.env.EMAIL_PASS;
+    const senderEmail = process.env.SENDER_EMAIL || emailUser;
 
     if (!emailUser || !emailPass) {
         console.warn("Skipping email: EMAIL_USER or EMAIL_PASS not configured in .env");
@@ -645,7 +646,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
         });
 
         const mailOptions = {
-            from: `"LGU ${municipalityName}" <${emailUser}>`,
+            from: `"LGU ${municipalityName}" <${senderEmail}>`,
             to: to,
             subject,
             html: htmlBody,

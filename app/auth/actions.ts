@@ -34,8 +34,8 @@ export async function sendOTP(email: string) {
         });
 
         if (error) {
-            console.error("Supabase OTP Error:", error.message);
-            return { success: false, error: error.message };
+            console.error("Supabase OTP Error Details:", JSON.stringify(error, null, 2), error);
+            return { success: false, error: error.message || "Failed to send OTP" };
         }
 
         return { success: true };

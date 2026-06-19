@@ -41,6 +41,12 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'ntanbjizlavyokjdauag.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'api.qrserver.com',
         port: '',
         pathname: '/**',
