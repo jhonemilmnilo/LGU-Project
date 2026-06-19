@@ -1802,7 +1802,23 @@ export async function getBploTransactions(status?: string) {
             orderBy: { createdAt: "desc" }
         });
 
-        return { success: true, data: transactions as any[] };
+        // Fetch staff users to map processedBy
+        const staff = await prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                email: true
+            }
+        });
+
+        const staffMap = new Map(staff.map(s => [s.id, s.name || s.email || "Unknown"]));
+
+        const mappedTransactions = transactions.map(tx => ({
+            ...tx,
+            processorName: tx.processedBy ? (staffMap.get(tx.processedBy) || "Unknown Staff") : "Not Processed"
+        }));
+
+        return { success: true, data: mappedTransactions as any[] };
     } catch (error) {
         console.error("Fetch BPLO transactions error:", error);
         return { success: false, error: "Failed to fetch BPLO transactions" };
@@ -1836,6 +1852,35 @@ export async function getPendingBploCount() {
         return { success: false, count: 0 };
     }
 }
+
+/**
+ * Get count of BPLO transactions in FOR_INSPECTION or FOR_REINSPECTION status
+ */
+export async function getBploInspectionCount() {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ADMIN" && !isUserAdminAide(user))) {
+            return { success: false, count: 0 };
+        }
+
+        const count = await prisma.transaction.count({
+            where: {
+                type: {
+                    processorRole: "TREASURY_STAFF",
+                    code: { startsWith: "BUSINESS_PERMIT" }
+                },
+                status: { in: ["FOR_INSPECTION", "FOR_REINSPECTION"] as any },
+                isCancelled: false
+            }
+        });
+        return { success: true, count };
+    } catch (error) {
+        console.error("Fetch BPLO inspection count error:", error);
+        return { success: false, count: 0 };
+    }
+}
+
 
 /**
  * Fetch counts per status for BPLO transactions
