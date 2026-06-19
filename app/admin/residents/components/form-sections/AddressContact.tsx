@@ -59,8 +59,15 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
     const [selectedBarangay, setSelectedBarangay] = useState(defaultBrgy);
 
     useEffect(() => {
+        if (defaultBrgy && barangayList.length > 0) {
+            const matched = barangayList.find(b => b.toLowerCase() === defaultBrgy.toLowerCase());
+            if (matched) {
+                setSelectedBarangay(matched);
+                return;
+            }
+        }
         setSelectedBarangay(defaultBrgy);
-    }, [defaultBrgy]);
+    }, [defaultBrgy, barangayList]);
 
     const filteredBarangays = barangayList.filter(b => 
         b.toLowerCase().includes(searchQuery.toLowerCase()) || b === selectedBarangay
