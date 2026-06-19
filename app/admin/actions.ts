@@ -260,6 +260,46 @@ export async function searchResidents(query: string, page: number = 1, limit: nu
     }
 }
 
+export async function getHeadlessResidents(page: number = 1, limit: number = 5) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id) {
+            return { success: false, error: "Unauthorized" };
+        }
+
+        const managedBarangay = await getSessionBarangay();
+        const where: any = {
+            isHead: false,
+            familyHeadId: null,
+            isDead: false,
+        };
+
+        if (managedBarangay) {
+            where.barangay = managedBarangay;
+        }
+
+        const residents = await (prisma as any).resident.findMany({
+            where,
+            skip: (page - 1) * limit,
+            take: limit,
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                barangay: true,
+                age: true
+            },
+            orderBy: {
+                lastName: "asc"
+            }
+        });
+        return { success: true, data: residents };
+    } catch (error) {
+        console.error("Get headless residents error:", error);
+        return { success: false, error: "Failed to load unattached residents" };
+    }
+}
+
 export async function getResidentDataById(id: string) {
     try {
         const session = await getServerSession(authOptions);

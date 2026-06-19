@@ -58,7 +58,7 @@ export function Hero({ slides, themeColor = "#2563eb", isMaintenanceActive = fal
                         className="object-cover scale-105"
                         priority
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/70 z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/45 to-black/85 z-10" />
                     <div className="absolute inset-0 bg-blue-900/10 mix-blend-overlay z-10" />
                 </motion.div>
             </AnimatePresence>
@@ -79,13 +79,13 @@ export function Hero({ slides, themeColor = "#2563eb", isMaintenanceActive = fal
                                      initial={{ opacity: 0, scale: 0.9 }}
                                      animate={{ opacity: 1, scale: 1 }}
                                      transition={{ delay: 0.2 }}
-                                     className="inline-block px-3 py-1 md:px-4 md:py-1.5 backdrop-blur-md rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-white"
+                                     className="inline-block px-3 py-1 md:px-4 md:py-1.5 backdrop-blur-md rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
                                      style={{ backgroundColor: `${themeColor}33`, borderColor: `${themeColor}55`, borderWidth: 1 }}
                                  >
                                      {activeSlide.tagline}
                                  </motion.span>
                              )}
-                             <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-white uppercase italic tracking-tighter leading-[0.9] md:leading-[0.85] whitespace-pre-line">
+                             <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-white uppercase italic tracking-tighter leading-[0.9] md:leading-[0.85] whitespace-pre-line drop-shadow-[0_6px_20px_rgba(0,0,0,0.85)]">
                                  {activeSlide.title}
                              </h1>
                          </div>
