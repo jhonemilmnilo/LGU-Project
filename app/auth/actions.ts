@@ -184,8 +184,7 @@ export async function requestPasswordReset(email: string) {
         });
 
         if (!user || !user.email) {
-            // Do NOT reveal if the email doesn't exist
-            return { success: true };
+            return { success: false, error: "No account found with this email address." };
         }
 
         // Check if there is an active token created in the last 60 seconds

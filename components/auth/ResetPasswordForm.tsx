@@ -53,7 +53,7 @@ export function ResetPasswordForm({ token, themeColor = "#2563eb" }: ResetPasswo
             }
             setIsSuccess(true);
             toast.success("Password reset successfully!");
-            setTimeout(() => router.push("/auth/login?reset=success"), 2500);
+            setTimeout(() => router.push("/auth/login"), 2500);
         } catch {
             toast.error("An unexpected error occurred. Please try again.");
         }
