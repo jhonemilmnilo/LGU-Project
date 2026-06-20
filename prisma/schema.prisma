@@ -434,11 +434,14 @@ model Report {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   user         User         @relation(fields: [userId], references: [id])
+  barangayId   String?
+  barangay     BarangayInfo? @relation(fields: [barangayId], references: [id])
 
   @@index([userId])
   @@index([status])
   @@index([category])
   @@index([createdAt])
+  @@index([barangayId])
 }
 
 
@@ -537,6 +540,8 @@ model BarangayInfo {
   deliveryFee             Float    @default(0)
   isLogisticsActive       Boolean  @default(true)
   estimatedDeliveryDays   Int      @default(3)
+
+  reports                 Report[]
 }
 
 enum UserRole {

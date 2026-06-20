@@ -2506,6 +2506,7 @@ export async function addCommunityReport(formData: FormData) {
 
         const latRaw = formData.get("latitude");
         const lngRaw = formData.get("longitude");
+        const barangayId = formData.get("barangayId") as string || null;
 
         const report = await (prisma as any).report.create({
             data: {
@@ -2517,6 +2518,7 @@ export async function addCommunityReport(formData: FormData) {
                 longitude: lngRaw ? parseFloat(lngRaw as string) : null,
                 address: formData.get("address") as string || null,
                 status: "PENDING",
+                barangayId: barangayId || null,
             } as any
         });
 
@@ -2543,6 +2545,19 @@ export async function getBarangayList() {
     }
 }
 
+export async function getBarangayListWithIds() {
+    try {
+        const barangays = await prisma.barangayInfo.findMany({
+            select: { id: true, name: true },
+            orderBy: { name: 'asc' }
+        });
+        return { success: true, data: barangays };
+    } catch (error) {
+        console.error("Failed to fetch barangays with ids:", error);
+        return { success: false, error: "Failed to fetch barangay list" };
+    }
+}
+
 export async function getUserReports() {
     try {
         const session = await getServerSession(authOptions);
@@ -2550,6 +2565,7 @@ export async function getUserReports() {
 
         const reports = await (prisma as any).report.findMany({
             where: { userId: (session.user as any).id },
+            include: { barangay: true },
             orderBy: { createdAt: "desc" }
         });
 
@@ -2562,12 +2578,29 @@ export async function getUserReports() {
 export async function getAdminReports() {
     try {
         const session = await getServerSession(authOptions);
-        if (!session?.user?.id || (session.user as any).role !== "ADMIN") {
+        const userRole = (session?.user as any)?.role;
+        if (!session?.user?.id || (userRole !== "ADMIN" && userRole !== "BARANGAY_ADMIN")) {
             return { success: false, error: "Unauthorized" };
         }
 
+        const managedBarangay = (session.user as any).managedBarangay;
+        const whereClause: any = {};
+
+        if (userRole === "BARANGAY_ADMIN") {
+            if (!managedBarangay) {
+                return { success: true, reports: [] };
+            }
+            whereClause.barangay = {
+                name: managedBarangay
+            };
+        }
+
         const reports = await (prisma as any).report.findMany({
-            include: { user: true },
+            where: whereClause,
+            include: { 
+                user: true,
+                barangay: true
+            },
             orderBy: { createdAt: "desc" }
         });
 
@@ -2580,8 +2613,22 @@ export async function getAdminReports() {
 export async function updateReportStatus(id: string, status: string, adminComment?: string) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session?.user?.id || (session.user as any).role !== "ADMIN") {
+        const userRole = (session?.user as any)?.role;
+        if (!session?.user?.id || (userRole !== "ADMIN" && userRole !== "BARANGAY_ADMIN")) {
             return { success: false, error: "Unauthorized" };
+        }
+
+        const managedBarangay = (session.user as any).managedBarangay;
+
+        // If BARANGAY_ADMIN, verify report belongs to their barangay
+        if (userRole === "BARANGAY_ADMIN") {
+            const report = await (prisma as any).report.findUnique({
+                where: { id },
+                include: { barangay: true }
+            });
+            if (!report || report.barangay?.name !== managedBarangay) {
+                return { success: false, error: "Unauthorized to update this report." };
+            }
         }
 
         await (prisma as any).report.update({
@@ -2612,7 +2659,10 @@ export async function getReportById(id: string) {
 
         const report = await (prisma as any).report.findUnique({
             where: { id },
-            include: { user: true }
+            include: { 
+                user: true,
+                barangay: true
+            }
         });
 
         if (!report) {
@@ -2620,9 +2670,17 @@ export async function getReportById(id: string) {
             return { success: false, error: "Report not found" };
         }
 
-        // Ensure user can only see their own report unless admin
+        // Ensure user can only see their own report unless admin or barangay admin
         const userId = (session.user as any).id;
-        if ((session.user as any).role !== "ADMIN" && report.userId !== userId) {
+        const userRole = (session.user as any).role;
+        const managedBarangay = (session.user as any).managedBarangay;
+
+        if (userRole === "BARANGAY_ADMIN") {
+            if (report.barangay?.name !== managedBarangay) {
+                console.error(`[Reporting] Permission denied for Barangay Admin of ${managedBarangay} on Report ${id}`);
+                return { success: false, error: "Unauthorized" };
+            }
+        } else if (userRole !== "ADMIN" && report.userId !== userId) {
             console.error(`[Reporting] Permission denied for User ${userId} on Report ${id}`);
             return { success: false, error: "Unauthorized" };
         }
@@ -2766,6 +2824,7 @@ export async function createBarangayAdmin(formData: FormData) {
                 managedBarangay,
                 isEmailVerified: true, // Auto-verify for admins
                 emailVerified: new Date(),
+                isPasswordChanged: true,
             }
         });
 

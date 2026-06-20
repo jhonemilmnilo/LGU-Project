@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { 
@@ -24,7 +24,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { addCommunityReport } from "@/app/admin/actions";
+import { addCommunityReport, getBarangayListWithIds } from "@/app/admin/actions";
 import LocationPicker from "@/components/shared/LocationPicker";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -35,8 +35,26 @@ export function ReportForm({ isMaintenanceActive = false }: { isMaintenanceActiv
     const [images, setImages] = useState<File[]>([]);
     const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
     const [previews, setPreviews] = useState<string[]>([]);
+    const [barangays, setBarangays] = useState<{ id: string; name: string }[]>([]);
+    const [selectedBarangay, setSelectedBarangay] = useState<string>("");
+    const [isBrgyDropdownOpen, setIsBrgyDropdownOpen] = useState(false);
+    const [brgySearchQuery, setBrgySearchQuery] = useState("");
     
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        async function fetchBarangays() {
+            try {
+                const res = await getBarangayListWithIds();
+                if (res.success && res.data) {
+                    setBarangays(res.data);
+                }
+            } catch (err) {
+                console.error("Failed to load barangays:", err);
+            }
+        }
+        fetchBarangays();
+    }, []);
 
     const handleLocationSelect = useCallback((lat: number, lng: number) => {
         setLocation({ lat, lng, address: `Pinned at ${lat.toFixed(4)}, ${lng.toFixed(4)}` });
@@ -66,6 +84,11 @@ export function ReportForm({ isMaintenanceActive = false }: { isMaintenanceActiv
             return;
         }
 
+        if (!selectedBarangay) {
+            toast.error("Please select a Barangay!");
+            return;
+        }
+
         setIsSubmitting(true);
         const formElement = e.currentTarget;
         const formData = new FormData(formElement);
@@ -81,6 +104,7 @@ export function ReportForm({ isMaintenanceActive = false }: { isMaintenanceActiv
             formData.set("category", `Other: ${customCategory}`);
         }
 
+        formData.append("barangayId", selectedBarangay);
         images.forEach(image => formData.append("images", image));
         if (location) {
             formData.append("latitude", location.lat.toString());
@@ -99,6 +123,7 @@ export function ReportForm({ isMaintenanceActive = false }: { isMaintenanceActiv
                 setPreviews([]);
                 setLocation(null);
                 setSelectedCategory("");
+                setSelectedBarangay("");
             } else {
                 toast.error(res.error || "Failed to submit report");
             }
@@ -169,6 +194,64 @@ export function ReportForm({ isMaintenanceActive = false }: { isMaintenanceActiv
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2 relative">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1 opacity-50">Select Barangay</label>
+                        <input type="hidden" name="barangayId" value={selectedBarangay} required />
+                        <button
+                            type="button"
+                            onClick={() => setIsBrgyDropdownOpen(!isBrgyDropdownOpen)}
+                            className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl font-bold transition-all focus:outline-none focus:ring-1 focus:ring-primary text-white italic text-left px-5 flex items-center justify-between"
+                        >
+                            <span>{barangays.find(b => b.id === selectedBarangay)?.name || "Select Barangay"}</span>
+                            <span className="text-xs text-slate-400">▼</span>
+                        </button>
+
+                        {isBrgyDropdownOpen && (
+                            <>
+                                <div className="fixed inset-0 z-[110]" onClick={() => {
+                                    setIsBrgyDropdownOpen(false);
+                                    setBrgySearchQuery("");
+                                }} />
+                                <div className="absolute z-[120] top-full left-0 right-0 mt-2 p-3 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl flex flex-col gap-2 max-h-60 overflow-hidden">
+                                    <div className="relative flex-shrink-0">
+                                        <input
+                                            type="text"
+                                            placeholder="Search barangay..."
+                                            value={brgySearchQuery}
+                                            onChange={(e) => setBrgySearchQuery(e.target.value)}
+                                            className="w-full h-10 px-4 rounded-xl border border-white/10 bg-white/5 text-white font-bold text-xs focus:outline-none focus:ring-1 focus:ring-primary italic"
+                                        />
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-0.5 max-h-40">
+                                        {barangays
+                                            .filter(b => b.name.toLowerCase().includes(brgySearchQuery.toLowerCase()))
+                                            .length === 0 ? (
+                                                <div className="p-3 text-center text-xs text-slate-400 italic">No barangays match search.</div>
+                                            ) : (
+                                                barangays
+                                                    .filter(b => b.name.toLowerCase().includes(brgySearchQuery.toLowerCase()))
+                                                    .map((b) => (
+                                                        <button
+                                                            key={b.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedBarangay(b.id);
+                                                                setIsBrgyDropdownOpen(false);
+                                                                setBrgySearchQuery("");
+                                                            }}
+                                                            className="w-full text-left p-3 rounded-xl text-xs font-bold text-slate-350 hover:bg-white/5 hover:text-white transition-colors"
+                                                        >
+                                                            {b.name}
+                                                        </button>
+                                                    ))
+                                            )}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
                     <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1 opacity-50">Issue Category</label>
                         <AnimatePresence mode="wait">
