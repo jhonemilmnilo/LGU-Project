@@ -192,6 +192,13 @@ export function Navbar({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    const handleLogout = async () => {
+        setIsDropdownOpen(false);
+        setIsOpen(false);
+        await signOut({ redirect: false });
+        window.location.href = "/";
+    };
+
     // Prevent body scroll when mobile menu is open
     React.useEffect(() => {
         if (isOpen) {
@@ -589,7 +596,7 @@ export function Navbar({
                                                 >
                                                     My Requests
                                                 </span>
-                                                {isLinkActive("/user/services/requests") && (
+                                        {isLinkActive("/user/services/requests") && (
                                                     <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} />
                                                 )}
                                             </Link>
@@ -598,7 +605,7 @@ export function Navbar({
 
                                             {/* Log Out */}
                                             <button
-                                                onClick={() => { setIsDropdownOpen(false); signOut({ callbackUrl: window.location.origin + "/" }); }}
+                                                onClick={handleLogout}
                                                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors group"
                                             >
                                                 <LogOut className="w-4 h-4 text-red-400 group-hover:text-red-500 transition-colors" />
@@ -869,7 +876,7 @@ export function Navbar({
                         <div className="p-4 sm:p-6 bg-white/60 dark:bg-slate-950/60 backdrop-blur-md border-t border-slate-100 dark:border-white/5 pb-8 sm:pb-6 flex flex-col gap-2">
                             {isAuth ? (
                                 <Button
-                                    onClick={() => signOut({ callbackUrl: window.location.origin + "/" })}
+                                    onClick={handleLogout}
                                     className="w-full bg-red-500 hover:bg-red-600 text-white h-12 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-500/20"
                                 >
                                     <LogOut className="w-4 h-4" />
