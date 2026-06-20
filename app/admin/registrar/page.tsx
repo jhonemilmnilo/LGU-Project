@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { supabase } from "@/lib/supabase";
 
 import RegistrarDashboard from "./[id]/dashboard";
 
@@ -102,27 +103,69 @@ export default function RegistrarPage() {
     const hasSelectedCategory = Boolean(categoryParam && categoryParam !== "ALL");
 
     // Fetch all requests for Civil Registry
-    const fetchTransactions = useCallback(async () => {
-        setLoading(true);
+    const fetchTransactions = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const res = await getTreasuryTransactions("ALL");
             if (res.success && res.data) {
                 const lcrTxs = res.data.filter(isRegistrarLcrRequest);
                 setTransactions(lcrTxs);
             } else {
-                toast.error(res.error || "Failed to load transactions");
+                if (!silent) toast.error(res.error || "Failed to load transactions");
             }
         } catch (err) {
             console.error("Failed to load registrar transactions:", err);
-            toast.error("Failed to load transactions");
+            if (!silent) toast.error("Failed to load transactions");
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, []);
 
     // Load all transactions on mount
     useEffect(() => {
         fetchTransactions();
+    }, [fetchTransactions]);
+
+    // Realtime Supabase Subscription for transaction updates
+    useEffect(() => {
+        if (!supabase) return;
+
+        console.log("Subscribing to Supabase Realtime 'Transaction' table for registrar active queue...");
+        let channel: any;
+        try {
+            channel = supabase
+                .channel("realtime-registrar-transactions")
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "*",
+                        schema: "public",
+                        table: "Transaction",
+                    },
+                    async (payload: any) => {
+                        console.log("Realtime change caught on Transaction table for registrar queue:", payload);
+                        // Reload transactions silently in the background
+                        fetchTransactions(true);
+                    }
+                )
+                .subscribe((status: string, err?: any) => {
+                    if (err) {
+                        console.error("Supabase Realtime subscription error:", err);
+                    }
+                    if (status === "CHANNEL_ERROR") {
+                        console.error("Supabase Realtime channel error status caught");
+                    }
+                });
+        } catch (error) {
+            console.error("Failed to initialize Supabase Realtime subscription:", error);
+        }
+
+        return () => {
+            console.log("Unsubscribing from Supabase Realtime 'Transaction' table...");
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
+        };
     }, [fetchTransactions]);
 
     // Reset page numbers when search / layout changes
@@ -268,7 +311,7 @@ export default function RegistrarPage() {
 
                             <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                                 <Button
-                                    onClick={fetchTransactions}
+                                    onClick={() => fetchTransactions()}
                                     variant="outline"
                                     className="h-11 w-11 rounded-xl p-0 border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]"
                                     title="Refresh List"

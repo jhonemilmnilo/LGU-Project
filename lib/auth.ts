@@ -156,7 +156,7 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             if (token.deactivated || token.exp === 1) {
-                return {} as any;
+                return null as any;
             }
             if (session.user) {
 
