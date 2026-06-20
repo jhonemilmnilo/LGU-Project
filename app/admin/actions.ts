@@ -14,6 +14,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { uploadFile, deleteFileByUrl, validatePayloadFiles } from "@/lib/storage";
 import { isRateLimited, getClientIp } from "@/lib/rate-limit";
+import { sendEmail } from "@/lib/mail";
 
 async function getSessionBarangay(): Promise<string | null> {
     const session = await getServerSession(authOptions);
@@ -2522,6 +2523,23 @@ export async function addCommunityReport(formData: FormData) {
             } as any
         });
 
+        // Fetch user email and name to send confirmation email
+        const user = await prisma.user.findUnique({
+            where: { id: (session.user as any).id },
+            select: { email: true, name: true }
+        });
+
+        if (user && user.email) {
+            sendEmail({
+                type: "COMMUNITY_REPORT_SUBMITTED",
+                to: user.email,
+                name: user.name || "Resident",
+                serviceName: report.category
+            }).catch(err => {
+                console.error("Failed to send community report confirmation email:", err);
+            });
+        }
+
         revalidatePath("/");
         revalidatePath("/user/reports");
         revalidatePath("/admin/reports");
@@ -3062,5 +3080,63 @@ export async function activateUser(userId: string) {
         return { success: false, error: error.message || "Failed to activate user account" };
     }
 }
+
+/**
+ * Assign RFID to a user account, ensuring it is unique across both User and Resident tables.
+ */
+export async function assignUserRFID(userId: string, rfid: string | null) {
+    try {
+        const session = await getServerSession(authOptions);
+        const currentUser = session?.user as any;
+        if (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "TREASURY_STAFF")) {
+            return { success: false, error: "Unauthorized" };
+        }
+
+        if (rfid && rfid.trim() !== "") {
+            const trimmedRfid = rfid.trim();
+
+            // Check if RFID exists in User table
+            const userWithRfid = await prisma.user.findFirst({
+                where: {
+                    rfid: trimmedRfid,
+                    NOT: { id: userId }
+                }
+            });
+            if (userWithRfid) {
+                return { success: false, error: "This RFID tag is already assigned to another User account." };
+            }
+
+            // Check if RFID exists in Resident table
+            const residentWithRfid = await prisma.resident.findFirst({
+                where: { rfid: trimmedRfid }
+            });
+            if (residentWithRfid) {
+                return { success: false, error: "This RFID tag is already assigned to a Resident profile." };
+            }
+
+            // Update user with the RFID
+            const updated = await prisma.user.update({
+                where: { id: userId },
+                data: { rfid: trimmedRfid }
+            });
+
+            revalidatePath("/admin/users");
+            return { success: true, user: updated };
+        } else {
+            // If empty/null, clear the RFID
+            const updated = await prisma.user.update({
+                where: { id: userId },
+                data: { rfid: null }
+            });
+
+            revalidatePath("/admin/users");
+            return { success: true, user: updated };
+        }
+    } catch (error: any) {
+        console.error("Failed to assign RFID to user:", error);
+        return { success: false, error: error.message || "Failed to assign RFID" };
+    }
+}
+
 
 

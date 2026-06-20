@@ -39,6 +39,7 @@ export function ReportForm({ isMaintenanceActive = false }: { isMaintenanceActiv
     const [selectedBarangay, setSelectedBarangay] = useState<string>("");
     const [isBrgyDropdownOpen, setIsBrgyDropdownOpen] = useState(false);
     const [brgySearchQuery, setBrgySearchQuery] = useState("");
+    const [showBrgyError, setShowBrgyError] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,7 +86,13 @@ export function ReportForm({ isMaintenanceActive = false }: { isMaintenanceActiv
         }
 
         if (!selectedBarangay) {
+            setShowBrgyError(true);
+            setIsBrgyDropdownOpen(true);
             toast.error("Please select a Barangay!");
+            const element = document.getElementById("barangay-select-container");
+            if (element) {
+                element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
             return;
         }
 
@@ -194,13 +201,19 @@ export function ReportForm({ isMaintenanceActive = false }: { isMaintenanceActiv
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2 relative">
+                    <div id="barangay-select-container" className="space-y-2 relative">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1 opacity-50">Select Barangay</label>
                         <input type="hidden" name="barangayId" value={selectedBarangay} required />
                         <button
                             type="button"
-                            onClick={() => setIsBrgyDropdownOpen(!isBrgyDropdownOpen)}
-                            className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl font-bold transition-all focus:outline-none focus:ring-1 focus:ring-primary text-white italic text-left px-5 flex items-center justify-between"
+                            onClick={() => {
+                                setIsBrgyDropdownOpen(!isBrgyDropdownOpen);
+                                if (showBrgyError) setShowBrgyError(false);
+                            }}
+                            className={cn(
+                                "w-full h-14 bg-white/5 border rounded-2xl font-bold transition-all focus:outline-none focus:ring-1 focus:ring-primary text-white italic text-left px-5 flex items-center justify-between",
+                                showBrgyError ? "border-red-500 ring-1 ring-red-500" : "border-white/10"
+                            )}
                         >
                             <span>{barangays.find(b => b.id === selectedBarangay)?.name || "Select Barangay"}</span>
                             <span className="text-xs text-slate-400">▼</span>
@@ -239,6 +252,7 @@ export function ReportForm({ isMaintenanceActive = false }: { isMaintenanceActiv
                                                                 setSelectedBarangay(b.id);
                                                                 setIsBrgyDropdownOpen(false);
                                                                 setBrgySearchQuery("");
+                                                                setShowBrgyError(false);
                                                             }}
                                                             className="w-full text-left p-3 rounded-xl text-xs font-bold text-slate-350 hover:bg-white/5 hover:text-white transition-colors"
                                                         >

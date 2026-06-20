@@ -33,6 +33,7 @@ model User {
   transactions      Transaction[] @relation("ResidentTransactions")
   driverTransactions Transaction[] @relation("DriverTransactions")
   isSynced          Boolean   @default(false)
+  rfid              String?   @unique
 }
 
 model Account {

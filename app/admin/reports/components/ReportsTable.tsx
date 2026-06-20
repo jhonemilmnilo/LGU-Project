@@ -17,7 +17,10 @@ import {
     Loader2,
     Home,
     Search,
-    Filter
+    Filter,
+    Mail,
+    FileText,
+    MessageSquare
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useSession } from "next-auth/react";
@@ -38,7 +41,6 @@ import {
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -309,118 +311,189 @@ export function ReportsTable({ initialReports, themeColor = "#2563eb" }: { initi
                     onInteractOutside={(e) => {
                         if (viewerOpen) e.preventDefault();
                     }}
-                    className="w-full sm:max-w-2xl bg-white dark:bg-[#0f1117] border-slate-200 dark:border-white/10 p-0 overflow-hidden rounded-[2.5rem] flex flex-col max-h-[90vh]"
+                    className="w-full sm:max-w-4xl bg-white dark:bg-[#0f1117] border-slate-200 dark:border-white/10 p-0 overflow-hidden rounded-[2rem] flex flex-col max-h-[92vh] shadow-2xl transition-all duration-300"
                 >
-                    <div className="p-8 pb-4 shrink-0">
-                        <DialogHeader>
-                            <div 
-                                style={{ 
-                                    backgroundColor: `${themeColor}0f`, 
-                                    borderColor: `${themeColor}20` 
-                                }}
-                                className="flex items-center gap-3 p-4 rounded-3xl border"
-                            >
-                                <div 
-                                    style={{ backgroundColor: `${themeColor}1a` }}
-                                    className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                                >
-                                    <AlertTriangle className="w-6 h-6" style={{ color: themeColor }} />
-                                </div>
-                                <div className="text-left">
-                                    <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">
-                                        Report <span style={{ color: themeColor }}>Summary</span>
-                                    </DialogTitle>
-                                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 italic mt-0.5">Reference: {selectedReport?.id}</p>
-                                </div>
-                            </div>
-                        </DialogHeader>
-                    </div>
+                    {/* Top Accent line using theme color */}
+                    <div className="h-1.5 w-full shrink-0" style={{ backgroundColor: themeColor }} />
 
                     {selectedReport && (
                         <>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar px-8 pb-6 space-y-6">
-                                <div className="space-y-6 animate-in zoom-in-95 duration-300">
+                            {/* Modal Header */}
+                            <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between gap-4 shrink-0">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Badge 
+                                            variant="outline" 
+                                            style={{ backgroundColor: `${themeColor}10`, borderColor: `${themeColor}20`, color: themeColor }}
+                                            className="font-bold text-xs uppercase tracking-wider px-2.5 py-0.5 rounded-full"
+                                        >
+                                            {selectedReport.category}
+                                        </Badge>
+                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+                                            #{selectedReport.id.slice(-8).toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <DialogTitle className="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
+                                        Report Summary
+                                    </DialogTitle>
+                                </div>
+                                <div className="shrink-0 flex items-center gap-2">
+                                    <span className="text-xs text-slate-400 font-medium mr-1 hidden sm:inline">Status:</span>
+                                    {getStatusBadge(selectedReport.status)}
+                                </div>
+                            </div>
+
+                            {/* Modal Scrollable Body */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-300">
                                     
-                                    {/* Main Detail Header Card */}
-                                    <div className="p-6 bg-slate-50 dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: themeColor }}>Category</span>
-                                                <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic">{selectedReport.category}</h3>
+                                    {/* Left Column: Reporter, Description, Action Center */}
+                                    <div className="lg:col-span-7 space-y-6">
+                                        
+                                        {/* Reporter & Details Card */}
+                                        <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-100 dark:border-white/5 space-y-4">
+                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                <UserCircle className="w-4 h-4 text-slate-400" /> Reporter Details
+                                            </h4>
+                                            
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center shrink-0">
+                                                    <UserCircle className="w-6 h-6 text-slate-500 dark:text-slate-400" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-sm font-semibold text-slate-950 dark:text-white truncate">{selectedReport.user.name}</p>
+                                                    <p className="text-xs text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                                                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {selectedReport.user.email}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1 sm:text-right shrink-0">
-                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Current Status</span>
-                                                <div>{getStatusBadge(selectedReport.status)}</div>
+
+                                            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-100 dark:border-white/5 text-xs">
+                                                <div className="space-y-1">
+                                                    <span className="text-slate-400 flex items-center gap-1.5"><Home className="w-3.5 h-3.5" /> Barangay Scope</span>
+                                                    <p className="font-semibold text-slate-800 dark:text-slate-200 uppercase">{selectedReport.barangay?.name || "N/A"}</p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <span className="text-slate-400 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Filed Date</span>
+                                                    <p className="font-semibold text-slate-800 dark:text-slate-200">
+                                                        {format(new Date(selectedReport.createdAt), "LLL d, yyyy h:mm a")}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                                            <div className="space-y-1">
-                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><UserCircle className="w-3 h-3" /> Reporter</span>
-                                                <p className="font-bold text-slate-800 dark:text-slate-200">{selectedReport.user.name}</p>
+                                        {/* Description Card */}
+                                        <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-100 dark:border-white/5 space-y-3">
+                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                <FileText className="w-4 h-4 text-slate-400" /> Issue Description
+                                            </h4>
+                                            <div 
+                                                className="text-[15px] text-slate-850 dark:text-slate-150 leading-relaxed font-normal pl-4 border-l-4 whitespace-pre-wrap" 
+                                                style={{ borderLeftColor: themeColor }}
+                                            >
+                                                {selectedReport.description}
                                             </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><Home className="w-3 h-3" /> Barangay Scope</span>
-                                                <p className="font-bold text-slate-800 dark:text-slate-200 uppercase">{selectedReport.barangay?.name || "N/A"}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Filed Date</span>
-                                                <p className="font-bold text-slate-800 dark:text-slate-200">{format(new Date(selectedReport.createdAt), "LLL d, yyyy h:mm a")}</p>
+                                        </div>
+
+                                        {/* Action Center */}
+                                        <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-100 dark:border-white/5 space-y-4">
+                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                <MessageSquare className="w-4 h-4 text-slate-400" /> Action Center
+                                            </h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Update Report Status</label>
+                                                    <Select value={currentStatus} onValueChange={(val) => setCurrentStatus(val)}>
+                                                        <SelectTrigger 
+                                                            style={{ "--tw-ring-color": themeColor } as any}
+                                                            className="h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-xl font-medium text-sm focus:ring-1"
+                                                        >
+                                                            <SelectValue placeholder="Status" />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] rounded-xl shadow-xl">
+                                                            <SelectItem value="PENDING" className="font-semibold text-xs cursor-pointer py-2 hover:bg-slate-50 dark:hover:bg-white/5">PENDING</SelectItem>
+                                                            <SelectItem value="SEEN" className="font-semibold text-xs cursor-pointer py-2 hover:bg-slate-50 dark:hover:bg-white/5">SEEN</SelectItem>
+                                                            <SelectItem value="IN_PROGRESS" className="font-semibold text-xs cursor-pointer py-2 hover:bg-slate-50 dark:hover:bg-white/5">IN PROGRESS</SelectItem>
+                                                            <SelectItem value="COMPLETED" className="font-semibold text-xs cursor-pointer py-2 text-emerald-500 hover:bg-slate-50 dark:hover:bg-white/5">COMPLETED</SelectItem>
+                                                            <SelectItem value="REJECTED" className="font-semibold text-xs cursor-pointer py-2 text-red-500 hover:bg-slate-50 dark:hover:bg-white/5">REJECTED</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Official Remarks</label>
+                                                    <Textarea 
+                                                        placeholder="Provide status updates or resolution notes here..." 
+                                                        value={adminComment}
+                                                        onChange={(e) => setAdminComment(e.target.value)}
+                                                        style={{ "--tw-ring-color": themeColor } as any}
+                                                        className="min-h-[80px] rounded-xl bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] text-sm font-medium focus-visible:ring-1 leading-snug"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Description Card */}
-                                    <div className="space-y-2">
-                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Detailed Description</h4>
-                                        <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 font-medium italic text-sm text-slate-700 dark:text-slate-300 leading-relaxed pl-6 border-l-4" style={{ borderLeftColor: themeColor }}>
-                                            "{selectedReport.description}"
-                                        </div>
-                                    </div>
-
-                                    {/* Images & Location Grid */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Images Section */}
-                                        <div className="space-y-3">
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic flex items-center gap-2"><ImageIcon className="w-3.5 h-3.5" /> Attached Photos ({selectedReport.images.length})</h4>
+                                    {/* Right Column: Images & Location Map */}
+                                    <div className="lg:col-span-5 space-y-6">
+                                        
+                                        {/* Photos Section */}
+                                        <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-100 dark:border-white/5 space-y-3">
+                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                <ImageIcon className="w-4 h-4 text-slate-400" /> Attached Photos ({selectedReport.images.length})
+                                            </h4>
+                                            
                                             {selectedReport.images.length > 0 ? (
                                                 <div className="grid grid-cols-3 gap-2">
                                                     {selectedReport.images.map((img, i) => (
                                                         <div 
                                                             key={i} 
-                                                            className="aspect-square relative rounded-xl overflow-hidden border border-slate-100 dark:border-white/5 shadow-md group cursor-pointer" 
+                                                            className="aspect-square relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm group cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200" 
                                                             onClick={() => handleViewImage(img, i)}
                                                         >
                                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img src={img} alt={`report-${i}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                                            <img 
+                                                                src={img} 
+                                                                alt={`report-photo-${i}`} 
+                                                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                                                <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="p-6 rounded-2xl border border-dashed border-slate-200 dark:border-white/5 text-center text-xs text-slate-400 italic">
+                                                <div className="p-8 rounded-xl border border-dashed border-slate-200 dark:border-white/5 text-center text-xs text-slate-400 italic">
                                                     No photos uploaded.
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* Location Section */}
-                                        <div className="space-y-3">
-                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> Geographic Location</h4>
-                                            {selectedReport.latitude ? (
-                                                <div className="rounded-2xl border border-slate-100 dark:border-white/5 overflow-hidden bg-slate-50 dark:bg-white/[0.01] p-4 space-y-3 shadow-md">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-[9px] font-bold text-slate-500 truncate max-w-[150px]">{selectedReport.address || "Pinned coordinates"}</span>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="sm" 
-                                                            onClick={() => window.open(`https://www.google.com/maps?q=${selectedReport.latitude},${selectedReport.longitude}`, '_blank')}
-                                                            className="text-[9px] font-black uppercase tracking-widest h-auto p-0 hover:bg-transparent italic hover:text-white/80"
-                                                            style={{ color: themeColor }}
-                                                        >
-                                                            Open Maps
-                                                        </Button>
-                                                    </div>
-                                                    <div className="h-24 w-full rounded-xl overflow-hidden relative">
+                                        {/* Location Card */}
+                                        <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-100 dark:border-white/5 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <MapPin className="w-4 h-4 text-slate-400" /> Location Pin
+                                                </h4>
+                                                {selectedReport.latitude !== null && selectedReport.longitude !== null && (
+                                                    <Button 
+                                                        variant="link" 
+                                                        size="sm" 
+                                                        onClick={() => window.open(`https://www.google.com/maps?q=${selectedReport.latitude},${selectedReport.longitude}`, '_blank')}
+                                                        className="text-xs h-auto p-0 font-semibold flex items-center gap-1 hover:no-underline"
+                                                        style={{ color: themeColor }}
+                                                    >
+                                                        Google Maps
+                                                    </Button>
+                                                )}
+                                            </div>
+
+                                            {selectedReport.latitude !== null && selectedReport.longitude !== null ? (
+                                                <div className="space-y-3">
+                                                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-snug line-clamp-2">
+                                                        {selectedReport.address || `${selectedReport.latitude.toFixed(6)}, ${selectedReport.longitude.toFixed(6)}`}
+                                                    </p>
+                                                    <div className="h-40 w-full rounded-xl overflow-hidden border border-slate-200 dark:border-white/5 relative">
                                                         <iframe
                                                             width="100%"
                                                             height="100%"
@@ -429,68 +502,34 @@ export function ReportsTable({ initialReports, themeColor = "#2563eb" }: { initi
                                                             marginHeight={0}
                                                             marginWidth={0}
                                                             src={`https://maps.google.com/maps?q=${selectedReport.latitude},${selectedReport.longitude}&hl=en&z=14&output=embed`}
-                                                            className="w-full h-full grayscale-[0.2]"
+                                                            className="w-full h-full grayscale-[0.1]"
                                                         />
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="p-6 rounded-2xl border border-dashed border-slate-200 dark:border-white/5 text-center text-xs text-slate-450 italic">
-                                                    No coordinate data provided.
+                                                <div className="p-8 rounded-xl border border-dashed border-slate-200 dark:border-white/5 text-center text-xs text-slate-450 italic">
+                                                    No location data available.
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
 
-                                    {/* Admin Action Management */}
-                                    <div className="p-6 bg-slate-50 dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
-                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Action Center</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Update Report Status</label>
-                                                <Select value={currentStatus} onValueChange={(val) => setCurrentStatus(val)}>
-                                                    <SelectTrigger 
-                                                        style={{ "--tw-ring-color": themeColor } as any}
-                                                        className="h-12 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic text-sm"
-                                                    >
-                                                        <SelectValue placeholder="Status" />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="bg-slate-900 border-white/10 text-white rounded-xl">
-                                                        <SelectItem value="PENDING" className="font-bold py-3 italic">PENDING</SelectItem>
-                                                        <SelectItem value="SEEN" className="font-bold py-3 italic">SEEN</SelectItem>
-                                                        <SelectItem value="IN_PROGRESS" className="font-bold py-3 italic">IN PROGRESS</SelectItem>
-                                                        <SelectItem value="COMPLETED" className="font-bold py-3 italic text-emerald-400">COMPLETED</SelectItem>
-                                                        <SelectItem value="REJECTED" className="font-bold py-3 italic text-red-400">REJECTED</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Official Remarks & Remarks</label>
-                                                <Textarea 
-                                                    placeholder="Add updates for the resident..." 
-                                                    value={adminComment}
-                                                    onChange={(e) => setAdminComment(e.target.value)}
-                                                    style={{ "--tw-ring-color": themeColor } as any}
-                                                    className="min-h-[80px] rounded-xl bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] italic text-sm font-medium focus-visible:ring-1"
-                                                />
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Sticky Action Footer */}
-                            <div className="p-8 pt-4 border-t border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02] shrink-0">
+                            {/* Modal Footer Actions */}
+                            <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] flex justify-end shrink-0">
                                 <Button 
                                     disabled={isUpdating}
                                     onClick={() => handleUpdateStatus(selectedReport.id, currentStatus)}
                                     style={{ 
                                         backgroundColor: themeColor, 
-                                        boxShadow: `0 20px 25px -5px ${themeColor}40` 
+                                        boxShadow: `0 8px 24px -6px ${themeColor}40` 
                                     }}
-                                    className="w-full h-14 rounded-2xl hover:opacity-90 text-white font-black uppercase tracking-widest text-xs italic transition-all active:scale-95 flex items-center justify-center gap-3 border-none"
+                                    className="w-full sm:w-auto px-8 h-12 rounded-xl hover:opacity-95 text-white font-bold text-sm tracking-wide transition-all active:scale-98 flex items-center justify-center gap-2 border-none"
                                 >
                                     {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                                    {isUpdating ? "Applying Changes..." : "Apply Status & Send Feedback"}
+                                    {isUpdating ? "Saving changes..." : "Save Updates & Notify"}
                                 </Button>
                             </div>
                         </>
