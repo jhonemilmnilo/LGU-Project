@@ -37,6 +37,13 @@ export default function PaymentSettingsClient({
         }, {} as Record<string, string>);
     });
 
+    const [lateFees, setLateFees] = useState<Record<string, string>>(() => {
+        return transactionTypes.reduce((acc, type) => {
+            acc[type.id] = String(type.lateFee || 0);
+            return acc;
+        }, {} as Record<string, string>);
+    });
+
     const [isSavingFees, setIsSavingFees] = useState(false);
 
     // Sync state when props change (revalidation updates)
@@ -47,6 +54,10 @@ export default function PaymentSettingsClient({
         }, {} as Record<string, string>));
         setStudentFees(transactionTypes.reduce((acc, type) => {
             acc[type.id] = String(type.studentFee || 0);
+            return acc;
+        }, {} as Record<string, string>));
+        setLateFees(transactionTypes.reduce((acc, type) => {
+            acc[type.id] = String(type.lateFee || 0);
             return acc;
         }, {} as Record<string, string>));
     }, [transactionTypes]);
@@ -65,16 +76,25 @@ export default function PaymentSettingsClient({
         }));
     };
 
+    const handleLateFeeChange = (id: string, value: string) => {
+        setLateFees(prev => ({
+            ...prev,
+            [id]: value
+        }));
+    };
+
     const handleSaveFees = async () => {
         setIsSavingFees(true);
         try {
             const feesList = Object.entries(fees).map(([id, baseFee]) => {
                 const type = transactionTypes.find(t => t.id === id);
                 const isCedula = type?.code?.includes("CEDULA");
+                const isLcrReg = ["LCR_BIRTH_REG", "LCR_MARRIAGE_REG", "LCR_DEATH_REG"].includes(type?.code || "");
                 return {
                     id,
                     baseFee: Number(baseFee) || 0,
-                    ...(isCedula ? { studentFee: Number(studentFees[id]) || 0 } : {})
+                    ...(isCedula ? { studentFee: Number(studentFees[id]) || 0 } : {}),
+                    ...(isLcrReg ? { lateFee: Number(lateFees[id]) || 0 } : {})
                 };
             });
             const res = await updateTransactionBaseFees(feesList);
@@ -192,6 +212,21 @@ export default function PaymentSettingsClient({
                                                                         step="0.01"
                                                                         value={studentFees[type.id] !== undefined ? studentFees[type.id] : ""}
                                                                         onChange={(e) => handleStudentFeeChange(type.id, e.target.value)}
+                                                                        className="h-9 pl-7 pr-3 text-right rounded-xl bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-[#2a3040] font-bold text-xs shadow-inner focus:ring-2 focus:ring-primary/20 w-full"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {["LCR_BIRTH_REG", "LCR_MARRIAGE_REG", "LCR_DEATH_REG"].includes(type.code || "") && (
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <span className="text-[10px] text-slate-400 font-bold uppercase whitespace-nowrap">Late Fee:</span>
+                                                                <div className="relative inline-flex items-center max-w-[130px]">
+                                                                    <span className="absolute left-3 text-slate-400 dark:text-slate-500 font-black text-sm">₱</span>
+                                                                    <Input 
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        value={lateFees[type.id] !== undefined ? lateFees[type.id] : ""}
+                                                                        onChange={(e) => handleLateFeeChange(type.id, e.target.value)}
                                                                         className="h-9 pl-7 pr-3 text-right rounded-xl bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-[#2a3040] font-bold text-xs shadow-inner focus:ring-2 focus:ring-primary/20 w-full"
                                                                     />
                                                                 </div>
