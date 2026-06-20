@@ -195,6 +195,7 @@ export function Navbar({
     const handleLogout = async () => {
         setIsDropdownOpen(false);
         setIsOpen(false);
+        localStorage.removeItem("selectedBarangay");
         await signOut({ redirect: false });
         window.location.href = "/";
     };

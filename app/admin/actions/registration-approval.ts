@@ -131,6 +131,11 @@ export async function rejectResident(residentId: string, remarks: string) {
 }
 
 export async function getPendingResidentsCount() {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+        return 0;
+    }
+
     try {
         const count = await prisma.resident.count({
             where: { registrationStatus: "PENDING" }
@@ -142,6 +147,11 @@ export async function getPendingResidentsCount() {
 }
 
 export async function getResidentForReview(residentId: string) {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+        return { success: false, error: "Unauthorized" };
+    }
+
     try {
         const resident = await prisma.resident.findUnique({
             where: { id: residentId },
