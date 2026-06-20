@@ -15,6 +15,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./SidebarContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { getUnviewedLcrCounts } from "@/app/admin/transactions/actions";
 
 interface SidebarProps {
     session: {
@@ -35,6 +36,7 @@ interface SidebarProps {
     pendingReportsCount?: number;
     pendingResidentsCount?: number;
     pendingTransactionsCount?: number;
+    unviewedLcrCounts?: Record<string, number>;
 }
 
 export function Sidebar({
@@ -46,7 +48,8 @@ export function Sidebar({
     pendingReportsCount = 0,
     pendingResidentsCount = 0,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    pendingTransactionsCount = 0
+    pendingTransactionsCount = 0,
+    unviewedLcrCounts = {}
 }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
@@ -63,10 +66,20 @@ export function Sidebar({
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
+    const [liveLcrCounts, setLiveLcrCounts] = React.useState<Record<string, number>>(unviewedLcrCounts);
     const { theme, setTheme } = useTheme();
     React.useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Refresh unviewed LCR counts on every navigation so counts update after viewing
+    React.useEffect(() => {
+        getUnviewedLcrCounts().then(res => {
+            if (res.success && res.data) {
+                setLiveLcrCounts(res.data);
+            }
+        }).catch(() => {});
+    }, [pathname]);
 
     React.useEffect(() => {
         setIsSettingsOpen(pathname.startsWith("/admin/settings"));
@@ -481,7 +494,9 @@ export function Sidebar({
                                                     <Icon size={18} style={{ color: item.isOpen ? themeColor : undefined }} className={cn(!item.isOpen && "text-slate-500")} />
                                                     <span className="text-sm">{item.label}</span>
                                                 </div>
-                                                {item.isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                <div className="flex items-center space-x-2">
+                                                    {item.isOpen ? <ChevronUp size={14} className="shrink-0" /> : <ChevronDown size={14} className="shrink-0" />}
+                                                </div>
                                             </button>
 
                                             <AnimatePresence initial={false}>
@@ -521,7 +536,7 @@ export function Sidebar({
                                                                         id={isSubActive ? "active-sidebar-link" : undefined}
                                                                         href={sub.href}
                                                                         className={cn(
-                                                                            "flex items-center gap-2 px-3 py-2 text-xs rounded-lg transition-all",
+                                                                            "flex items-center justify-between gap-2 px-3 py-2 text-xs rounded-lg transition-all",
                                                                             isSubActive
                                                                                 ? "font-bold text-slate-900 dark:text-white"
                                                                                 : "text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5",
@@ -532,16 +547,23 @@ export function Sidebar({
                                                                             backgroundColor: isSubActive ? `${themeColor}15` : undefined
                                                                         }}
                                                                     >
-                                                                        {isDashboard && (
-                                                                            <LayoutDashboard 
-                                                                                size={13} 
-                                                                                className={cn(
-                                                                                    "transition-colors",
-                                                                                    isSubActive ? "text-current" : "text-slate-400 dark:text-slate-500"
-                                                                                )} 
-                                                                            />
+                                                                        <div className="flex items-center gap-2">
+                                                                            {isDashboard && (
+                                                                                <LayoutDashboard 
+                                                                                    size={13} 
+                                                                                    className={cn(
+                                                                                        "transition-colors",
+                                                                                        isSubActive ? "text-current" : "text-slate-400 dark:text-slate-500"
+                                                                                    )} 
+                                                                                />
+                                                                            )}
+                                                                            <span>{sub.label}</span>
+                                                                        </div>
+                                                                        {!isDashboard && (liveLcrCounts[sub.label] || 0) > 0 && (
+                                                                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-white">
+                                                                                {liveLcrCounts[sub.label]}
+                                                                            </span>
                                                                         )}
-                                                                        <span>{sub.label}</span>
                                                                     </Link>
                                                                     {isDashboard && (
                                                                         <div className="h-px bg-slate-100 dark:bg-[#2a3040]/50 my-1 mx-2" />

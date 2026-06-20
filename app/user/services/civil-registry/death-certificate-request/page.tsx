@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
+import { BackNextButton } from "../_components/back-next-button";
 import { getSecureUploadUrlAction } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
 
@@ -1263,37 +1264,24 @@ export default function DeathCertificateRequestPage() {
                             </div>
 
                             {/* Step Nav */}
-                            <div className="flex justify-between items-center pt-8">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => router.push("/user/services/civil-registry")}
-                                    className="rounded-full px-12 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest italic text-[10px] h-12 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5"
-                                >
-                                    <ArrowLeft className="w-4 h-4 mr-2" />
-                                    Back
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        const missing = [];
-                                        if (!form.relationship) missing.push("Relationship");
-                                        if (form.relationship === "OTHER" && !form.relationshipOther) missing.push("Relationship Description");
-                                        if (!form.contactNumber) missing.push("Contact Number");
+                            <BackNextButton
+                                onBack={() => router.push("/user/services/civil-registry")}
+                                onNext={() => {
+                                    const missing = [];
+                                    if (!form.relationship) missing.push("Relationship");
+                                    if (form.relationship === "OTHER" && !form.relationshipOther) missing.push("Relationship Description");
+                                    if (!form.contactNumber) missing.push("Contact Number");
 
-                                        if (missing.length > 0) {
-                                            setShowErrors(true);
-                                            toast.error(`Please fill in all required requester fields: ${missing.join(", ")}`);
-                                            return;
-                                        }
-                                        setShowErrors(false);
-                                        setCurrentStep("DETAILS");
-                                    }}
-                                    className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20 transition-all duration-300"
-                                >
-                                    Proceed to Deceased Details
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
+                                    if (missing.length > 0) {
+                                        setShowErrors(true);
+                                        toast.error(`Please fill in all required requester fields: ${missing.join(", ")}`);
+                                        return;
+                                    }
+                                    setShowErrors(false);
+                                    setCurrentStep("DETAILS");
+                                }}
+                                themeColor={themeColor}
+                            />
                         </motion.div>
                     )}
 
@@ -1471,34 +1459,22 @@ export default function DeathCertificateRequestPage() {
                             </div>
 
                             {/* Step Nav */}
-                            <div className="flex justify-end gap-3 pt-8">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setCurrentStep("IDENTITY")}
-                                    className="rounded-full px-8 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                >
-                                    <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                    Back
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        const missingDeceased = !form.deceasedFirstName || !form.deceasedLastName;
-                                        const missingParents = !form.fatherFirstName || !form.fatherLastName || !form.motherFirstName || !form.motherLastName;
-                                        
-                                        if (missingDeceased || missingParents) {
-                                            setShowErrors(true);
-                                            toast.error("Please fill in all required deceased and parent name fields.");
-                                            return;
-                                        }
-                                        setShowErrors(false);
-                                        setCurrentStep("UPLOAD");
-                                    }}
-                                    className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20 transition-all duration-300"
-                                >
-                                    Proceed to Verification
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
+                            <BackNextButton
+                                onBack={() => setCurrentStep("IDENTITY")}
+                                onNext={() => {
+                                    const missingDeceased = !form.deceasedFirstName || !form.deceasedLastName;
+                                    const missingParents = !form.fatherFirstName || !form.fatherLastName || !form.motherFirstName || !form.motherLastName;
+                                    
+                                    if (missingDeceased || missingParents) {
+                                        setShowErrors(true);
+                                        toast.error("Please fill in all required deceased and parent name fields.");
+                                        return;
+                                    }
+                                    setShowErrors(false);
+                                    setCurrentStep("UPLOAD");
+                                }}
+                                themeColor={themeColor}
+                            />
                         </motion.div>
                     )}
 
@@ -1620,49 +1596,37 @@ export default function DeathCertificateRequestPage() {
                             </div>
 
                             {/* Step Nav */}
-                            <div className="flex justify-end gap-3 pt-8">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setCurrentStep("DETAILS")}
-                                    className="rounded-full px-8 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                >
-                                    <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                    Back
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        if (!form.dateOfDeath || !form.placeOfDeath) {
-                                            setShowErrors(true);
-                                            toast.error("Please fill in all required death event fields.");
-                                            return;
-                                        }
-                                        const isFutureDate = form.dateOfDeath && new Date(form.dateOfDeath) > new Date();
-                                        if (isFutureDate) {
-                                            toast.error("Date of death cannot be in the future.");
-                                            return;
-                                        }
-                                        const idTypeSelected = form.idTypeOverride || resident?.idType;
-                                        if (!idTypeSelected) {
-                                            setShowErrors(true);
-                                            toast.error("Please select a Government ID type.");
-                                            return;
-                                        }
-                                        const hasIdFront = form.files["validIdFront"] || resident?.idFrontUrl || form.previews["validIdFront"];
-                                        const hasIdBack = form.files["validIdBack"] || resident?.idBackUrl || form.previews["validIdBack"];
-                                        if (!hasIdFront || !hasIdBack) {
-                                            setShowErrors(true);
-                                            toast.error("Please upload front and back of your Government ID.");
-                                            return;
-                                        }
-                                        setShowErrors(false);
-                                        setCurrentStep("CONFIRM");
-                                    }}
-                                    className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20 transition-all duration-300"
-                                >
-                                    Proceed to Review & Confirm
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </div>
+                            <BackNextButton
+                                onBack={() => setCurrentStep("DETAILS")}
+                                onNext={() => {
+                                    if (!form.dateOfDeath || !form.placeOfDeath) {
+                                        setShowErrors(true);
+                                        toast.error("Please fill in all required death event fields.");
+                                        return;
+                                    }
+                                    const isFutureDate = form.dateOfDeath && new Date(form.dateOfDeath) > new Date();
+                                    if (isFutureDate) {
+                                        toast.error("Date of death cannot be in the future.");
+                                        return;
+                                    }
+                                    const idTypeSelected = form.idTypeOverride || resident?.idType;
+                                    if (!idTypeSelected) {
+                                        setShowErrors(true);
+                                        toast.error("Please select a Government ID type.");
+                                        return;
+                                    }
+                                    const hasIdFront = form.files["validIdFront"] || resident?.idFrontUrl || form.previews["validIdFront"];
+                                    const hasIdBack = form.files["validIdBack"] || resident?.idBackUrl || form.previews["validIdBack"];
+                                    if (!hasIdFront || !hasIdBack) {
+                                        setShowErrors(true);
+                                        toast.error("Please upload front and back of your Government ID.");
+                                        return;
+                                    }
+                                    setShowErrors(false);
+                                    setCurrentStep("CONFIRM");
+                                }}
+                                themeColor={themeColor}
+                            />
                         </motion.div>
                     )}
 
@@ -1795,33 +1759,40 @@ export default function DeathCertificateRequestPage() {
                             </div>
 
                             {/* Step Nav */}
-                            <div className="flex justify-end gap-3 pt-8">
-                                <Button
-                                    variant="ghost"
+                            <div className="flex justify-end items-center gap-6 pt-6 select-none">
+                                <button
+                                    type="button"
                                     onClick={() => setCurrentStep("UPLOAD")}
-                                    className="rounded-full px-8 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                    disabled={submitting}
+                                    className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors duration-200 uppercase font-black tracking-widest italic text-[11px] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-0 outline-none cursor-pointer group"
                                 >
-                                    <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                    Back
-                                </Button>
-                                <Button
+                                    <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+                                    BACK
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={handleSubmit}
                                     disabled={submitting}
-                                    className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20 transition-all duration-300 flex items-center gap-2"
+                                    style={
+                                        themeColor
+                                            ? {
+                                                  backgroundColor: themeColor,
+                                                  boxShadow: themeColor.startsWith("var")
+                                                      ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
+                                                      : `0 0 20px ${themeColor}4d`
+                                              }
+                                            : {}
+                                    }
+                                    className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
                                 >
                                     {submitting ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin text-white dark:text-slate-900" />
-                                            Filing Request...
-                                        </>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                     ) : (
                                         <>
-                                            File Death Certificate Request
-                                            <Check className="w-4 h-4" />
+                                            SUBMIT
+                                            <Check className="w-3.5 h-3.5" />
                                         </>
                                     )}
-                                </Button>
+                                </button>
                             </div>
                         </motion.div>
                     )}

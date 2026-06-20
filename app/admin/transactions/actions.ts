@@ -4456,7 +4456,11 @@ export async function getRegistrarActiveCounts() {
     }
 }
 
-export async function markTransactionAsViewed(id: string) {
+/**
+ * Fetch per-category unviewed LCR transaction counts for the current user.
+ * Uses the viewedAt JSON column to determine if the current user has viewed each transaction.
+ */
+export async function getUnviewedLcrCounts() {
     try {
         const session = await getSession();
         const userId = session?.user?.id;
@@ -4464,34 +4468,50 @@ export async function markTransactionAsViewed(id: string) {
             return { success: false, error: "Unauthorized" };
         }
 
-        const tx = await prisma.transaction.findUnique({
-            where: { id },
-            select: { viewedAt: true }
-        });
-        if (!tx) {
-            return { success: false, error: "Transaction not found" };
-        }
-
-        let currentViewedAt: Record<string, string> = {};
-        if (tx.viewedAt && typeof tx.viewedAt === "object" && !Array.isArray(tx.viewedAt)) {
-            currentViewedAt = { ...tx.viewedAt } as Record<string, string>;
-        }
-
-        currentViewedAt[userId] = new Date().toISOString();
-
-        await prisma.transaction.update({
-            where: { id },
-            data: {
-                viewedAt: currentViewedAt
+        const lcrTransactions = await prisma.transaction.findMany({
+            where: {
+                status: "FOR_INSPECTION",
+                isCancelled: false,
+                type: {
+                    OR: [
+                        { category: "Civil Registry" },
+                        { code: { startsWith: "LCR_" } },
+                        { code: { startsWith: "CIVIL_REGISTRY" } }
+                    ]
+                }
+            },
+            select: {
+                id: true,
+                updatedAt: true,
+                type: { select: { code: true } }
             }
         });
 
-        revalidatePath("/admin/registrar");
-        return { success: true };
+        const codeToCategory: Record<string, string> = {
+            LCR_BIRTH_REG: "Birth Registration",
+            LCR_BIRTH: "Birth Certificate",
+            LCR_PSA_ENDORSEMENT: "PSA Endorsement",
+            LCR_DEATH_PSA_ENDORSEMENT: "PSA Endorsement",
+            LCR_MARRIAGE_PSA_ENDORSEMENT: "PSA Endorsement",
+            LCR_DEATH_REG: "Death Registration",
+            LCR_DEATH: "Death Certificate",
+            LCR_MARRIAGE_LICENSE: "Marriage License",
+            LCR_MARRIAGE_REG: "Marriage Registration",
+            LCR_MARRIAGE: "Marriage Certificate",
+        };
+
+        const counts: Record<string, number> = {};
+        for (const tx of lcrTransactions) {
+            const code = tx.type?.code || "";
+            const category = codeToCategory[code];
+            if (category) {
+                counts[category] = (counts[category] || 0) + 1;
+            }
+        }
+
+        return { success: true, data: counts };
     } catch (error: any) {
-        console.error("Error marking transaction as viewed:", error);
-        return { success: false, error: error?.message || "Failed to mark transaction as viewed" };
+        console.error("Get unviewed LCR counts error:", error);
+        return { success: false, error: error?.message || "Failed to get unviewed counts" };
     }
 }
-
-

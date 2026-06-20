@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { BackNextButton } from "../_components/back-next-button";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
@@ -1026,23 +1027,11 @@ export default function MarriagePsaEndorsementPage() {
                                         </div>
                                     </Card>
 
-                                    <div className="flex justify-between pt-4">
-                                        <Button
-                                            type="button"
-                                            onClick={() => router.push("/user/services/civil-registry")}
-                                            className="h-14 px-10 rounded-full border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest italic text-[10px] bg-transparent hover:bg-slate-50 dark:hover:bg-white/5"
-                                        >
-                                            <ArrowLeft className="mr-2 w-5 h-5" />
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={nextStep}
-                                            className="h-14 px-10 rounded-full text-white font-black uppercase italic tracking-widest shadow-lg shadow-emerald-500/10 hover:opacity-90 transition-opacity"
-                                            style={{ backgroundColor: themeColor }}
-                                        >
-                                            Next Step <ArrowRight className="ml-2 w-5 h-5" />
-                                        </Button>
-                                    </div>
+                                    <BackNextButton
+                                        onBack={() => router.push("/user/services/civil-registry")}
+                                        onNext={nextStep}
+                                        themeColor={themeColor}
+                                    />
                                 </div>
                             )}
 
@@ -1148,18 +1137,11 @@ export default function MarriagePsaEndorsementPage() {
                                         </div>
                                     </Card>
 
-                                    <div className="flex justify-end gap-4 pt-4">
-                                        <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-full font-black uppercase italic tracking-widest">
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={nextStep}
-                                            className="h-14 px-10 rounded-full text-white font-black uppercase italic tracking-widest shadow-lg shadow-emerald-500/10 hover:opacity-90 transition-opacity"
-                                            style={{ backgroundColor: themeColor }}
-                                        >
-                                            Next Step <ArrowRight className="ml-2 w-5 h-5" />
-                                        </Button>
-                                    </div>
+                                    <BackNextButton
+                                        onBack={prevStep}
+                                        onNext={nextStep}
+                                        themeColor={themeColor}
+                                    />
                                 </div>
                             )}
 
@@ -1294,34 +1276,40 @@ export default function MarriagePsaEndorsementPage() {
                                         </div>
                                     </Card>
 
-                                    <div className="flex justify-end gap-4 pt-4">
-                                        <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-full font-black uppercase italic tracking-widest">
-                                            Back
-                                        </Button>
-                                        <Button
+                                    <div className="flex justify-end items-center gap-6 pt-6 select-none">
+                                        <button
+                                            type="button"
+                                            onClick={prevStep}
+                                            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors duration-200 uppercase font-black tracking-widest italic text-[11px] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-0 outline-none cursor-pointer group"
+                                        >
+                                            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+                                            BACK
+                                        </button>
+                                        <button
+                                            type="button"
                                             onClick={handleSubmit}
                                             disabled={submitting || (!files.psaNegativeCert && !previews.psaNegativeCert) || (!files.form3a && !previews.form3a)}
-                                            className={cn(
-                                                "h-14 px-12 rounded-full font-black uppercase italic tracking-widest shadow-xl transition-all duration-300",
-                                                ((!files.psaNegativeCert && !previews.psaNegativeCert) || (!files.form3a && !previews.form3a))
-                                                    ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                                    : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/20"
-                                            )}
+                                            style={
+                                                themeColor
+                                                    ? {
+                                                          backgroundColor: themeColor,
+                                                          boxShadow: themeColor.startsWith("var")
+                                                              ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
+                                                              : `0 0 20px ${themeColor}4d`
+                                                      }
+                                                    : {}
+                                            }
+                                            className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
                                         >
                                             {submitting ? (
-                                                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                            ) : ((!files.psaNegativeCert && !previews.psaNegativeCert) || (!files.form3a && !previews.form3a)) ? (
-                                                <>
-                                                    Upload Required Documents
-                                                    <AlertCircle className="w-5 h-5 mr-2" />
-                                                </>
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                             ) : (
                                                 <>
-                                                    <CheckCircle2 className="w-5 h-5 mr-2" />
-                                                    Confirm & Submit
+                                                    SUBMIT
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
                                                 </>
                                             )}
-                                        </Button>
+                                        </button>
                                     </div>
                                 </div>
                             )}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { BackNextButton } from "../_components/back-next-button";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
@@ -1030,28 +1031,16 @@ export default function DeathPsaEndorsementPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-between pt-6">
-                                        <Button
-                                            type="button"
-                                            onClick={() => router.push("/user/services/civil-registry")}
-                                            className="rounded-full px-12 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest italic text-[10px] h-12 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5"
-                                        >
-                                            <ArrowLeft className="w-4 h-4 mr-2" />
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (validateStep("INFORMANT")) {
-                                                    setShowErrors(false);
-                                                    setCurrentStep("SUBJECT");
-                                                }
-                                            }}
-                                            className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20"
-                                        >
-                                            Next Step
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
+                                    <BackNextButton
+                                        onBack={() => router.push("/user/services/civil-registry")}
+                                        onNext={() => {
+                                            if (validateStep("INFORMANT")) {
+                                                setShowErrors(false);
+                                                setCurrentStep("SUBJECT");
+                                            }
+                                        }}
+                                        themeColor={themeColor}
+                                    />
                                 </motion.div>
                             )}
 
@@ -1146,28 +1135,16 @@ export default function DeathPsaEndorsementPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end gap-3 pt-6">
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => setCurrentStep("INFORMANT")}
-                                            className="rounded-full px-8 border border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[10px] h-12 text-slate-500 dark:text-slate-400"
-                                        >
-                                            <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (validateStep("SUBJECT")) {
-                                                    setShowErrors(false);
-                                                    setCurrentStep("UPLOAD");
-                                                }
-                                            }}
-                                            className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20"
-                                        >
-                                            Next Step
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
+                                    <BackNextButton
+                                        onBack={() => setCurrentStep("INFORMANT")}
+                                        onNext={() => {
+                                            if (validateStep("SUBJECT")) {
+                                                setShowErrors(false);
+                                                setCurrentStep("UPLOAD");
+                                            }
+                                        }}
+                                        themeColor={themeColor}
+                                    />
                                 </motion.div>
                             )}
 
@@ -1206,28 +1183,16 @@ export default function DeathPsaEndorsementPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end gap-3 pt-6">
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => setCurrentStep("SUBJECT")}
-                                            className="rounded-full px-8 border border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[10px] h-12 text-slate-500 dark:text-slate-400"
-                                        >
-                                            <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (validateStep("UPLOAD")) {
-                                                    setShowErrors(false);
-                                                    setCurrentStep("REVIEW");
-                                                }
-                                            }}
-                                            className="rounded-full px-12 bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-slate-500/20"
-                                        >
-                                            Proceed to Review
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
+                                    <BackNextButton
+                                        onBack={() => setCurrentStep("SUBJECT")}
+                                        onNext={() => {
+                                            if (validateStep("UPLOAD")) {
+                                                setShowErrors(false);
+                                                setCurrentStep("REVIEW");
+                                            }
+                                        }}
+                                        themeColor={themeColor}
+                                    />
                                 </motion.div>
                             )}
 
@@ -1386,32 +1351,40 @@ export default function DeathPsaEndorsementPage() {
                                             </button>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                            <Button
-                                                variant="ghost"
+                                        <div className="flex justify-end items-center gap-6 pt-6 select-none">
+                                            <button
+                                                type="button"
                                                 onClick={() => setCurrentStep("UPLOAD")}
-                                                className="h-14 rounded-full border border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[11px]"
+                                                className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors duration-200 uppercase font-black tracking-widest italic text-[11px] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-0 outline-none cursor-pointer group"
                                             >
-                                                <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                                Modify Details
-                                            </Button>
-                                            <Button
+                                                <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+                                                BACK
+                                            </button>
+                                            <button
+                                                type="button"
                                                 onClick={handleSubmit}
                                                 disabled={submitting}
-                                                className="col-span-1 md:col-span-3 h-14 rounded-full bg-slate-500 hover:bg-slate-600 text-white font-black uppercase tracking-wider md:tracking-[0.2em] italic text-[9px] sm:text-[10px] md:text-[11px] shadow-xl shadow-slate-500/20 flex items-center justify-center gap-1 sm:gap-2 px-4 sm:px-8"
+                                                style={
+                                                    themeColor
+                                                        ? {
+                                                              backgroundColor: themeColor,
+                                                              boxShadow: themeColor.startsWith("var")
+                                                                  ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
+                                                                  : `0 0 20px ${themeColor}4d`
+                                                          }
+                                                        : {}
+                                                }
+                                                className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
                                             >
                                                 {submitting ? (
-                                                    <span className="flex items-center justify-center gap-1 sm:gap-2">
-                                                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                                                        Submitting Endorsement...
-                                                    </span>
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                 ) : (
-                                                    <span className="flex items-center justify-center gap-1 sm:gap-2">
-                                                        Submit Endorsement Request
-                                                        <ArrowRight className="w-4 h-4 shrink-0" />
-                                                    </span>
+                                                    <>
+                                                        SUBMIT
+                                                        <ArrowRight className="w-3.5 h-3.5" />
+                                                    </>
                                                 )}
-                                            </Button>
+                                            </button>
                                         </div>
                                     </div>
                                 </motion.div>

@@ -63,6 +63,7 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { BackNextButton } from "../_components/back-next-button";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { getSecureUploadUrlAction } from "@/app/auth/actions";
 
@@ -598,6 +599,7 @@ export default function BirthRegistrationPage() {
                             ...prev,
                             email: prev.email || r.email || "",
                             contactNumber: prev.contactNumber || r.contactNumber || "",
+                            relationship: prev.relationship || (r.gender?.toUpperCase() === "MALE" ? "FATHER" : r.gender?.toUpperCase() === "FEMALE" ? "MOTHER" : ""),
                             informantFirstName: r.firstName || "",
                             informantMiddleName: r.middleName || "",
                             informantLastName: r.lastName || "",
@@ -823,7 +825,9 @@ export default function BirthRegistrationPage() {
         if (stepId === "STATUS") return true;
         if (stepId === "IDENTITY") {
             const isSpecifyValid = form.relationship !== "OTHER" || !!form.relationshipSpecify?.trim();
-            return !!form.relationship && !!form.contactNumber && isSpecifyValid;
+            const isGenderMatch = !(form.relationship === "MOTHER" && resident?.gender?.toUpperCase() === "MALE") &&
+                                  !(form.relationship === "FATHER" && resident?.gender?.toUpperCase() === "FEMALE");
+            return !!form.relationship && !!form.contactNumber && isSpecifyValid && isGenderMatch;
         }
         if (stepId === "DETAILS") {
             const childrenValid = form.children.every((c) => {
@@ -853,7 +857,13 @@ export default function BirthRegistrationPage() {
         const errs: Record<string, string> = {};
 
         if (step === "IDENTITY") {
-            if (!form.relationship) errs.relationship = "Please select relationship.";
+            if (!form.relationship) {
+                errs.relationship = "Please select relationship.";
+            } else if (form.relationship === "MOTHER" && resident?.gender?.toUpperCase() === "MALE") {
+                errs.relationship = "You cannot be a mother because you are male.";
+            } else if (form.relationship === "FATHER" && resident?.gender?.toUpperCase() === "FEMALE") {
+                errs.relationship = "You cannot be a father because you are female.";
+            }
             if (form.relationship === "OTHER" && !form.relationshipSpecify?.trim()) {
                 errs.relationshipSpecify = "Please specify your relationship.";
             }
@@ -945,6 +955,15 @@ export default function BirthRegistrationPage() {
 
         if (!form.relationship || (form.relationship === "OTHER" && !form.relationshipSpecify?.trim())) {
             toast.error("Please specify your relationship.");
+            return;
+        }
+
+        if (form.relationship === "MOTHER" && resident?.gender?.toUpperCase() === "MALE") {
+            toast.error("You cannot be a mother because you are male.");
+            return;
+        }
+        if (form.relationship === "FATHER" && resident?.gender?.toUpperCase() === "FEMALE") {
+            toast.error("You cannot be a father because you are female.");
             return;
         }
 
@@ -1489,11 +1508,24 @@ export default function BirthRegistrationPage() {
                                                 ) : (
                                                     <Select
                                                         value={form.relationship}
-                                                        onValueChange={(val) => setForm({ 
-                                                            ...form, 
-                                                            relationship: val,
-                                                            relationshipSpecify: val === "OTHER" ? (form.relationshipSpecify || "") : "" 
-                                                        })}
+                                                        onValueChange={(val) => {
+                                                            setForm(prev => ({ 
+                                                                ...prev, 
+                                                                relationship: val,
+                                                                relationshipSpecify: val === "OTHER" ? (prev.relationshipSpecify || "") : "" 
+                                                            }));
+                                                            setErrors(prev => {
+                                                                const copy = { ...prev };
+                                                                if (val === "MOTHER" && resident?.gender?.toUpperCase() === "MALE") {
+                                                                    copy.relationship = "You cannot be a mother because you are male.";
+                                                                } else if (val === "FATHER" && resident?.gender?.toUpperCase() === "FEMALE") {
+                                                                    copy.relationship = "You cannot be a father because you are female.";
+                                                                } else {
+                                                                    delete copy.relationship;
+                                                                }
+                                                                return copy;
+                                                            });
+                                                        }}
                                                     >
                                                         <SelectTrigger 
                                                             id="relationship"
@@ -1512,7 +1544,7 @@ export default function BirthRegistrationPage() {
                                                         </SelectContent>
                                                     </Select>
                                                 )}
-                                                {errors.relationship && !form.relationship && (
+                                                {errors.relationship && (
                                                     <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.relationship}</p>
                                                 )}
                                                 {form.relationship === "OTHER" && errors.relationshipSpecify && (
@@ -1605,27 +1637,14 @@ export default function BirthRegistrationPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-between pt-6">
-                                        <Button
-                                            type="button"
-                                            onClick={() => router.push("/user/services/civil-registry")}
-                                            className="rounded-full px-12 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest italic text-[10px] h-12 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5"
-                                        >
-                                            <ArrowLeft className="w-4 h-4 mr-2" />
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (!validateStep("IDENTITY")) return;
-                                                setCurrentStep("DETAILS");
-                                            }}
-                                            className="rounded-full px-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-blue-500/20"
-                                            style={{ backgroundColor: themeColor }}
-                                        >
-                                            Next Phase
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
+                                    <BackNextButton
+                                        onBack={() => router.push("/user/services/civil-registry")}
+                                        onNext={() => {
+                                            if (!validateStep("IDENTITY")) return;
+                                            setCurrentStep("DETAILS");
+                                        }}
+                                        themeColor={themeColor}
+                                    />
                                 </motion.div>
                             )}
 
@@ -1837,41 +1856,29 @@ export default function BirthRegistrationPage() {
                                          </div>
                                     </div>
 
-                                    <div className="flex justify-end gap-3 pt-6">
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => setCurrentStep("IDENTITY")}
-                                            className="rounded-full px-8 border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                        >
-                                            <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (!validateStep("DETAILS")) return;
-                                                // Show late-registration notice when user proceeds
-                                                try {
-                                                    if (form.dateOfEvent) {
-                                                        const dob = new Date(form.dateOfEvent);
-                                                        const today = new Date();
-                                                        const dobNorm = new Date(dob.getFullYear(), dob.getMonth(), dob.getDate());
-                                                        const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                                                        const diffDays = Math.floor((todayNorm.getTime() - dobNorm.getTime()) / (1000 * 60 * 60 * 24));
-                                                        if (diffDays > 30 && form.registrationType === "LATE") {
-                                                            toast.info("Registration set to LATE because date of birth is over 1 month old.");
-                                                        }
+                                    <BackNextButton
+                                        onBack={() => setCurrentStep("IDENTITY")}
+                                        onNext={() => {
+                                            if (!validateStep("DETAILS")) return;
+                                            // Show late-registration notice when user proceeds
+                                            try {
+                                                if (form.dateOfEvent) {
+                                                    const dob = new Date(form.dateOfEvent);
+                                                    const today = new Date();
+                                                    const dobNorm = new Date(dob.getFullYear(), dob.getMonth(), dob.getDate());
+                                                    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                                    const diffDays = Math.floor((todayNorm.getTime() - dobNorm.getTime()) / (1000 * 60 * 60 * 24));
+                                                    if (diffDays > 30 && form.registrationType === "LATE") {
+                                                        toast.info("Registration set to LATE because date of birth is over 1 month old.");
                                                     }
-                                                } catch {
-                                                    // ignore
                                                 }
-                                                setCurrentStep("PARENTS");
-                                            }}
-                                            className="rounded-full px-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-blue-500/20"
-                                        >
-                                            Next Step
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
+                                            } catch {
+                                                // ignore
+                                            }
+                                            setCurrentStep("PARENTS");
+                                        }}
+                                        themeColor={themeColor}
+                                    />
                                 </motion.div>
                             )}
 
@@ -2034,26 +2041,14 @@ export default function BirthRegistrationPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end gap-3 pt-6">
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => setCurrentStep("DETAILS")}
-                                            className="rounded-full px-8 border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                        >
-                                            <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (!validateStep("PARENTS")) return;
-                                                setCurrentStep("CONFIRM");
-                                            }}
-                                            className="rounded-full px-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-blue-500/20"
-                                        >
-                                            Proceed to Review
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
+                                    <BackNextButton
+                                        onBack={() => setCurrentStep("DETAILS")}
+                                        onNext={() => {
+                                            if (!validateStep("PARENTS")) return;
+                                            setCurrentStep("CONFIRM");
+                                        }}
+                                        themeColor={themeColor}
+                                    />
                                 </motion.div>
                             )}
 
@@ -2311,34 +2306,40 @@ export default function BirthRegistrationPage() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => setCurrentStep("PARENTS")}
-                                                className="h-14 rounded-full border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[11px]"
-                                            >
-                                                <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                                Modify Details
-                                            </Button>
-                                            <Button
-                                                onClick={handleSubmit}
-                                                disabled={submitting}
-                                                className={cn(
-                                                    "md:col-span-3 h-14 rounded-full font-black uppercase tracking-wider md:tracking-widest italic text-[9px] sm:text-[10px] md:text-[11px] transition-all duration-300 px-4 sm:px-8",
-                                                    submitting ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/20"
-                                                )}
-                                            >
-                                                {submitting ? (
-                                                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mr-2" />
-                                                ) : (
-                                                    <span className="flex items-center justify-center gap-1 sm:gap-2">
-                                                        Submit Birth Registration Application
-                                                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                                                    </span>
-                                                )}
-                                            </Button>
-                                        </div>
+                                    <div className="flex justify-end items-center gap-6 pt-6 select-none">
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentStep("PARENTS")}
+                                            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors duration-200 uppercase font-black tracking-widest italic text-[11px] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-0 outline-none cursor-pointer group"
+                                        >
+                                            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+                                            BACK
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleSubmit}
+                                            disabled={submitting}
+                                            style={
+                                                themeColor
+                                                    ? {
+                                                          backgroundColor: themeColor,
+                                                          boxShadow: themeColor.startsWith("var")
+                                                              ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
+                                                              : `0 0 20px ${themeColor}4d`
+                                                      }
+                                                    : {}
+                                            }
+                                            className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
+                                        >
+                                            {submitting ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                                <>
+                                                    SUBMIT
+                                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 </motion.div>
                             )}

@@ -53,6 +53,7 @@ import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { BackNextButton } from "../_components/back-next-button";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { getSecureUploadUrlAction } from "@/app/auth/actions";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
@@ -1276,26 +1277,14 @@ export default function DeathRegistrationPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-between pt-6">
-                                        <Button
-                                            type="button"
-                                            onClick={() => router.push("/user/services/civil-registry")}
-                                            className="rounded-full px-12 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest italic text-[10px] h-12 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5"
-                                        >
-                                            <ArrowLeft className="w-4 h-4 mr-2" />
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (!validateStep("IDENTITY")) return;
-                                                setCurrentStep("DETAILS");
-                                            }}
-                                            className="rounded-full px-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-emerald-500/20"
-                                        >
-                                            Next Step
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
+                                    <BackNextButton
+                                        onBack={() => router.push("/user/services/civil-registry")}
+                                        onNext={() => {
+                                            if (!validateStep("IDENTITY")) return;
+                                            setCurrentStep("DETAILS");
+                                        }}
+                                        themeColor={themeColor}
+                                    />
                                 </motion.div>
                             )}
 
@@ -1642,26 +1631,14 @@ export default function DeathRegistrationPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end gap-3 pt-6">
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => setCurrentStep("IDENTITY")}
-                                            className="rounded-full px-8 border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                        >
-                                            <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                            Back
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (!validateStep("DETAILS")) return;
-                                                setCurrentStep("CONFIRM");
-                                            }}
-                                            className="rounded-full px-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-emerald-500/20"
-                                        >
-                                            Proceed to Review
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </Button>
-                                    </div>
+                                    <BackNextButton
+                                        onBack={() => setCurrentStep("IDENTITY")}
+                                        onNext={() => {
+                                            if (!validateStep("DETAILS")) return;
+                                            setCurrentStep("CONFIRM");
+                                        }}
+                                        themeColor={themeColor}
+                                    />
                                 </motion.div>
                             )}
 
@@ -1876,44 +1853,45 @@ export default function DeathRegistrationPage() {
                                             </button>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                            <Button
-                                                variant="ghost"
+                                        <div className="flex justify-end items-center gap-6 pt-6 select-none">
+                                            <button
+                                                type="button"
                                                 onClick={() => setCurrentStep("DETAILS")}
-                                                className="h-14 rounded-full border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[11px]"
+                                                className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors duration-200 uppercase font-black tracking-widest italic text-[11px] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-0 outline-none cursor-pointer group"
                                             >
-                                                <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                                Modify Details
-                                            </Button>
+                                                <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+                                                BACK
+                                            </button>
                                             {(() => {
                                                 const isMissingRequiredDocs = formData.registrationType === "STANDARD"
                                                     ? !(files.municipalForm103 || existingUrls.municipalForm103)
                                                     : !(files.psaNegative || existingUrls.psaNegative) || !(files.affidavitOfDelay || existingUrls.affidavitOfDelay);
                                                 return (
-                                                    <Button
+                                                    <button
+                                                        type="button"
                                                         onClick={handleSubmit}
                                                         disabled={submitting || isMissingRequiredDocs}
-                                                        className={cn(
-                                                            "md:col-span-3 h-14 rounded-full font-black uppercase tracking-wider md:tracking-widest italic text-[9px] sm:text-[10px] md:text-[11px] transition-all duration-300 px-4 sm:px-8",
-                                                            isMissingRequiredDocs
-                                                                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                                                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-500/20"
-                                                        )}
+                                                        style={
+                                                            themeColor
+                                                                ? {
+                                                                      backgroundColor: themeColor,
+                                                                      boxShadow: themeColor.startsWith("var")
+                                                                          ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
+                                                                          : `0 0 20px ${themeColor}4d`
+                                                                  }
+                                                                : {}
+                                                        }
+                                                        className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
                                                     >
                                                         {submitting ? (
-                                                            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mr-2" />
-                                                        ) : isMissingRequiredDocs ? (
-                                                            <span className="flex items-center justify-center gap-1 sm:gap-2">
-                                                                Upload Required Documents
-                                                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                                                            </span>
+                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                         ) : (
-                                                            <span className="flex items-center justify-center gap-1 sm:gap-2">
-                                                                Submit Death Registration Application
-                                                                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                                                            </span>
+                                                            <>
+                                                                SUBMIT
+                                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                            </>
                                                         )}
-                                                    </Button>
+                                                    </button>
                                                 );
                                             })()}
                                         </div>
