@@ -412,10 +412,10 @@ export default function RequestHubPage() {
                 )
                 .subscribe((status: string, err?: any) => {
                     if (err) {
-                        console.error("Supabase Realtime subscription error:", err);
+                        console.warn("Supabase Realtime subscription notice:", err);
                     }
                     if (status === "CHANNEL_ERROR") {
-                        console.error("Supabase Realtime channel error status caught");
+                        console.warn("Supabase Realtime channel reconnecting/idle");
                     }
                 });
         } catch (error) {
@@ -1453,9 +1453,9 @@ export default function RequestHubPage() {
                     ) : (
                         <Tabs defaultValue="overview" className="space-y-8 md:space-y-12">
                             <TabsList className="bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-[1.25rem] md:rounded-[1.5rem] h-auto md:h-16 w-full md:w-fit border border-slate-200 dark:border-white/10 shadow-inner flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                                <TabsTrigger value="overview" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Overview</TabsTrigger>
-                                <TabsTrigger value="records" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Records</TabsTrigger>
-                                <TabsTrigger value="logistics" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Logistics</TabsTrigger>
+                                <TabsTrigger value="overview" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Case Status</TabsTrigger>
+                                <TabsTrigger value="records" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Filing Details</TabsTrigger>
+                                <TabsTrigger value="logistics" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Documents & Proof</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="overview" className="mt-0 space-y-3 md:space-y-4">

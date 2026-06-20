@@ -110,6 +110,7 @@ export const authOptions: NextAuthOptions = {
                         email: true,
                         isEmailVerified: true,
                         rejectionCount: true,
+                        isPasswordChanged: true,
                         residentProfile: {
                             select: { isDead: true }
                         }
@@ -127,6 +128,8 @@ export const authOptions: NextAuthOptions = {
                     // Force the session to expire immediately (triggering auto-logout)
                     token.exp = 1; // Set to very small number to trigger expiration
                     token.deactivated = true;
+                } else {
+                    token.isPasswordChanged = dbUser.isPasswordChanged;
                 }
             }
 
@@ -135,12 +138,14 @@ export const authOptions: NextAuthOptions = {
                 const dbUser = await prisma.user.findUnique({
                     where: { id: token.id as string },
                     select: {
-                        accessiblePages: true
+                        accessiblePages: true,
+                        isPasswordChanged: true
                     }
                 });
 
                 if (dbUser) {
                     token.accessiblePages = dbUser.accessiblePages || [];
+                    token.isPasswordChanged = dbUser.isPasswordChanged;
                 } else {
                     token.exp = 1;
                     token.deactivated = true;

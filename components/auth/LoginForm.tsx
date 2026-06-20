@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
 import { AuthTransitionContext } from "@/components/shared/AuthLayout";
 import { checkEmailExists } from "@/app/auth/actions";
 
@@ -47,8 +46,6 @@ interface LoginFormProps {
 export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false }: LoginFormProps) {
     const { triggerLeave } = React.useContext(AuthTransitionContext);
     const [showPassword, setShowPassword] = React.useState(false);
-    const [showChangeModal, setShowChangeModal] = React.useState(false);
-    const [userEmail, setUserEmail] = React.useState("");
     const router = useRouter();
     const { data: session, status } = useSession();
 
@@ -63,11 +60,9 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
             if (hasError) {
                 signOut({ redirect: false });
             } else {
-                // If user needs to change their password, do not redirect them!
+                // If user needs to change their password, redirect them to the verify-otp page
                 if ((session.user as any).isPasswordChanged === false) {
-                    const email = session.user?.email || "";
-                    setUserEmail(email);
-                    setShowChangeModal(true);
+                    router.push("/auth/verify-otp");
                     return;
                 }
 
@@ -324,8 +319,7 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
 
                 // Check if user needs to change password
                 if (isPasswordChanged === false) {
-                    setUserEmail(data.email);
-                    setShowChangeModal(true);
+                    router.push("/auth/verify-otp");
                     return;
                 }
 
@@ -373,10 +367,7 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
         }
     }, [lockout, handleFailedAttempt, handleSuccessAttempt, router, triggerLeave, isMaintenanceActive]);
 
-    const handlePasswordChangeSuccess = () => {
-        setShowChangeModal(false);
-        toast.success("Password changed! Redirecting...");
-    };
+
 
     const [isEmailFocused, setIsEmailFocused] = React.useState(false);
     const [isPasswordFocused, setIsPasswordFocused] = React.useState(false);
@@ -530,13 +521,6 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
                 </div>
             </div>
 
-            <ChangePasswordModal
-                isOpen={showChangeModal}
-                onOpenChange={setShowChangeModal}
-                email={userEmail}
-                onSuccess={handlePasswordChangeSuccess}
-                themeColor={themeColor}
-            />
         </>
     );
 }
