@@ -1435,7 +1435,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             const hasAdditionalFees = sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0;
             const isCertifiedCopy = ["LCR_BIRTH", "LCR_MARRIAGE"].includes(typeCode);
             if (isCertifiedCopy) {
-                newStatus = "EVALUATED";
+                newStatus = "FOR_REQUESTING";
             } else if (typeCode === "LCR_DEATH_REG" && (regType === "STANDARD" || !regType) && !hasAdditionalFees) {
                 newStatus = "EVALUATED";
             } else {
