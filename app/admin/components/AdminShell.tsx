@@ -25,6 +25,7 @@ interface AdminShellProps {
     pendingReportsCount?: number;
     pendingResidentsCount?: number;
     pendingTransactionsCount?: number;
+    unviewedLcrCounts?: Record<string, number>;
 }
 
 export function AdminShell({
@@ -37,6 +38,7 @@ export function AdminShell({
     pendingReportsCount,
     pendingResidentsCount,
     pendingTransactionsCount,
+    unviewedLcrCounts = {},
 }: AdminShellProps) {
     const router = useRouter();
     const pathname = usePathname();
@@ -153,6 +155,7 @@ export function AdminShell({
                 pendingReportsCount={pendingReportsCount}
                 pendingResidentsCount={pendingResidentsCount}
                 pendingTransactionsCount={pendingTransactionsCount}
+                unviewedLcrCounts={unviewedLcrCounts}
             />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <TopNav
