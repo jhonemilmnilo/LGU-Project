@@ -29,6 +29,7 @@ import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 import { BackNextButton } from "../_components/back-next-button";
 
 
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,7 +68,7 @@ import { getSecureUploadUrlAction } from "@/app/auth/actions";
 // --- UPLOAD FILE SECURELY VIA SIGNED UPLOAD URL ---
 async function uploadFileClientSide(file: File, fieldName: string): Promise<string> {
     const fileExt = file.name.split('.').pop() || 'bin';
-    
+
     const res = await getSecureUploadUrlAction(fieldName, "lcr/birth_certificate_request", fileExt);
     if (!res.success || !res.signedUrl || !res.publicUrl) {
         throw new Error(res.error || "Failed to generate secure upload destination");
@@ -1779,13 +1780,13 @@ export default function CivilRegistryPage() {
                                                         (form.relationship !== "SELF" && !form.files["authorizationLetter"] && !revisionTx?.additionalData?.authorizationLetter && !form.previews["authorizationLetter"])
                                                         ? {}
                                                         : themeColor
-                                                        ? {
-                                                              backgroundColor: themeColor,
-                                                              boxShadow: themeColor.startsWith("var")
-                                                                  ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
-                                                                  : `0 0 20px ${themeColor}4d`
-                                                          }
-                                                        : {}
+                                                            ? {
+                                                                backgroundColor: themeColor,
+                                                                boxShadow: themeColor.startsWith("var")
+                                                                    ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
+                                                                    : `0 0 20px ${themeColor}4d`
+                                                            }
+                                                            : {}
                                                 }
                                                 className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
                                             >

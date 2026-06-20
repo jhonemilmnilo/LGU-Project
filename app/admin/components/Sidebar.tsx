@@ -15,7 +15,8 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./SidebarContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { getUnviewedLcrCounts } from "@/app/admin/transactions/actions";
+import { getBploInspectionCount } from "@/app/admin/transactions/actions";
+import { supabase } from "@/lib/supabase";
 
 interface SidebarProps {
     session: {
@@ -66,6 +67,7 @@ export function Sidebar({
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [liveLcrCounts, setLiveLcrCounts] = React.useState<Record<string, number>>(unviewedLcrCounts);
     const { theme, setTheme } = useTheme();
     React.useEffect(() => {

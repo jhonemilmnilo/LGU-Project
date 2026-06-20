@@ -19,6 +19,7 @@ import {
     CheckCircle2,
     Sparkles
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,7 +59,7 @@ import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 // --- UPLOAD FILE SECURELY VIA SIGNED UPLOAD URL ---
 async function uploadFileClientSide(file: File, fieldName: string): Promise<string> {
     const fileExt = file.name.split('.').pop() || 'bin';
-    
+
     const res = await getSecureUploadUrlAction(fieldName, "lcr/marriage_psa_endorsement", fileExt);
     if (!res.success || !res.signedUrl || !res.publicUrl) {
         throw new Error(res.error || "Failed to generate secure upload destination");
@@ -1027,11 +1028,15 @@ export default function MarriagePsaEndorsementPage() {
                                         </div>
                                     </Card>
 
-                                    <BackNextButton
-                                        onBack={() => router.push("/user/services/civil-registry")}
-                                        onNext={nextStep}
-                                        themeColor={themeColor}
-                                    />
+                                    <div className="flex justify-end pt-4">
+                                        <Button
+                                            onClick={nextStep}
+                                            className="h-14 px-10 rounded-full text-white font-black uppercase italic tracking-widest shadow-lg hover:opacity-90 transition-opacity"
+                                            style={{ backgroundColor: themeColor }}
+                                        >
+                                            NEXT
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
 
@@ -1137,11 +1142,18 @@ export default function MarriagePsaEndorsementPage() {
                                         </div>
                                     </Card>
 
-                                    <BackNextButton
-                                        onBack={prevStep}
-                                        onNext={nextStep}
-                                        themeColor={themeColor}
-                                    />
+                                    <div className="flex justify-end gap-4 pt-4">
+                                        <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-full font-black uppercase italic tracking-widest">
+                                            BACK
+                                        </Button>
+                                        <Button
+                                            onClick={nextStep}
+                                            className="h-14 px-10 rounded-full text-white font-black uppercase italic tracking-widest shadow-lg hover:opacity-90 transition-opacity"
+                                            style={{ backgroundColor: themeColor }}
+                                        >
+                                            NEXT
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
 
@@ -1276,47 +1288,32 @@ export default function MarriagePsaEndorsementPage() {
                                         </div>
                                     </Card>
 
-                                    <div className="flex justify-end items-center gap-6 pt-6 select-none">
-                                        <button
-                                            type="button"
-                                            onClick={prevStep}
-                                            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors duration-200 uppercase font-black tracking-widest italic text-[11px] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-0 outline-none cursor-pointer group"
-                                        >
-                                            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+                                    <div className="flex gap-4 pt-4 w-full justify-end">
+                                        <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-full font-black uppercase italic tracking-widest select-none">
                                             BACK
-                                        </button>
-                                        <button
-                                            type="button"
+                                        </Button>
+                                        <Button
                                             onClick={handleSubmit}
                                             disabled={submitting || (!files.psaNegativeCert && !previews.psaNegativeCert) || (!files.form3a && !previews.form3a)}
-                                            style={
-                                                themeColor
-                                                    ? {
-                                                          backgroundColor: themeColor,
-                                                          boxShadow: themeColor.startsWith("var")
-                                                              ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
-                                                              : `0 0 20px ${themeColor}4d`
-                                                      }
-                                                    : {}
-                                            }
-                                            className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
-                                        >
-                                            {submitting ? (
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            ) : (
-                                                <>
-                                                    SUBMIT
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                                </>
+                                            className={cn(
+                                                "flex-1 h-14 rounded-full font-black uppercase italic tracking-widest shadow-xl transition-all duration-300 select-none",
+                                                ((!files.psaNegativeCert && !previews.psaNegativeCert) || (!files.form3a && !previews.form3a))
+                                                    ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                                    : "text-white"
                                             )}
-                                        </button>
+                                            style={((!files.psaNegativeCert && !previews.psaNegativeCert) || (!files.form3a && !previews.form3a)) ? {} : { backgroundColor: themeColor }}
+                                        >
+                                            {submitting && <Loader2 className="w-5 h-5 animate-spin mr-2" />}
+                                            SUBMIT
+                                        </Button>
                                     </div>
                                 </div>
-                            )}
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
-            </div>
+                            )
+                            }
+                        </motion.div >
+                    </AnimatePresence >
+                </div >
+            </div >
         </>
     );
 }

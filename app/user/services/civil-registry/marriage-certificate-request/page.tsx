@@ -21,8 +21,9 @@ import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 import { BackNextButton } from "../_components/back-next-button";
 import { getSecureUploadUrlAction } from "@/app/auth/actions";
-import { Button } from "@/components/ui/button";
 
+
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -59,7 +60,7 @@ import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 // --- UPLOAD FILE SECURELY VIA SIGNED UPLOAD URL ---
 async function uploadFileClientSide(file: File, fieldName: string): Promise<string> {
     const fileExt = file.name.split('.').pop() || 'bin';
-    
+
     const res = await getSecureUploadUrlAction(fieldName, "lcr/marriage_certificate_request", fileExt);
     if (!res.success || !res.signedUrl || !res.publicUrl) {
         throw new Error(res.error || "Failed to generate secure upload destination");
@@ -1533,25 +1534,36 @@ export default function MarriageCertificateRequestPage() {
                                 )}
                             </div>
 
-                            <BackNextButton
-                                onBack={() => setCurrentStep("IDENTITY")}
-                                onNext={() => {
-                                    const isCustomCountryEmpty = placeCountry === "OTHER" && !customCountry.trim();
-                                    const isCustomProvinceEmpty = placeProvince === "OTHER" && !customProvince.trim();
-                                    const isCustomCityEmpty = placeCity === "OTHER" && !customCity.trim();
+                            <div className="flex justify-end gap-3 pt-6">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCurrentStep("IDENTITY")}
+                                    className="rounded-full px-8 font-black uppercase tracking-widest italic text-[10px] h-12"
+                                >
+                                    BACK
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        const isCustomCountryEmpty = placeCountry === "OTHER" && !customCountry.trim();
+                                        const isCustomProvinceEmpty = placeProvince === "OTHER" && !customProvince.trim();
+                                        const isCustomCityEmpty = placeCity === "OTHER" && !customCity.trim();
 
-                                    if (!form.certFirstName || !form.certLastName || !form.spouseName || !form.dateOfEvent || isCustomCountryEmpty || isCustomProvinceEmpty || isCustomCityEmpty) {
-                                        setShowErrors(true);
-                                        toast.error("Please fill in all required marriage record and place details.");
-                                        return;
-                                    }
-                                    setShowErrors(false);
-                                    const husbandFull = `${form.certFirstName} ${form.certMiddleName} ${form.certLastName} ${form.certSuffix}`.replace(/\s+/g, ' ').trim();
-                                    setForm(prev => ({ ...prev, fullName: husbandFull }));
-                                    setCurrentStep("CONFIRM");
-                                }}
-                                themeColor={themeColor}
-                            />
+                                        if (!form.certFirstName || !form.certLastName || !form.spouseName || !form.dateOfEvent || isCustomCountryEmpty || isCustomProvinceEmpty || isCustomCityEmpty) {
+                                            setShowErrors(true);
+                                            toast.error("Please fill in all required marriage record and place details.");
+                                            return;
+                                        }
+                                        setShowErrors(false);
+                                        const husbandFull = `${form.certFirstName} ${form.certMiddleName} ${form.certLastName} ${form.certSuffix}`.replace(/\s+/g, ' ').trim();
+                                        setForm(prev => ({ ...prev, fullName: husbandFull }));
+                                        setCurrentStep("CONFIRM");
+                                    }}
+                                    className="rounded-full px-12 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl transition-all duration-300"
+                                    style={{ backgroundColor: themeColor }}
+                                >
+                                    NEXT
+                                </Button>
+                            </div>
                         </motion.div>
                     )}
 
@@ -1678,17 +1690,15 @@ export default function MarriageCertificateRequestPage() {
                                     <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-rose-600 shrink-0">Review</button>
                                 </div>
 
-                                <div className="flex justify-end items-center gap-6 pt-6 select-none">
-                                    <button
-                                        type="button"
+                                <div className="flex gap-3 w-full justify-end">
+                                    <Button
+                                        variant="outline"
                                         onClick={() => setCurrentStep("DETAILS")}
-                                        className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors duration-200 uppercase font-black tracking-widest italic text-[11px] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-0 outline-none cursor-pointer group"
+                                        className="h-14 px-8 rounded-full font-black uppercase tracking-widest italic text-[11px] select-none"
                                     >
-                                        <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
                                         BACK
-                                    </button>
-                                    <button
-                                        type="button"
+                                    </Button>
+                                    <Button
                                         onClick={handleSubmit}
                                         disabled={
                                             submitting ||
@@ -1696,29 +1706,17 @@ export default function MarriageCertificateRequestPage() {
                                             (!form.files["validIdFront"] && !resident?.idFrontUrl && !form.previews["validIdFront"]) ||
                                             (!form.files["validIdBack"] && !resident?.idBackUrl && !form.previews["validIdBack"])
                                         }
-                                        style={
+                                        className={cn(
+                                            "flex-1 h-14 rounded-full font-black uppercase tracking-widest italic text-[11px] transition-all duration-300 select-none",
                                             (!form.idTypeOverride && !resident?.idType) || (!form.files["validIdFront"] && !resident?.idFrontUrl && !form.previews["validIdFront"]) || (!form.files["validIdBack"] && !resident?.idBackUrl && !form.previews["validIdBack"])
-                                                ? {}
-                                                : themeColor
-                                                ? {
-                                                      backgroundColor: themeColor,
-                                                      boxShadow: themeColor.startsWith("var")
-                                                          ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
-                                                          : `0 0 20px ${themeColor}4d`
-                                                  }
-                                                : {}
-                                        }
-                                        className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
-                                    >
-                                        {submitting ? (
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        ) : (
-                                            <>
-                                                SUBMIT
-                                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                            </>
+                                                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                                : "text-white shadow-xl"
                                         )}
-                                    </button>
+                                        style={!((!form.idTypeOverride && !resident?.idType) || (!form.files["validIdFront"] && !resident?.idFrontUrl && !form.previews["validIdFront"]) || (!form.files["validIdBack"] && !resident?.idBackUrl && !form.previews["validIdBack"])) ? { backgroundColor: themeColor } : {}}
+                                    >
+                                        {submitting && <Loader2 className="w-5 h-5 animate-spin mr-2" />}
+                                        SUBMIT
+                                    </Button>
                                 </div>
                             </div>
                         </motion.div>

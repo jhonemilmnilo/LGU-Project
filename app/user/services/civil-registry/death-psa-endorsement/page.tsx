@@ -22,6 +22,7 @@ import {
     Sparkles,
     X
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,7 +65,7 @@ import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 // --- UPLOAD FILE SECURELY VIA SIGNED UPLOAD URL ---
 async function uploadFileClientSide(file: File, fieldName: string): Promise<string> {
     const fileExt = file.name.split('.').pop() || 'bin';
-    
+
     const res = await getSecureUploadUrlAction(fieldName, "lcr/death_psa_endorsement", fileExt);
     if (!res.success || !res.signedUrl || !res.publicUrl) {
         throw new Error(res.error || "Failed to generate secure upload destination");
@@ -1031,16 +1032,20 @@ export default function DeathPsaEndorsementPage() {
                                         </div>
                                     </div>
 
-                                    <BackNextButton
-                                        onBack={() => router.push("/user/services/civil-registry")}
-                                        onNext={() => {
-                                            if (validateStep("INFORMANT")) {
-                                                setShowErrors(false);
-                                                setCurrentStep("SUBJECT");
-                                            }
-                                        }}
-                                        themeColor={themeColor}
-                                    />
+                                    <div className="flex justify-end pt-6">
+                                        <Button
+                                            onClick={() => {
+                                                if (validateStep("INFORMANT")) {
+                                                    setShowErrors(false);
+                                                    setCurrentStep("SUBJECT");
+                                                }
+                                            }}
+                                            className="rounded-full px-12 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl"
+                                            style={{ backgroundColor: themeColor }}
+                                        >
+                                            NEXT
+                                        </Button>
+                                    </div>
                                 </motion.div>
                             )}
 
@@ -1135,16 +1140,27 @@ export default function DeathPsaEndorsementPage() {
                                         </div>
                                     </div>
 
-                                    <BackNextButton
-                                        onBack={() => setCurrentStep("INFORMANT")}
-                                        onNext={() => {
-                                            if (validateStep("SUBJECT")) {
-                                                setShowErrors(false);
-                                                setCurrentStep("UPLOAD");
-                                            }
-                                        }}
-                                        themeColor={themeColor}
-                                    />
+                                    <div className="flex justify-end gap-3 pt-6">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setCurrentStep("INFORMANT")}
+                                            className="rounded-full px-8 font-black uppercase tracking-widest italic text-[10px] h-12"
+                                        >
+                                            BACK
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                if (validateStep("SUBJECT")) {
+                                                    setShowErrors(false);
+                                                    setCurrentStep("UPLOAD");
+                                                }
+                                            }}
+                                            className="rounded-full px-12 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl"
+                                            style={{ backgroundColor: themeColor }}
+                                        >
+                                            NEXT
+                                        </Button>
+                                    </div>
                                 </motion.div>
                             )}
 
@@ -1351,40 +1367,23 @@ export default function DeathPsaEndorsementPage() {
                                             </button>
                                         </div>
 
-                                        <div className="flex justify-end items-center gap-6 pt-6 select-none">
-                                            <button
-                                                type="button"
+                                        <div className="flex gap-3 w-full justify-end">
+                                            <Button
+                                                variant="outline"
                                                 onClick={() => setCurrentStep("UPLOAD")}
-                                                className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors duration-200 uppercase font-black tracking-widest italic text-[11px] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-0 outline-none cursor-pointer group"
+                                                className="h-14 px-8 rounded-full font-black uppercase tracking-widest italic text-[11px] select-none"
                                             >
-                                                <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
                                                 BACK
-                                            </button>
-                                            <button
-                                                type="button"
+                                            </Button>
+                                            <Button
                                                 onClick={handleSubmit}
                                                 disabled={submitting}
-                                                style={
-                                                    themeColor
-                                                        ? {
-                                                              backgroundColor: themeColor,
-                                                              boxShadow: themeColor.startsWith("var")
-                                                                  ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
-                                                                  : `0 0 20px ${themeColor}4d`
-                                                          }
-                                                        : {}
-                                                }
-                                                className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
+                                                className="flex-1 h-14 rounded-full text-white font-black uppercase tracking-widest italic text-[11px] shadow-xl flex items-center justify-center gap-2 select-none"
+                                                style={{ backgroundColor: themeColor }}
                                             >
-                                                {submitting ? (
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                ) : (
-                                                    <>
-                                                        SUBMIT
-                                                        <ArrowRight className="w-3.5 h-3.5" />
-                                                    </>
-                                                )}
-                                            </button>
+                                                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                                SUBMIT
+                                            </Button>
                                         </div>
                                     </div>
                                 </motion.div>
