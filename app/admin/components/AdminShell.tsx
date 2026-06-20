@@ -56,9 +56,12 @@ export function AdminShell({
         isRestricted = true;
     }
 
-    // Special Rule: ONLY ADMIN with department LGU can access the admin dashboard
+    // Special Rule: ONLY ADMIN with department LGU OR BARANGAY_ADMIN can access the admin dashboard
     if (pathname === "/admin/dashboard" || pathname === "/admin") {
-        if (role !== "ADMIN" || deptUpper !== "LGU") {
+        const isLguAdmin = role === "ADMIN" && deptUpper === "LGU";
+        const isBrgyAdmin = role === "BARANGAY_ADMIN";
+
+        if (!isLguAdmin && !isBrgyAdmin) {
             if (
                 role === "TREASURY_STAFF" ||
                 role === "ADMIN_AIDE" ||
@@ -115,7 +118,10 @@ export function AdminShell({
             return () => clearTimeout(timer);
         }
         if (pathname === "/admin/dashboard" || pathname === "/admin") {
-            if (role !== "ADMIN" || deptUpper !== "LGU") {
+            const isLguAdmin = role === "ADMIN" && deptUpper === "LGU";
+            const isBrgyAdmin = role === "BARANGAY_ADMIN";
+
+            if (!isLguAdmin && !isBrgyAdmin) {
                 const timer = setTimeout(() => {
                     if (role === "ADMIN") {
                         if (deptUpper === "TREASURY") {

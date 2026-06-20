@@ -28,9 +28,23 @@ export default async function AdminLayout({
         "theme_color"
     ]);
 
+    const user = session.user as any;
+    const isBarangayAdmin = user.role === "BARANGAY_ADMIN";
+    const managedBarangay = user.managedBarangay;
+
+    const reportsWhere: any = { status: "PENDING" };
+    const residentsWhere: any = { registrationStatus: "PENDING" };
+
+    if (isBarangayAdmin && managedBarangay) {
+        reportsWhere.barangay = {
+            name: managedBarangay
+        };
+        residentsWhere.barangay = managedBarangay;
+    }
+
     const [pendingReportsCount, pendingResidentsCount, pendingTransactionsCount, lcrTransactions] = await Promise.all([
-        prisma.report.count({ where: { status: "PENDING" } }),
-        prisma.resident.count({ where: { registrationStatus: "PENDING" } }),
+        prisma.report.count({ where: reportsWhere }),
+        prisma.resident.count({ where: residentsWhere }),
         prisma.transaction.count({ where: { status: { in: ["FOR_REQUESTING", "PAID"] } } }),
         prisma.transaction.findMany({
             where: {
