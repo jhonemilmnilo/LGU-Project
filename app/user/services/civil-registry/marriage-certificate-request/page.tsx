@@ -9,8 +9,6 @@ import {
     AlertCircle,
     Sparkles,
     Heart,
-    ArrowRight,
-    ArrowLeft,
     Upload,
     FileText,
     CheckCircle2,

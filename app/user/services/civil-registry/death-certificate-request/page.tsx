@@ -9,8 +9,6 @@ import {
     Loader2,
     Check,
     Sparkles,
-    ArrowRight,
-    ArrowLeft,
     Upload,
     Search,
     CheckCircle2,

@@ -13,14 +13,12 @@ import {
     AlertCircle,
     Home,
     Baby,
-    ArrowRight,
     ArrowLeft,
     Upload,
     CheckCircle2,
     FileText
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BackNextButton } from "../_components/back-next-button";
@@ -743,13 +741,13 @@ export default function BirthPsaEndorsementPage() {
                                                 isCompleted ? "text-white" :
                                                     "border-slate-200 dark:border-white/10 text-slate-400"
                                         )}
-                                        style={
-                                            isActive
-                                                ? { borderColor: themeColor, color: themeColor, boxShadow: `0 10px 15px -3px color-mix(in srgb, ${themeColor} 20%, transparent)` }
-                                                : isCompleted
-                                                    ? { backgroundColor: themeColor, borderColor: themeColor }
-                                                    : {}
-                                        }
+                                            style={
+                                                isActive
+                                                    ? { borderColor: themeColor, color: themeColor, boxShadow: `0 10px 15px -3px color-mix(in srgb, ${themeColor} 20%, transparent)` }
+                                                    : isCompleted
+                                                        ? { backgroundColor: themeColor, borderColor: themeColor }
+                                                        : {}
+                                            }
                                         >
                                             {isCompleted ? (
                                                 <Check className="w-5 h-5" />
@@ -761,7 +759,7 @@ export default function BirthPsaEndorsementPage() {
                                             "text-[8px] md:text-[10px] font-black uppercase tracking-wider italic hidden md:block",
                                             (isActive || isCompleted) ? "opacity-100 font-black" : "text-slate-400 opacity-55"
                                         )}
-                                        style={(isActive || isCompleted) ? { color: themeColor } : {}}
+                                            style={(isActive || isCompleted) ? { color: themeColor } : {}}
                                         >
                                             {step.label}
                                         </span>
@@ -916,7 +914,6 @@ export default function BirthPsaEndorsementPage() {
                                         </div>
                                     </div>
 
-<<<<<<< Updated upstream
                                     <BackNextButton
                                         onBack={() => router.push("/user/services/civil-registry")}
                                         onNext={() => {
@@ -930,24 +927,6 @@ export default function BirthPsaEndorsementPage() {
                                         }}
                                         themeColor={themeColor}
                                     />
-=======
-                                    <div className="flex justify-end pt-6">
-                                        <Button
-                                            onClick={() => {
-                                                if (!formData.relationship || !formData.contactNumber) {
-                                                    setShowErrors(true);
-                                                    toast.error("Please fill in all required informant details.");
-                                                    return;
-                                                }
-                                                setShowErrors(false);
-                                                setCurrentStep("SUBJECT");
-                                            }}
-                                            className="rounded-full px-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-emerald-500/20"
-                                        >
-                                            NEXT
-                                        </Button>
-                                    </div>
->>>>>>> Stashed changes
                                 </motion.div>
                             )}
 
@@ -1045,7 +1024,6 @@ export default function BirthPsaEndorsementPage() {
                                         </div>
                                     </div>
 
-<<<<<<< Updated upstream
                                     <BackNextButton
                                         onBack={() => setCurrentStep("INFORMANT")}
                                         onNext={() => {
@@ -1069,41 +1047,6 @@ export default function BirthPsaEndorsementPage() {
                                         }}
                                         themeColor={themeColor}
                                     />
-=======
-                                    <div className="flex justify-end gap-3 pt-6">
-                                        <Button
-                                            variant="ghost"
-                                            onClick={() => setCurrentStep("INFORMANT")}
-                                            className="rounded-full px-8 border border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                        >
-                                            BACK
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (!formData.subjectFullName || !formData.subjectDateOfBirth || !formData.mothersMaidenName) {
-                                                    setShowErrors(true);
-                                                    toast.error("Please fill in all subject details.");
-                                                    return;
-                                                }
-                                                if (!files.psaNegativeCert && !previews.psaNegativeCert) {
-                                                    setShowErrors(true);
-                                                    toast.error("Please upload PSA Negative Certification.");
-                                                    return;
-                                                }
-                                                if (!files.form1a && !previews.form1a) {
-                                                    setShowErrors(true);
-                                                    toast.error("Please upload Form 1A (Local Registry Copy).");
-                                                    return;
-                                                }
-                                                setShowErrors(false);
-                                                setCurrentStep("REVIEW");
-                                            }}
-                                            className="rounded-full px-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-emerald-500/20"
-                                        >
-                                            NEXT
-                                        </Button>
-                                    </div>
->>>>>>> Stashed changes
                                 </motion.div>
                             )}
 
@@ -1248,7 +1191,6 @@ export default function BirthPsaEndorsementPage() {
                                                 Review
                                             </button>
                                         </div>
-<<<<<<< Updated upstream
 
                                         <div className="flex justify-end items-center gap-6 pt-6 select-none">
                                             <button
@@ -1266,11 +1208,11 @@ export default function BirthPsaEndorsementPage() {
                                                 style={
                                                     themeColor
                                                         ? {
-                                                              backgroundColor: themeColor,
-                                                              boxShadow: themeColor.startsWith("var")
-                                                                  ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
-                                                                  : `0 0 20px ${themeColor}4d`
-                                                          }
+                                                            backgroundColor: themeColor,
+                                                            boxShadow: themeColor.startsWith("var")
+                                                                ? `0 0 20px color-mix(in srgb, ${themeColor} 30%, transparent)`
+                                                                : `0 0 20px ${themeColor}4d`
+                                                        }
                                                         : {}
                                                 }
                                                 className="rounded-full px-6 py-3 font-black uppercase tracking-widest italic text-[11px] flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[#e11d48] text-white hover:brightness-110 shadow-[0_0_20px_rgba(225,29,72,0.3)] group"
@@ -1284,31 +1226,6 @@ export default function BirthPsaEndorsementPage() {
                                                     </>
                                                 )}
                                             </button>
-=======
-                                        <div className="flex gap-3 pt-6 w-full justify-end">
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => setCurrentStep("SUBJECT")}
-                                                className="h-14 px-8 rounded-full border border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[11px] select-none"
-                                            >
-                                                BACK
-                                            </Button>
-                                            <Button
-                                                onClick={handleSubmit}
-                                                disabled={submitting || (!files.psaNegativeCert && !previews.psaNegativeCert) || (!files.form1a && !previews.form1a)}
-                                                className={cn(
-                                                    "flex-1 h-14 rounded-full font-black uppercase tracking-widest italic text-[11px] transition-all duration-300 select-none",
-                                                    ((!files.psaNegativeCert && !previews.psaNegativeCert) || (!files.form1a && !previews.form1a))
-                                                        ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-500/20"
-                                                )}
-                                            >
-                                                {submitting ? (
-                                                    <Loader2 className="w-5 h-5 animate-spin mr-2 inline" />
-                                                ) : null}
-                                                SUBMIT
-                                            </Button>
->>>>>>> Stashed changes
                                         </div>
                                     </div>
                                 </motion.div>

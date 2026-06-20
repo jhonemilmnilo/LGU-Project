@@ -14,8 +14,6 @@ import {
     AlertCircle,
     Home,
     Skull,
-    ArrowRight,
-    ArrowLeft,
     Upload,
     CheckCircle2,
     FileText,

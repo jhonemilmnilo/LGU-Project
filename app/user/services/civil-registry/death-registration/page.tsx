@@ -14,8 +14,6 @@ import {
     AlertCircle,
     Home,
     Skull,
-    ArrowRight,
-    ArrowLeft,
     Upload,
     CheckCircle2,
     Sparkles
@@ -54,7 +52,7 @@ import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BackNextButton } from "../_components/back-next-button";
+
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { getSecureUploadUrlAction } from "@/app/auth/actions";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";

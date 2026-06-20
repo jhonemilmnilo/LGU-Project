@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { BackNextButton } from "../_components/back-next-button";
+
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
@@ -14,8 +14,6 @@ import {
     AlertCircle,
     Home,
     Heart,
-    ArrowRight,
-    ArrowLeft,
     CheckCircle2,
     Sparkles
 } from "lucide-react";

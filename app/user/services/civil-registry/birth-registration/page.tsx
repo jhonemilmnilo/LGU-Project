@@ -12,7 +12,6 @@ import {
     Home,
     Sparkles,
     Baby,
-    ArrowRight,
     ArrowLeft,
     Upload,
     Search,
@@ -26,7 +25,7 @@ import {
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
 
-import { Button } from "@/components/ui/button";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {

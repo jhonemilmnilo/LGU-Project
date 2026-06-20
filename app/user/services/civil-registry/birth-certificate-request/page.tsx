@@ -15,7 +15,6 @@ import {
     Baby,
     Heart,
     Skull,
-    ArrowRight,
     ArrowLeft,
     Info,
     Upload,

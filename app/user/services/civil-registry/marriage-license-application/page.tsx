@@ -6,7 +6,7 @@ import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, User, Search, CheckCircle2, Check, Loader2, FileText, Heart, AlertCircle, Sparkles, ArrowLeft } from "lucide-react";
+import { Home, User, Search, CheckCircle2, Check, Loader2, FileText, Heart, AlertCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import PremiumDocumentUpload from "@/components/shared/PremiumDocumentUpload";
