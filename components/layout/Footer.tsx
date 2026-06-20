@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Shield, Facebook, Twitter, Instagram, Mail, Phone, MapPin } from "lucide-react";
+import { useBarangay } from "@/components/providers/BarangayProvider";
 
 interface FooterProps {
     logoUrl?: string;
@@ -29,6 +30,8 @@ export function Footer({
     contactEmail = "info@portal.gov.ph",
     contactPhone = "(075) 000-0000"
 }: FooterProps) {
+    const { selectedBarangay } = useBarangay();
+
     const ensureAbsoluteUrl = (url: string) => {
         if (!url || url === "#") return "#";
         if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:") || url.startsWith("tel:")) {
@@ -42,7 +45,7 @@ export function Footer({
             <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 pb-16 border-b border-slate-100 dark:border-white/5">
                 {/* Brand Column */}
                 <div className="space-y-6">
-                    <Link href="/" className="flex items-center gap-3">
+                    <Link href={selectedBarangay && selectedBarangay !== "All" ? `/?barangay=${selectedBarangay}` : "/"} className="flex items-center gap-3">
                         <div 
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg relative overflow-hidden"
                             style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
@@ -146,7 +149,7 @@ export function Footer({
                 <div className="flex items-center gap-8">
                     <Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy</Link>
                     <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
-                    <Link href="#" className="hover:text-primary transition-colors">Accessibility</Link>
+                    {/* <Link href="#" className="hover:text-primary transition-colors">Accessibility</Link> */}
                 </div>
             </div>
         </footer>

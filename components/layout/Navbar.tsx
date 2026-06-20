@@ -251,7 +251,7 @@ export function Navbar({
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 md:h-24 flex items-center justify-between gap-2 sm:gap-4">
 
                 {/* ── Logo ── */}
-                <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
+                <Link href={selectedBarangay && selectedBarangay !== "All" ? `/?barangay=${selectedBarangay}` : "/"} className="flex items-center gap-2 sm:gap-3 group shrink-0">
                     <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
