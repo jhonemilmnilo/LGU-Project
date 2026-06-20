@@ -1400,11 +1400,10 @@ export default function RequestHubPage() {
                                         ) : (
                                             (localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && (
                                                 <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
-                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                                                         {[
                                                             { id: "gcash", label: "GCash Wallet", desc: "GCash E-Wallet", icon: Wallet },
-                                                            { id: "qrph", label: "QRPH Scan", desc: "Maya, BPI, GCash", icon: QrCode },
-                                                            { id: "dob", label: "Direct Banking", desc: "UnionBank / BPI", icon: Building2 }
+                                                            { id: "qrph", label: "QRPH Scan", desc: "Maya, BPI, GCash", icon: QrCode }
                                                         ].map(method => (
                                                             <button
                                                                 key={method.id}
@@ -1452,10 +1451,10 @@ export default function RequestHubPage() {
                         </div>
                     ) : (
                         <Tabs defaultValue="overview" className="space-y-8 md:space-y-12">
-                            <TabsList className="bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-[1.25rem] md:rounded-[1.5rem] h-auto md:h-16 w-full md:w-fit border border-slate-200 dark:border-white/10 shadow-inner flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                                <TabsTrigger value="overview" className="flex-1 md:flex-none shrink-0 rounded-xl md:rounded-[1rem] px-3 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-wider md:tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Case Status</TabsTrigger>
-                                <TabsTrigger value="records" className="flex-1 md:flex-none shrink-0 rounded-xl md:rounded-[1rem] px-3 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-wider md:tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Filing Details</TabsTrigger>
-                                <TabsTrigger value="logistics" className="flex-1 md:flex-none shrink-0 rounded-xl md:rounded-[1rem] px-3 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-wider md:tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Documents & Proof</TabsTrigger>
+                            <TabsList className="bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-[1.25rem] md:rounded-[1.5rem] h-auto md:h-16 w-full md:w-fit border border-slate-200 dark:border-white/10 shadow-inner flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap">
+                                <TabsTrigger value="overview" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-4 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all whitespace-nowrap shrink-0">Status</TabsTrigger>
+                                <TabsTrigger value="records" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-4 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all whitespace-nowrap shrink-0">Filing Details</TabsTrigger>
+                                <TabsTrigger value="logistics" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-4 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all whitespace-nowrap shrink-0">Documents & Proof</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="overview" className="mt-0 space-y-3 md:space-y-4">
@@ -1861,42 +1860,42 @@ export default function RequestHubPage() {
                                                                         onClick={() => handleViewFile(doc.url, doc.label)}
                                                                         className="relative aspect-[16/9] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-white/5 hover:border-red-500/50"
                                                                     >
-                                                            <FileText className="w-8 h-8 text-red-500 group-hover/doc:scale-110 transition-transform duration-300 animate-pulse" />
-                                                            <span className="text-[7px] font-black uppercase text-red-500/70 tracking-wider mt-1">View PDF Document</span>
-                                                            <div className="absolute bottom-2 left-2 right-2">
-                                                                <Badge className="text-[7px] bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-white border-none font-black italic tracking-widest uppercase w-full block text-center py-0.5 truncate">{doc.label}</Badge>
+                                                                        <FileText className="w-8 h-8 text-red-500 group-hover/doc:scale-110 transition-transform duration-300 animate-pulse" />
+                                                                        <span className="text-[7px] font-black uppercase text-red-500/70 tracking-wider mt-1">View PDF Document</span>
+                                                                        <div className="absolute bottom-2 left-2 right-2">
+                                                                            <Badge className="text-[7px] bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-white border-none font-black italic tracking-widest uppercase w-full block text-center py-0.5 truncate">{doc.label}</Badge>
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <button
+                                                                    key={i}
+                                                                    onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
+                                                                    className="relative aspect-[16/9] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full text-left"
+                                                                >
+                                                                    <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
+                                                                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/doc:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
+                                                                        <div
+                                                                            style={{ backgroundColor: themeColor }}
+                                                                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] scale-75 group-hover/doc:scale-100 transition-transform duration-300"
+                                                                        >
+                                                                            <span>View</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="absolute bottom-2 left-2 right-2">
+                                                                        <Badge className="text-[7px] bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-white border-none font-black italic tracking-widest uppercase w-full block text-center py-0.5 truncate">{doc.label}</Badge>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        }) : (
+                                                            <div className="col-span-1 sm:col-span-2 py-10 flex flex-col items-center justify-center text-slate-300 dark:text-white/20">
+                                                                <FileText className="w-8 h-8 mb-2 opacity-30" />
+                                                                <p className="text-[9px] font-black uppercase tracking-widest italic">No documents uploaded</p>
                                                             </div>
-                                                        </button>
-                                                    );
-                                                }
-                                                return (
-                                                    <button
-                                                        key={i}
-                                                        onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
-                                                        className="relative aspect-[16/9] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full text-left"
-                                                    >
-                                                        <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
-                                                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/doc:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
-                                                            <div
-                                                                style={{ backgroundColor: themeColor }}
-                                                                className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] scale-75 group-hover/doc:scale-100 transition-transform duration-300"
-                                                            >
-                                                                <span>View</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="absolute bottom-2 left-2 right-2">
-                                                            <Badge className="text-[7px] bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-white border-none font-black italic tracking-widest uppercase w-full block text-center py-0.5 truncate">{doc.label}</Badge>
-                                                        </div>
-                                                    </button>
-                                                );
-                                            }) : (
-                                                <div className="col-span-1 sm:col-span-2 py-10 flex flex-col items-center justify-center text-slate-300 dark:text-white/20">
-                                                    <FileText className="w-8 h-8 mb-2 opacity-30" />
-                                                    <p className="text-[9px] font-black uppercase tracking-widest italic">No documents uploaded</p>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    </div>
 
                                                 {/* Supporting Documents Section */}
                                                 <div className="space-y-4">

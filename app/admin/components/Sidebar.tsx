@@ -72,14 +72,51 @@ export function Sidebar({
         setMounted(true);
     }, []);
 
-    // Refresh unviewed LCR counts on every navigation so counts update after viewing
-    React.useEffect(() => {
-        getUnviewedLcrCounts().then(res => {
-            if (res.success && res.data) {
-                setLiveLcrCounts(res.data);
+    const [bploInspectionCount, setBploInspectionCount] = React.useState(0);
+
+    const fetchBploCount = React.useCallback(async () => {
+        try {
+            const res = await getBploInspectionCount();
+            if (res && res.success) {
+                setBploInspectionCount(res.count ?? 0);
             }
-        }).catch(() => {});
-    }, [pathname]);
+        } catch (err) {
+            console.error("Error fetching sidebar BPLO count:", err);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        if (role !== "ADMIN" && role !== "ADMIN_AIDE") return;
+
+        fetchBploCount();
+
+        if (!supabase) return;
+        let channel: any;
+        try {
+            channel = supabase
+                .channel("sidebar-bplo-realtime")
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "*",
+                        schema: "public",
+                        table: "Transaction",
+                    },
+                    () => {
+                        fetchBploCount();
+                    }
+                )
+                .subscribe();
+        } catch (error) {
+            console.error("Failed to setup sidebar realtime:", error);
+        }
+
+        return () => {
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
+        };
+    }, [fetchBploCount, role]);
 
     React.useEffect(() => {
         setIsSettingsOpen(pathname.startsWith("/admin/settings"));
@@ -257,7 +294,7 @@ export function Sidebar({
             ]
         },
         { href: "/admin/treasury/payments", label: "Payments Ledger", icon: CreditCard, category: "Treasury" },
-        { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" },
+        { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury", badge: bploInspectionCount > 0 ? bploInspectionCount : undefined },
         { href: "/admin/treasury/payment-settings", label: "Payment Settings", icon: CreditCard, category: "Treasury" },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
@@ -306,19 +343,17 @@ export function Sidebar({
             if (department) {
                 const deptUpper = department.toUpperCase();
                 if (deptUpper === "BPLO") {
-                    menuItems = [
-                        { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
-                    ];
+                    menuItems = allMenuItems.filter(item => ["BPLO Permits"].includes(item.label));
                 } else if (deptUpper === "REGISTRAR" || deptUpper === "CIVIL_REGISTRY") {
                     menuItems = allMenuItems.filter(item =>
                         ["Registrar Hub", "Transaction Ledger"].includes(item.label)
                     );
                 } else if (deptUpper === "TREASURY") {
-                    menuItems = allMenuItems.filter(item => 
+                    menuItems = allMenuItems.filter(item =>
                         ["Treasury Hub", "Payments Ledger", "Payment Settings"].includes(item.label)
                     );
                 } else if (deptUpper === "LGU") {
-                    menuItems = allMenuItems.filter(item => 
+                    menuItems = allMenuItems.filter(item =>
                         !["Registrar Hub", "Transaction Ledger", "Treasury Hub", "Payments Ledger", "BPLO Permits", "Payment Settings"].includes(item.label)
                     );
                 } else {
@@ -523,8 +558,8 @@ export function Sidebar({
                                                                 (pathname.startsWith("/admin/treasury/") && !pathname.includes("/payment-settings") && !pathname.includes("/payments") && urlObj.pathname === "/admin/treasury") ||
                                                                 (pathname.startsWith("/admin/registrar/") && !pathname.startsWith("/admin/registrar/ledger") && urlObj.pathname === "/admin/registrar")
                                                             ) &&
-                                                                (urlObj.searchParams.has("category") 
-                                                                    ? currentCategory === subCategory 
+                                                                (urlObj.searchParams.has("category")
+                                                                    ? currentCategory === subCategory
                                                                     : !searchParams.has("category") || searchParams.get("category") === "ALL"
                                                                 ) &&
                                                                 (subTab ? currentTab === subTab : true) &&
@@ -549,12 +584,12 @@ export function Sidebar({
                                                                     >
                                                                         <div className="flex items-center gap-2">
                                                                             {isDashboard && (
-                                                                                <LayoutDashboard 
-                                                                                    size={13} 
+                                                                                <LayoutDashboard
+                                                                                    size={13}
                                                                                     className={cn(
                                                                                         "transition-colors",
                                                                                         isSubActive ? "text-current" : "text-slate-400 dark:text-slate-500"
-                                                                                    )} 
+                                                                                    )}
                                                                                 />
                                                                             )}
                                                                             <span>{sub.label}</span>
