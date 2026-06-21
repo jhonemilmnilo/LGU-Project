@@ -58,7 +58,7 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
         const params = new URLSearchParams(window.location.search);
         const hasError = params.has("error");
 
-        if (status === "authenticated" && session) {
+        if (status === "authenticated" && session && session.user) {
             if (hasError) {
                 signOut({ redirect: false });
             } else {

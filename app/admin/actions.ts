@@ -15,6 +15,7 @@ import { authOptions } from "@/lib/auth";
 import { uploadFile, deleteFileByUrl, validatePayloadFiles } from "@/lib/storage";
 import { isRateLimited, getClientIp } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/mail";
+import { supabaseAdmin } from "@/lib/supabase";
 
 async function getSessionBarangay(): Promise<string | null> {
     const session = await getServerSession(authOptions);
@@ -1329,19 +1330,42 @@ export async function addHousehold(formData: FormData) {
         const lat = formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null;
         const lng = formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null;
 
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
+
         if (headId) {
             const existing = await (prisma as any).household.findUnique({
                 where: { headId }
             });
             if (existing) {
-                return {
-                    success: false,
-                    error: "This person is already a head of another household."
-                };
+                // If it already exists (e.g. registered via mobile), update it with coordinates and info instead of throwing error
+                const updatedHousehold = await (prisma as any).household.update({
+                    where: { id: existing.id },
+                    data: {
+                        barangay: barangay || null,
+                        latitude: lat,
+                        longitude: lng,
+                        householdSize: parseInt(formData.get("householdSize") as string || "1", 10),
+                        contactNumber: (formData.get("contactNumber") as string) || null,
+                    } as any,
+                    include: {
+                        head: true
+                    }
+                });
+
+                // Cascade coordinates to all associated residents (Head + Members)
+                await (prisma as any).resident.updateMany({
+                    where: {
+                        OR: [
+                            { id: headId },
+                            { householdId: existing.id }
+                        ]
+                    },
+                    data: { latitude: lat, longitude: lng }
+                });
+
+                return { success: true, household: updatedHousehold };
             }
         }
-
-        const barangay = formData.get("barangay") as string || await getSessionBarangay();
 
         const household = await (prisma as any).household.create({
             data: {
@@ -2820,6 +2844,13 @@ export async function deleteBarangay(id: string) {
 
 export async function createBarangayAdmin(formData: FormData) {
     try {
+        // Strict Authorization Guard
+        const session = await getServerSession(authOptions);
+        const currentUserRole = (session?.user as any)?.role;
+        if (!session?.user?.id || currentUserRole !== "ADMIN") {
+            return { success: false, error: "Unauthorized. Admin privileges required." };
+        }
+
         const name = formData.get("name") as string;
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
@@ -2831,10 +2862,24 @@ export async function createBarangayAdmin(formData: FormData) {
             return { success: false, error: "Email already exists in the system." };
         }
 
+        // 1. Create user in Supabase Auth
+        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { name }
+        });
+
+        if (authError || !authUser.user) {
+            console.error("Failed to create admin in Supabase Auth:", authError);
+            return { success: false, error: authError?.message || "Failed to create authentication account." };
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newAdmin = await prisma.user.create({
             data: {
+                id: authUser.user.id,
                 name,
                 email,
                 password: hashedPassword,
@@ -2875,6 +2920,13 @@ export async function getBarangaysList() {
  */
 export async function createUser(formData: FormData) {
     try {
+        // Strict Authorization Guard
+        const session = await getServerSession(authOptions);
+        const currentUserRole = (session?.user as any)?.role;
+        if (!session?.user?.id || currentUserRole !== "ADMIN") {
+            return { success: false, error: "Unauthorized. Admin privileges required." };
+        }
+
         const name = formData.get("name") as string;
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
@@ -2892,10 +2944,24 @@ export async function createUser(formData: FormData) {
             return { success: false, error: "Email already exists" };
         }
 
+        // 1. Create user in Supabase Auth
+        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: { name }
+        });
+
+        if (authError || !authUser.user) {
+            console.error("Failed to create user in Supabase Auth:", authError);
+            return { success: false, error: authError?.message || "Failed to create authentication account." };
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = await prisma.user.create({
             data: {
+                id: authUser.user.id,
                 name,
                 email,
                 password: hashedPassword,
@@ -2922,6 +2988,13 @@ export async function createUser(formData: FormData) {
  */
 export async function updateUser(userId: string, formData: FormData) {
     try {
+        // Strict Authorization Guard
+        const session = await getServerSession(authOptions);
+        const currentUserRole = (session?.user as any)?.role;
+        if (!session?.user?.id || currentUserRole !== "ADMIN") {
+            return { success: false, error: "Unauthorized. Admin privileges required." };
+        }
+
         const name = formData.get("name") as string;
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
@@ -2940,6 +3013,19 @@ export async function updateUser(userId: string, formData: FormData) {
             return { success: false, error: "Email is already taken by another account" };
         }
 
+        // Sync updates to Supabase Auth if email changed
+        const oldUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+        if (oldUser && oldUser.email !== email) {
+            const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+                email,
+                email_confirm: true
+            });
+            if (authError) {
+                console.error("Failed to update email in Supabase Auth:", authError);
+                return { success: false, error: "Failed to update authentication email: " + authError.message };
+            }
+        }
+
         const dataToUpdate: any = {
             name,
             email,
@@ -2950,6 +3036,14 @@ export async function updateUser(userId: string, formData: FormData) {
         };
 
         if (password && password.trim() !== "") {
+            // Sync password to Supabase Auth
+            const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+                password: password.trim()
+            });
+            if (authError) {
+                console.error("Failed to update password in Supabase Auth:", authError);
+                return { success: false, error: "Failed to update authentication password: " + authError.message };
+            }
             dataToUpdate.password = await bcrypt.hash(password, 10);
             dataToUpdate.isPasswordChanged = true;
         }
@@ -2972,10 +3066,22 @@ export async function updateUser(userId: string, formData: FormData) {
  */
 export async function deleteUser(userId: string) {
     try {
+        // Strict Authorization Guard
+        const session = await getServerSession(authOptions);
+        const currentUserRole = (session?.user as any)?.role;
+        if (!session?.user?.id || currentUserRole !== "ADMIN") {
+            return { success: false, error: "Unauthorized. Admin privileges required." };
+        }
+
         const existing = await prisma.user.findUnique({ where: { id: userId } });
         if (!existing) {
             return { success: false, error: "User account not found" };
         }
+
+        // Delete from Supabase Auth
+        await supabaseAdmin.auth.admin.deleteUser(userId).catch((err: any) => {
+            console.warn("Could not delete from Supabase Auth:", err);
+        });
 
         // Delete associated accounts
         await prisma.account.deleteMany({ where: { userId } }).catch((err: any) => {

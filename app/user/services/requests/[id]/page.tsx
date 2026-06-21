@@ -176,7 +176,7 @@ export default function RequestHubPage() {
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
     const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
     const [gcashReferenceNo, setGcashReferenceNo] = useState("");
-    const [selectedPaymongoMethod, setSelectedPaymongoMethod] = useState<"gcash" | "qrph" | "dob">("gcash");
+    const [selectedPaymongoMethod, setSelectedPaymongoMethod] = useState<"gcash" | "qrph" | "dob">("qrph");
 
     // Delivery Address States
     const [address, setAddress] = useState({
@@ -1402,7 +1402,6 @@ export default function RequestHubPage() {
                                                 <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                                                         {[
-                                                            { id: "gcash", label: "GCash Wallet", desc: "GCash E-Wallet", icon: Wallet },
                                                             { id: "qrph", label: "QRPH Scan", desc: "Maya, BPI, GCash", icon: QrCode }
                                                         ].map(method => (
                                                             <button

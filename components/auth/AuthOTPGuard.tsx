@@ -11,7 +11,7 @@ export function AuthOTPGuard() {
     React.useEffect(() => {
         if (typeof window === "undefined") return;
 
-        if (status === "authenticated" && session) {
+        if (status === "authenticated" && session && session.user) {
             const isEmailVerified = (session.user as any).isEmailVerified;
             if (isEmailVerified === false) {
                 signOut({ redirect: false });

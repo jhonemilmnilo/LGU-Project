@@ -161,7 +161,9 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             if (token.deactivated || token.exp === 1) {
-                return null as any;
+                return {
+                    expires: new Date(0).toISOString(),
+                } as any;
             }
             if (session.user) {
 
@@ -184,6 +186,7 @@ export const authOptions: NextAuthOptions = {
     },
     session: {
         strategy: "jwt",
+        maxAge: 12 * 60 * 60, // 12 hours
     },
     cookies: {
         sessionToken: {
