@@ -111,13 +111,6 @@ export default function PaymentSettingsClient({
         }));
     };
 
-    const handleLateFeeChange = (id: string, value: string) => {
-        setLateFees(prev => ({
-            ...prev,
-            [id]: value
-        }));
-    };
-
     const handleSaveFees = async () => {
         setIsSavingFees(true);
         try {
