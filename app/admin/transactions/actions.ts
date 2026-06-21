@@ -312,7 +312,13 @@ export async function ensureCivilRegistryTransactionTypes() {
                     fields: ["fullName", "dateOfBirth", "placeOfBirth", "fathersName", "mothersName"]
                 },
                 requiresBusinessName: false,
-                supportsECopy: true
+                supportsECopy: true,
+                defaultFees: [
+                    { code: "PROCESSING_FEE", label: "Processing & E-Copy Fee", amount: 215.00 },
+                    { code: "LATE_FEE_1_10", label: "Late Fee (1-10 Years)", amount: 315.00 },
+                    { code: "LATE_FEE_10_20", label: "Late Fee (10-20 Years)", amount: 515.00 },
+                    { code: "LATE_FEE_20_UP", label: "Late Fee (20+ Years)", amount: 1015.00 }
+                ]
             },
             {
                 code: "LCR_MARRIAGE",
@@ -477,6 +483,9 @@ export async function ensureCivilRegistryTransactionTypes() {
         ];
 
         for (const t of types) {
+            const existing = await prisma.transactionType.findUnique({ where: { code: t.code } });
+            const hasDefaultFees = existing && Array.isArray(existing.defaultFees) && existing.defaultFees.length > 0;
+
             await prisma.transactionType.upsert({
                 where: { code: t.code },
                 update: {
@@ -484,7 +493,8 @@ export async function ensureCivilRegistryTransactionTypes() {
                     description: t.description,
                     requiredDocs: t.requiredDocs,
                     formSchema: t.formSchema,
-                    supportsECopy: t.supportsECopy
+                    supportsECopy: t.supportsECopy,
+                    ...(!hasDefaultFees && (t as any).defaultFees ? { defaultFees: (t as any).defaultFees } : {})
                 },
                 create: t as any
             });
