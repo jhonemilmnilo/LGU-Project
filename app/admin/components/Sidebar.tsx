@@ -326,6 +326,7 @@ export function Sidebar({
         "Tuluyan (Stay)",
         "Gallery",
         "Church Management",
+        "Public Reports",
         "Job Postings",
         "Council Members",
         "Resident Approvals",
