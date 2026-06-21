@@ -262,6 +262,12 @@ export default function BirthRegistrationPage() {
     // Dropdown open state for evidence menu
     const [evidenceMenuOpen, setEvidenceMenuOpen] = useState(false);
 
+    const [dbBaseFee, setDbBaseFee] = useState<number>(100);
+    const [dbProcessingFee, setDbProcessingFee] = useState<number>(215);
+    const [dbLateFee1to10, setDbLateFee1to10] = useState<number>(315);
+    const [dbLateFee10to20, setDbLateFee10to20] = useState<number>(515);
+    const [dbLateFee20plus, setDbLateFee20plus] = useState<number>(1015);
+
     const getNormalizedPlaceOfEvent = (val: string) => {
         if (!val) return "";
         const upperVal = val.toUpperCase();
@@ -306,13 +312,13 @@ export default function BirthRegistrationPage() {
                     }
                     if (age >= 20) {
                         lateDuration = "20+";
-                        miscFee = 1015;
+                        miscFee = dbLateFee20plus;
                     } else if (age >= 10) {
                         lateDuration = "10-20";
-                        miscFee = 515;
+                        miscFee = dbLateFee10to20;
                     } else {
                         lateDuration = "1-10";
-                        miscFee = 315;
+                        miscFee = dbLateFee1to10;
                     }
                 } else {
                     lateDuration = "";
@@ -330,7 +336,7 @@ export default function BirthRegistrationPage() {
         } catch {
             // ignore
         }
-    }, [form.dateOfEvent]);
+    }, [form.dateOfEvent, dbLateFee20plus, dbLateFee10to20, dbLateFee1to10]);
 
     const handleAcceptPolicy = () => {
         setPolicyOpen(false);
@@ -344,12 +350,12 @@ export default function BirthRegistrationPage() {
 
     const isRestoredRef = useRef(false);
 
-    const baseFee = form.registrationType === "STANDARD" ? 0 : (
-        form.lateDuration === "1-10" ? 315 : form.lateDuration === "10-20" ? 515 : form.lateDuration === "20+" ? 1015 : 0
+    const baseFee = form.registrationType === "STANDARD" ? dbBaseFee : (
+        form.lateDuration === "1-10" ? dbLateFee1to10 : form.lateDuration === "10-20" ? dbLateFee10to20 : form.lateDuration === "20+" ? dbLateFee20plus : 0
     );
 
-    // Misc fee represents the total amount payable (base fee + 215 for e-copy and hardcopy)
-    const totalAmount = Number(baseFee || 0) + 215;
+    // Misc fee represents the total amount payable (base fee + processing fee for e-copy and hardcopy)
+    const totalAmount = Number(baseFee || 0) + dbProcessingFee;
 
     // Restore progress from session storage & IndexedDB
     useEffect(() => {
@@ -621,6 +627,20 @@ export default function BirthRegistrationPage() {
                             ...prev,
                             typeId: prev.typeId || currentDbType.id
                         }));
+                        setDbBaseFee(Number(currentDbType.baseFee ?? 100));
+                        if (currentDbType.defaultFees) {
+                            const feesArray = typeof currentDbType.defaultFees === "string"
+                                ? JSON.parse(currentDbType.defaultFees)
+                                : currentDbType.defaultFees;
+                            const procFeeObj = feesArray.find((f: any) => f.code === "PROCESSING_FEE");
+                            if (procFeeObj) setDbProcessingFee(Number(procFeeObj.amount));
+                            const late1 = feesArray.find((f: any) => f.code === "LATE_FEE_1_10");
+                            if (late1) setDbLateFee1to10(Number(late1.amount));
+                            const late10 = feesArray.find((f: any) => f.code === "LATE_FEE_10_20");
+                            if (late10) setDbLateFee10to20(Number(late10.amount));
+                            const late20 = feesArray.find((f: any) => f.code === "LATE_FEE_20_UP");
+                            if (late20) setDbLateFee20plus(Number(late20.amount));
+                        }
                     }
                 }
             } catch (err) {
@@ -700,13 +720,13 @@ export default function BirthRegistrationPage() {
                 }
                 if (age >= 20) {
                     lateDuration = "20+";
-                    miscFee = 1015;
+                    miscFee = dbLateFee20plus;
                 } else if (age >= 10) {
                     lateDuration = "10-20";
-                    miscFee = 515;
+                    miscFee = dbLateFee10to20;
                 } else {
                     lateDuration = "1-10";
-                    miscFee = 315;
+                    miscFee = dbLateFee1to10;
                 }
             }
 
@@ -2113,7 +2133,7 @@ export default function BirthRegistrationPage() {
                                                                     : "bg-slate-100 dark:bg-slate-900/50 text-slate-400 border border-slate-200/60 dark:border-white/5 opacity-60"
                                                             )}
                                                         >
-                                                            1 month - 10 years (P315)
+                                                            1 month - 10 years (₱{dbLateFee1to10})
                                                         </button>
                                                         <button
                                                             type="button"
@@ -2125,7 +2145,7 @@ export default function BirthRegistrationPage() {
                                                                     : "bg-slate-100 dark:bg-slate-900/50 text-slate-400 border border-slate-200/60 dark:border-white/5 opacity-60"
                                                             )}
                                                         >
-                                                            10 - 20 years (P515)
+                                                            10 - 20 years (₱{dbLateFee10to20})
                                                         </button>
                                                         <button
                                                             type="button"
@@ -2137,7 +2157,7 @@ export default function BirthRegistrationPage() {
                                                                     : "bg-slate-100 dark:bg-slate-900/50 text-slate-400 border border-slate-200/60 dark:border-white/5 opacity-60"
                                                             )}
                                                         >
-                                                            20 years and above (P1015)
+                                                            20 years and above (₱{dbLateFee20plus})
                                                         </button>
                                                     </div>
                                                     {errors.lateDuration && (
@@ -2255,7 +2275,7 @@ export default function BirthRegistrationPage() {
                                                     </div>
                                                     <div className="flex justify-between items-center text-xs font-semibold italic text-slate-500 pb-2 border-b border-dashed border-slate-200/50">
                                                         <span>E-Copy & Hardcopy Fee</span>
-                                                        <span className="font-extrabold text-slate-800 dark:text-slate-200">₱215</span>
+                                                        <span className="font-extrabold text-slate-800 dark:text-slate-200">₱{dbProcessingFee}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center">
                                                         <div>
