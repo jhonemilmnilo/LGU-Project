@@ -460,6 +460,12 @@ export default async function Home({
                 contactEmail={contactEmail}
                 contactPhone={contactPhone}
             />
+            {/* Version Indicator */}
+            <div className="fixed bottom-4 right-4 z-50 pointer-events-none opacity-40 hover:opacity-100 transition-opacity">
+                <span className="text-[9px] font-black uppercase tracking-widest bg-slate-900/90 text-white dark:bg-white/90 dark:text-slate-900 px-2.5 py-1 rounded-full border border-white/10 dark:border-black/10 shadow-lg">
+                    v1.0.0
+                </span>
+            </div>
         </main>
     );
 }
