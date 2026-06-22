@@ -3013,9 +3013,12 @@ export async function updateUser(userId: string, formData: FormData) {
             return { success: false, error: "Email is already taken by another account" };
         }
 
-        // Sync updates to Supabase Auth if email changed
+        // Sync updates to Supabase Auth if email changed and user ID is a valid UUID
         const oldUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
-        if (oldUser && oldUser.email !== email) {
+        const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+        const isUserUuid = isUuid(userId);
+
+        if (oldUser && oldUser.email !== email && isUserUuid) {
             const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
                 email,
                 email_confirm: true
@@ -3036,13 +3039,15 @@ export async function updateUser(userId: string, formData: FormData) {
         };
 
         if (password && password.trim() !== "") {
-            // Sync password to Supabase Auth
-            const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-                password: password.trim()
-            });
-            if (authError) {
-                console.error("Failed to update password in Supabase Auth:", authError);
-                return { success: false, error: "Failed to update authentication password: " + authError.message };
+            if (isUserUuid) {
+                // Sync password to Supabase Auth
+                const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+                    password: password.trim()
+                });
+                if (authError) {
+                    console.error("Failed to update password in Supabase Auth:", authError);
+                    return { success: false, error: "Failed to update authentication password: " + authError.message };
+                }
             }
             dataToUpdate.password = await bcrypt.hash(password, 10);
             dataToUpdate.isPasswordChanged = true;
