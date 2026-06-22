@@ -1745,15 +1745,42 @@ export async function getTreasuryStatusCounts() {
 }
 
 /**
- * Fetch all transactions relevant to BPLO (Business Permits)
+ * Fetch all transactions relevant to BPLO (Business Permits) with pagination, search, and filters
  */
-export async function getBploTransactions(status?: string) {
+export async function getBploTransactions(params?: string | {
+    status?: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+    serviceFilter?: string | null;
+}) {
     try {
         const session = await getSession();
         const user = session?.user as any;
         if (!user || (user.role !== "ADMIN" && !isUserAdminAide(user))) {
             return { success: false, error: "Forbidden" };
         }
+
+        // Backward compatibility: handle old string parameter and undefined
+        let page = 1;
+        let limit = 10;
+        let search = "";
+        let serviceFilter: string | null = null;
+        let status: string | undefined = undefined;
+
+        if (typeof params === "string") {
+            status = params;
+            // Disable page limit for backward compatibility (return all rows)
+            limit = 999999;
+        } else if (params && typeof params === "object") {
+            page = params.page || 1;
+            limit = params.limit || 10;
+            search = params.search || "";
+            serviceFilter = params.serviceFilter || null;
+            status = params.status;
+        }
+
+        const skip = limit === 999999 ? 0 : (page - 1) * limit;
 
         const where: any = {
             type: {
@@ -1801,16 +1828,77 @@ export async function getBploTransactions(status?: string) {
             where.isCancelled = false;
         }
 
-        const transactions = await prisma.transaction.findMany({
-            where,
-            include: {
-                user: true,
-                type: true,
-                cedula: true,
-                businessPermit: true
-            },
-            orderBy: { createdAt: "desc" }
-        });
+        // Service name filter (e.g. New or Renewal)
+        if (serviceFilter && serviceFilter !== "ALL") {
+            where.type = { ...where.type, name: serviceFilter };
+        }
+
+        // Search query
+        if (search) {
+            const cleanSearch = search.trim();
+            where.OR = [
+                { id: { contains: cleanSearch, mode: "insensitive" } },
+                { businessName: { contains: cleanSearch, mode: "insensitive" } },
+                {
+                    residentSnapshot: {
+                        path: ["firstName"],
+                        string_contains: cleanSearch
+                    }
+                },
+                {
+                    residentSnapshot: {
+                        path: ["lastName"],
+                        string_contains: cleanSearch
+                    }
+                }
+            ];
+        }
+
+        const [transactions, totalCount] = await Promise.all([
+            prisma.transaction.findMany({
+                where,
+                select: {
+                    id: true,
+                    status: true,
+                    fulfillmentType: true,
+                    paymentType: true,
+                    totalAmount: true,
+                    updatedAt: true,
+                    createdAt: true,
+                    isCancelled: true,
+                    businessName: true,
+                    isStudent: true,
+                    processedBy: true,
+                    residentSnapshot: true,
+                    additionalData: true,
+                    type: {
+                        select: {
+                            id: true,
+                            code: true,
+                            name: true,
+                            category: true,
+                            requiresBusinessName: true
+                        }
+                    },
+                    cedula: {
+                        select: {
+                            id: true,
+                            ctcNumber: true
+                        }
+                    },
+                    businessPermit: {
+                        select: {
+                            id: true,
+                            permitNumber: true
+                        }
+                    }
+                },
+                orderBy: { createdAt: "desc" },
+                take: limit,
+                skip: skip
+            }),
+            prisma.transaction.count({ where })
+        ]);
 
         // Fetch staff users to map processedBy
         const staff = await prisma.user.findMany({
@@ -1828,7 +1916,7 @@ export async function getBploTransactions(status?: string) {
             processorName: tx.processedBy ? (staffMap.get(tx.processedBy) || "Unknown Staff") : "Not Processed"
         }));
 
-        return { success: true, data: mappedTransactions as any[] };
+        return { success: true, data: mappedTransactions as any[], totalCount };
     } catch (error) {
         console.error("Fetch BPLO transactions error:", error);
         return { success: false, error: "Failed to fetch BPLO transactions" };

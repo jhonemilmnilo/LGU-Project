@@ -5,6 +5,15 @@ export default async function BarangayAdminsPage() {
     const [admins, barangays, themeColorSetting] = await Promise.all([
         prisma.user.findMany({
             where: { role: 'BARANGAY_ADMIN' },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                isEmailVerified: true,
+                role: true,
+                managedBarangay: true,
+                createdAt: true
+            },
             orderBy: { createdAt: 'desc' }
         }),
         prisma.barangayInfo.findMany({
