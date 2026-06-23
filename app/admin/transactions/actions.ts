@@ -2132,24 +2132,24 @@ export async function rejectTransaction(id: string, remarks: string) {
 
                 // Trigger URGENT Deactivation Email
                 if (updatedUser.email) {
-                    await sendEmail({
+                    sendEmail({
                         type: "DEACTIVATED",
                         to: updatedUser.email,
                         name: updatedUser.name || "Resident",
-                    });
+                    }).catch(err => console.error("Deactivation email error:", err));
                 }
             } else {
                 // Trigger standard Rejection Email
                 if (updatedUser.email) {
                     const resident = tx.residentSnapshot as any;
-                    await sendEmail({
+                    sendEmail({
                         type: "REJECTED",
                         to: updatedUser.email,
                         name: resident?.firstName || updatedUser.name || "Resident",
                         remarks: remarks,
                         transactionId: tx.id.slice(-8).toUpperCase(),
                         serviceName: tx.type?.name
-                    });
+                    }).catch(err => console.error("Rejection email error:", err));
                 }
             }
         }
@@ -2242,23 +2242,23 @@ export async function sendForRevision(id: string, remarks: string) {
                     });
 
                     if (updatedUser.email) {
-                        await sendEmail({
+                        sendEmail({
                             type: "DEACTIVATED",
                             to: updatedUser.email,
                             name: updatedUser.name || "Resident",
-                        });
+                        }).catch(err => console.error("Deactivation email error:", err));
                     }
                 } else {
                     if (updatedUser.email) {
                         const resident = tx.residentSnapshot as any;
-                        await sendEmail({
+                        sendEmail({
                             type: "REJECTED",
                             to: updatedUser.email,
                             name: resident?.firstName || updatedUser.name || "Resident",
                             remarks: autoRemarks,
                             transactionId: tx.id.slice(-8).toUpperCase(),
                             serviceName: tx.type?.name
-                        });
+                        }).catch(err => console.error("Auto decline rejection email error:", err));
                     }
                 }
             }
@@ -2280,14 +2280,14 @@ export async function sendForRevision(id: string, remarks: string) {
 
             if (tx.userId && tx.user?.role === "USER" && tx.user?.email) {
                 const resident = tx.residentSnapshot as any;
-                await sendEmail({
+                sendEmail({
                     type: "FOR_REVISION" as any,
                     to: tx.user.email,
                     name: resident?.firstName || tx.user.name || "Resident",
                     remarks: remarks,
                     transactionId: tx.id.slice(-8).toUpperCase(),
                     serviceName: tx.type?.name
-                });
+                }).catch(err => console.error("Revision request email error:", err));
             }
 
             revalidatePath("/admin/treasury");
@@ -2952,6 +2952,10 @@ export async function scheduleBuildingInspection(id: string, details: any) {
 
         if (!transaction.type.code.startsWith("BUILDING_PERMIT")) {
             return { success: false, error: "Not a Building Permit transaction" };
+        }
+
+        if (transaction.status !== "FOR_REQUESTING") {
+            return { success: false, error: "Inspection can only be scheduled after the resident resubmits and the application returns to evaluation." };
         }
 
         const existingAdditionalData = (transaction.additionalData as any) || {};
