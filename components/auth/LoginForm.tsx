@@ -372,6 +372,10 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
         }
 
         try {
+            if (typeof window !== "undefined") {
+                sessionStorage.setItem("logging_in_otp", "true");
+            }
+
             const result = await signIn("credentials", {
                 email: data.email,
                 password: data.password,
@@ -379,6 +383,9 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
             });
 
             if (result?.error) {
+                if (typeof window !== "undefined") {
+                    sessionStorage.removeItem("logging_in_otp");
+                }
                 const errorMessage = result.error;
                 if (
                     errorMessage.includes("approved") ||
@@ -436,6 +443,9 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
                 const { role, isPasswordChanged, isEmailVerified } = session.user;
 
                 if (isEmailVerified === false) {
+                    if (typeof window !== "undefined") {
+                        sessionStorage.removeItem("logging_in_otp");
+                    }
                     await signOut({ redirect: false });
                     toast.error("Your email address is not verified yet. Please contact an administrator to verify your account.");
                     setIsLoggingIn(false);
@@ -443,6 +453,9 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
                 }
 
                 if (isMaintenanceActive && role === "USER") {
+                    if (typeof window !== "undefined") {
+                        sessionStorage.removeItem("logging_in_otp");
+                    }
                     await signOut({ redirect: false });
                     document.cookie = "bypass_maintenance=true; path=/; max-age=1800";
                     toast.error("The portal is currently under maintenance. Citizens are not allowed to sign in at this time.");
@@ -502,6 +515,9 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
 
                 // Normal redirect based on role
                 const performRedirect = () => {
+                    if (typeof window !== "undefined") {
+                        sessionStorage.removeItem("logging_in_otp");
+                    }
                     if (role === "USER") {
                         router.push("/");
                         toast.success("Logged in successfully");
@@ -532,6 +548,9 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
                     performRedirect();
                 }
             } else {
+                if (typeof window !== "undefined") {
+                    sessionStorage.removeItem("logging_in_otp");
+                }
                 if (triggerLeave) {
                     triggerLeave(() => router.push("/"));
                 } else {
@@ -539,6 +558,9 @@ export function LoginForm({ themeColor = "#2563eb", isMaintenanceActive = false 
                 }
             }
         } catch (error) {
+            if (typeof window !== "undefined") {
+                sessionStorage.removeItem("logging_in_otp");
+            }
             toast.error("An unexpected error occurred");
             console.error("Login error:", error);
             setIsLoggingIn(false);
