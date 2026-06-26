@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Star, MessageSquare, Send, User as UserIcon, Calendar, Upload, X, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -320,7 +321,7 @@ export function ReviewSection({
                                         <div className="grid grid-cols-2 gap-2">
                                             {mediaUrls.map((url, idx) => (
                                                 <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden border border-slate-800 shadow-lg group/img cursor-zoom-in" onClick={() => setActiveLightboxUrl(url)}>
-                                                    <img src={url} alt={`Upload preview ${idx + 1}`} className="w-full h-full object-cover" />
+                                                    <Image src={url} alt={`Upload preview ${idx + 1}`} fill className="object-cover" unoptimized />
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
@@ -483,10 +484,12 @@ export function ReviewSection({
                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-xl">
                                                 {review.mediaUrl.split(",").map((url, idx) => (
                                                     <div key={idx} onClick={() => setActiveLightboxUrl(url)} className="relative aspect-video rounded-2xl overflow-hidden shadow-xl ring-1 ring-slate-800 group/img-view cursor-zoom-in">
-                                                        <img
+                                                        <Image
                                                             src={url}
                                                             alt={`Review photo ${idx + 1}`}
-                                                            className="w-full h-full object-cover transition-transform duration-500 group-hover/img-view:scale-105"
+                                                            fill
+                                                            className="object-cover transition-transform duration-500 group-hover/img-view:scale-105"
+                                                            unoptimized
                                                         />
                                                     </div>
                                                 ))}
@@ -522,10 +525,13 @@ export function ReviewSection({
                             className="relative max-w-5xl max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl border border-white/10"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <img
-                                src={activeLightboxUrl}
+                            <Image
+                                src={activeLightboxUrl!}
                                 alt="Full size preview"
+                                width={1200}
+                                height={800}
                                 className="w-auto h-auto max-w-full max-h-[85vh] object-contain rounded-2xl"
+                                unoptimized
                             />
                         </motion.div>
                     </motion.div>
