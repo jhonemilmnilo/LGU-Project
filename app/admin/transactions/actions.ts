@@ -1195,10 +1195,22 @@ export async function submitTransaction(formData: FormData) {
         const proofFile = formData.get("proofFile") as File;
         const existingIdUrl = sanitizeUrl(formData.get("existingIdUrl") as string);
 
-        let idUrl = await processFileUpload(idFile, "ids");
+        let idUrl = null;
+        if (idFile && idFile.size > 0 && idFile.name !== "undefined") {
+            idUrl = await processFileUpload(idFile, "ids");
+            if (!idUrl) {
+                return { success: false, error: "Failed to upload Valid ID. Please try again or check your connection." };
+            }
+        }
         if (!idUrl && existingIdUrl) idUrl = existingIdUrl;
 
-        const proofUrl = await processFileUpload(proofFile, "proofs");
+        let proofUrl = null;
+        if (proofFile && proofFile.size > 0 && proofFile.name !== "undefined") {
+            proofUrl = await processFileUpload(proofFile, "proofs");
+            if (!proofUrl) {
+                return { success: false, error: "Failed to upload Proof document. Please try again or check your connection." };
+            }
+        }
 
         // Merge file URLs into additionalData
         const updatedAdditionalData = {
@@ -2964,6 +2976,10 @@ export async function scheduleBuildingInspection(id: string, details: any) {
 
         if (!transaction.type.code.startsWith("BUILDING_PERMIT")) {
             return { success: false, error: "Not a Building Permit transaction" };
+        }
+
+        if (transaction.status !== "FOR_REQUESTING") {
+            return { success: false, error: "Inspection can only be scheduled after the resident resubmits and the application returns to evaluation." };
         }
 
         const existingAdditionalData = (transaction.additionalData as any) || {};
