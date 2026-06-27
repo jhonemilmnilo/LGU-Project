@@ -17,7 +17,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting, updateMultipleSystemSettings } from "./actions";
-import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send, X, Loader2, Users, Mail } from "lucide-react";
+import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Loader2, Users, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
 
