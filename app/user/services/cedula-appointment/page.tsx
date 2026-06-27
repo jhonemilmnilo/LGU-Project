@@ -13,8 +13,13 @@ export default async function CedulaAppointmentPage() {
         redirect("/auth/login");
     }
 
-    const settings = await getMultipleSystemSettings(["theme_color"]);
+    const settings = await getMultipleSystemSettings(["theme_color", "logo", "brand_word_1", "brand_word_2"]);
     const themeColor = settings.get("theme_color") || "#2563eb";
+    const branding = {
+        logo: settings.get("logo") || null,
+        word1: settings.get("brand_word_1") || "MUNICIPALITY",
+        word2: settings.get("brand_word_2") || "PORTAL",
+    };
 
     // Fetch user's resident profile
     const userWithResident = await prisma.user.findUnique({
@@ -65,7 +70,8 @@ export default async function CedulaAppointmentPage() {
             resident={userWithResident?.residentProfile || null}
             cedulaTypes={cedulaTypes}
             themeColor={themeColor}
-            config={treasuryConfig}
+            branding={branding}
+            config={treasuryConfig as any}
             bookedSlots={bookedSlots as any[]}
         />
     );

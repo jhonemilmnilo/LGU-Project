@@ -681,6 +681,8 @@ model Transaction {
   
   appointmentDate   DateTime?
   appointmentSlot   String?
+  queueNumber       String?           // Formatted queue ticket number (e.g. 06272026-AM-P002)
+  isPriority        Boolean           @default(false)
   
   isCancelled       Boolean           @default(false)
   createdAt         DateTime          @default(now())
@@ -1174,6 +1176,8 @@ model AppointmentConfig {
   id           String   @id @default(cuid())
   department   String   @unique // "TREASURY", "BPLO", "REGISTRAR", "ENGINEER"
   maxSlots     Int      @default(50)
+  maxSlotsAM   Int      @default(25)
+  maxSlotsPM   Int      @default(25)
   blockedDates String[] @default([]) // Array of ISO strings (e.g., ["2026-12-25"])
   activeDays   Int[]    @default([1, 2, 3, 4, 5]) // Days of week active (1 = Monday, 5 = Friday, etc.)
   createdAt    DateTime @default(now())

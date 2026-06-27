@@ -72,8 +72,9 @@ export async function submitCedulaAppointment(formData: FormData) {
         // 1. Check if the slot is still available (concurrency control)
         const config = await prisma.appointmentConfig.findUnique({
             where: { department: "TREASURY" }
-        });
-        const maxSlots = config?.maxSlots || 50;
+        }) as any; // Cast as any to resolve maxSlotsAM/PM cache lag warning
+        const maxSlotsAM = config?.maxSlotsAM ?? 25;
+        const maxSlotsPM = config?.maxSlotsPM ?? 25;
 
         const startOfDay = new Date(appointmentDate);
         startOfDay.setUTCHours(0, 0, 0, 0);
@@ -92,11 +93,48 @@ export async function submitCedulaAppointment(formData: FormData) {
             }
         });
 
-        if (bookedCount >= maxSlots) {
+        const isAM = appointmentSlot.includes("AM") || appointmentSlot.toUpperCase().includes("08:00 AM");
+        const maxLimit = isAM ? maxSlotsAM : maxSlotsPM;
+
+        if (bookedCount >= maxLimit) {
             return { success: false, error: "This appointment slot is already fully booked. Please select another slot." };
         }
 
-        // 2. Create the Transaction Record
+        // 2. Generate unique Queue Ticket Number
+        // Formats: [DATE]-[SHIFT]-[PRIORITY_INDICATOR][SEQUENCE]
+        // E.g., 06272026-AM-005 or 06272026-AM-P002
+        const dateStr = startOfDay.toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric"
+        }).replace(/\//g, ""); // 06272026
+
+        const shiftStr = isAM ? "AM" : "PM";
+        
+        // Read priority lane flag from additionalData (passed from form state)
+        const isPriority = additionalData.isPriorityLane === true || additionalData.isPriorityLane === "true";
+
+        // Count existing transactions for this shift on target date
+        // using the direct isPriority column
+        const shiftCount = await prisma.transaction.count({
+            where: {
+                appointmentDate: {
+                    gte: startOfDay,
+                    lte: endOfDay
+                },
+                appointmentSlot: {
+                    contains: shiftStr
+                },
+                isCancelled: false,
+                isPriority: isPriority, // Direct column filter
+                type: { category: "Treasurer" }
+            } as any
+        });
+
+        const seqNum = String(shiftCount + 1).padStart(3, "0");
+        const queueNumber = `${dateStr}-${shiftStr}-${isPriority ? "P" : ""}${seqNum}`;
+
+        // 3. Create the Transaction Record
         const transaction = await prisma.$transaction(async (tx) => {
             const newTx = await tx.transaction.create({
                 data: {
@@ -106,10 +144,15 @@ export async function submitCedulaAppointment(formData: FormData) {
                     fulfillmentType: "PICK_UP", 
                     paymentType: "CASH", 
                     residentSnapshot,
-                    additionalData: updatedAdditionalData,
+                    additionalData: {
+                        ...updatedAdditionalData,
+                        isPriorityLane: isPriority
+                    },
                     totalAmount: 0,
                     appointmentDate,
                     appointmentSlot,
+                    queueNumber,
+                    isPriority, // Save under new isPriority column
                     businessName: additionalData.businessName || null,
                 } as any
             });
@@ -140,7 +183,7 @@ export async function submitCedulaAppointment(formData: FormData) {
 
         revalidatePath("/user/services");
         revalidatePath("/admin/transactions");
-        return { success: true, data: transaction };
+        return { success: true, data: transaction as any };
     } catch (error) {
         console.error("Submit appointment transaction error:", error);
         return { success: false, error: "Failed to book appointment" };

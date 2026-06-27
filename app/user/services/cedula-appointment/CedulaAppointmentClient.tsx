@@ -43,6 +43,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { submitCedulaAppointment } from "./actions";
+import PrintQueueTicket from "@/components/shared/PrintQueueTicket";
 
 type Step = "STATUS" | "RESIDENT" | "TAX_DECLARATION" | "DECLARATION" | "CONFIRM" | "SUCCESS";
 
@@ -58,8 +59,15 @@ interface CedulaAppointmentClientProps {
     resident: any;
     cedulaTypes: any[];
     themeColor: string;
+    branding: {
+        logo?: string | null;
+        word1?: string;
+        word2?: string;
+    };
     config: {
         maxSlots: number;
+        maxSlotsAM?: number;
+        maxSlotsPM?: number;
         blockedDates: string[];
         activeDays: number[];
     };
@@ -70,6 +78,7 @@ export function CedulaAppointmentClient({
     resident,
     cedulaTypes,
     themeColor,
+    branding,
     config,
     bookedSlots
 }: CedulaAppointmentClientProps) {
@@ -81,6 +90,9 @@ export function CedulaAppointmentClient({
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const [calcResult, setCalcResult] = useState<CedulaResult | null>(null);
     const [newTransactionId, setNewTransactionId] = useState<string | null>(null);
+    const [queueNumber, setQueueNumber] = useState<string | null>(null);
+    const [isPriorityLane, setIsPriorityLane] = useState(false);
+    const [printTriggered, setPrintTriggered] = useState(false);
 
     // Form inputs state
     const [formState, setFormState] = useState({
@@ -283,7 +295,14 @@ export function CedulaAppointmentClient({
                 b.appointmentSlot === slot
             );
         }).length;
-        return count < (config.maxSlots / 2); // Split config max slots between morning and afternoon
+        
+        const isAM = slot.includes("AM") || slot.toUpperCase().includes("08:00 AM");
+        const configAny = config as any;
+        const maxLimit = isAM 
+            ? (configAny.maxSlotsAM ?? 25) 
+            : (configAny.maxSlotsPM ?? 25);
+            
+        return count < maxLimit;
     };
 
     // Check if a specific date is disabled
@@ -433,7 +452,8 @@ export function CedulaAppointmentClient({
                 businessName: formState.businessName,
                 incomeSource: formState.incomeSource,
                 purpose: "Community Tax Certificate Appointment",
-                calculatedTax: calcResult
+                calculatedTax: calcResult,
+                isPriorityLane: isPriorityLane // Pass priority state to backend
             }));
             if (idFile) submitData.append("idFile", idFile);
             if (proofFile) submitData.append("proofFile", proofFile);
@@ -442,7 +462,9 @@ export function CedulaAppointmentClient({
 
             const response = await submitCedulaAppointment(submitData);
             if (response.success && response.data) {
-                setNewTransactionId(response.data.id);
+                const resData = response.data as any;
+                setNewTransactionId(resData.id);
+                setQueueNumber(resData.queueNumber); // Save generated queue ticket number
                 toast.success("Appointment booked successfully!");
                 setCurrentStep("SUCCESS");
             } else {
@@ -456,9 +478,7 @@ export function CedulaAppointmentClient({
     };
 
     const printSlip = () => {
-        if (typeof window !== "undefined") {
-            window.print();
-        }
+        setPrintTriggered(true);
     };
 
     const formatDateString = (date: Date) => {
@@ -1043,6 +1063,43 @@ export function CedulaAppointmentClient({
                                                                 </button>
                                                             );
                                                         })}
+
+                                                        {/* ♿ Priority Lane Toggle card */}
+                                                        <div 
+                                                            onClick={() => setIsPriorityLane(!isPriorityLane)}
+                                                            className={cn(
+                                                                "p-5 border rounded-[2rem] flex flex-col gap-2 text-left transition-all duration-300 shadow-sm relative overflow-hidden cursor-pointer select-none",
+                                                                isPriorityLane 
+                                                                    ? "border-primary bg-primary/[0.04] dark:bg-primary/[0.08]" 
+                                                                    : "border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02] hover:border-slate-350"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <div className={cn(
+                                                                    "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0",
+                                                                    isPriorityLane 
+                                                                        ? "bg-primary border-primary text-white" 
+                                                                        : "border-slate-300 dark:border-white/20 bg-white dark:bg-black/20"
+                                                                )}
+                                                                    style={isPriorityLane ? { borderColor: themeColor, backgroundColor: themeColor } : {}}
+                                                                >
+                                                                    {isPriorityLane && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                                                                </div>
+                                                                <div className="space-y-0.5">
+                                                                    <span className="font-black text-xs md:text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                                                                        ♿ Apply for Priority Lane
+                                                                    </span>
+                                                                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                                                                        For Senior Citizens, PWDs, and Pregnant Applicants
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            {isPriorityLane && (
+                                                                <p className="text-[9px] font-black text-amber-500 uppercase tracking-wide ml-9 animate-in slide-in-from-top-1 duration-200">
+                                                                    * Please present your valid Senior Citizen or PWD ID at the counter for validation.
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
@@ -1303,6 +1360,22 @@ export function CedulaAppointmentClient({
 
                             {currentStep === "SUCCESS" && (
                                         <div className="space-y-8 text-center py-6">
+                                            {/* Print queue ticket helper portal */}
+                                            {queueNumber && (
+                                                <PrintQueueTicket
+                                                    queueNumber={queueNumber}
+                                                    residentName={`${formState.firstName} ${formState.lastName}`}
+                                                    serviceName={activeType?.name || "Cedula Appointment"}
+                                                    appointmentDate={selectedDate ? new Date(selectedDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : ""}
+                                                    appointmentSlot={selectedSlot}
+                                                    isPriority={isPriorityLane}
+                                                    branding={branding}
+                                                    themeColor={themeColor}
+                                                    triggerPrint={printTriggered}
+                                                    onPrintCompleted={() => setPrintTriggered(false)}
+                                                />
+                                            )}
+
                                             <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/5">
                                                 <CheckCircle2 className="w-10 h-10 animate-in zoom-in duration-300" />
                                             </div>
@@ -1312,13 +1385,38 @@ export function CedulaAppointmentClient({
                                                 <p className="text-xs text-slate-400 font-black uppercase tracking-widest">Your slot has been successfully registered in the system</p>
                                             </div>
 
-                                            <div className="max-w-md mx-auto border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-6 bg-slate-50 dark:bg-black/10 text-left space-y-4 print:border-none print:bg-white print:text-black">
+                                            {/* Dynamic queue ticket-like display layout */}
+                                            <div className="max-w-md mx-auto border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-6 bg-slate-50 dark:bg-black/10 text-left space-y-5 print:border-none print:bg-white print:text-black">
                                                 <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 dark:border-white/5">
-                                                    <span>Appointment Slip</span>
+                                                    <span>Queue ticket details</span>
                                                     <span className="text-slate-800 dark:text-slate-200 font-bold">#{(newTransactionId || "").slice(-8).toUpperCase()}</span>
                                                 </div>
 
-                                                <div className="space-y-2.5 text-xs md:text-sm">
+                                                {queueNumber && (
+                                                    <div className="border-2 border-dashed border-slate-200 dark:border-white/10 rounded-3xl p-5 bg-white dark:bg-[#1a1f2c]/50 flex flex-col items-center justify-center gap-3">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Your queue number</span>
+                                                        <span className="text-4xl font-black italic tracking-tighter text-slate-900 dark:text-white font-mono">
+                                                            {queueNumber}
+                                                        </span>
+                                                        
+                                                        {isPriorityLane && (
+                                                            <span className="bg-primary/10 text-primary border border-primary/20 rounded-full px-4 py-1 text-[9px] font-black uppercase tracking-widest">
+                                                                ♿ Priority Lane
+                                                            </span>
+                                                        )}
+
+                                                        <div className="w-full flex items-center justify-center mt-2">
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img 
+                                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${queueNumber}`} 
+                                                                alt="QR Ticket Code"
+                                                                className="w-24 h-24 p-2 bg-white rounded-xl border border-slate-100" 
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="space-y-2.5 text-xs md:text-sm pt-2">
                                                     <div className="flex justify-between">
                                                         <span className="text-slate-400 font-semibold">Applicant Name:</span>
                                                         <span className="font-bold text-slate-800 dark:text-slate-100">{formState.lastName}, {formState.firstName}</span>
@@ -1341,10 +1439,6 @@ export function CedulaAppointmentClient({
                                                             <span className="font-bold text-slate-800 dark:text-slate-100">{activeType.processingTime}</span>
                                                         </div>
                                                     )}
-                                                    <div className="flex justify-between">
-                                                        <span className="text-slate-400 font-semibold">Expected Fee:</span>
-                                                        <span className="font-bold text-slate-800 dark:text-slate-100">Calculated On-Site (Based on Income)</span>
-                                                    </div>
                                                 </div>
 
                                                 <Separator className="opacity-50" />
@@ -1368,7 +1462,7 @@ export function CedulaAppointmentClient({
 
                                             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-6 print:hidden">
                                                 <Button onClick={printSlip} variant="outline" className="font-bold uppercase tracking-widest text-xs px-6 py-5 rounded-2xl w-full sm:w-auto">
-                                                    <Printer className="w-4 h-4 mr-2" /> Print Slip
+                                                    <Printer className="w-4 h-4 mr-2" /> Print Ticket
                                                 </Button>
                                                 <Link href="/user/services" className="w-full sm:w-auto">
                                                     <Button className="text-white font-bold uppercase tracking-widest text-xs px-8 py-6 rounded-2xl hover:opacity-90 transition-all w-full" style={{ backgroundColor: themeColor }}>
