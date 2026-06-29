@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { getSystemSettingAction, getCurrentUserResident, getTransactionTypes } from "@/app/admin/transactions/actions";
+import { supabase } from "@/lib/supabase";
 
 const REGISTRY_TYPES = [
     {
@@ -166,14 +167,54 @@ export default function CivilRegistryPage() {
                 setResident(res.data);
             }
         });
-        getTransactionTypes().then((res) => {
-            if (res.success && res.data) {
-                const codes = new Set(res.data.map((t: any) => t.code as string));
-                setActiveCodes(codes);
-            } else {
-                setActiveCodes(new Set());
+
+        const fetchActiveCodes = () => {
+            getTransactionTypes().then((res) => {
+                if (res.success && res.data) {
+                    const codes = new Set(res.data.map((t: any) => t.code as string));
+                    setActiveCodes(codes);
+                } else {
+                    setActiveCodes(new Set());
+                }
+            });
+        };
+
+        fetchActiveCodes();
+
+        if (!supabase) return;
+
+        console.log("Subscribing to Supabase Realtime 'TransactionType' table for civil registry...");
+        let channel: any;
+        try {
+            channel = supabase
+                .channel("realtime-civil-registry-services")
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "*",
+                        schema: "public",
+                        table: "TransactionType",
+                    },
+                    (payload: any) => {
+                        console.log("Realtime change caught on TransactionType table:", payload);
+                        fetchActiveCodes();
+                    }
+                )
+                .subscribe((status: string, err?: any) => {
+                    if (err) {
+                        console.warn("Supabase Realtime TransactionType subscription error:", err);
+                    }
+                });
+        } catch (error) {
+            console.warn("Failed to initialize Supabase Realtime TransactionType subscription:", error);
+        }
+
+        return () => {
+            console.log("Unsubscribing from Supabase Realtime 'TransactionType' table...");
+            if (channel) {
+                supabase.removeChannel(channel);
             }
-        });
+        };
     }, []);
 
     const isMinor = React.useMemo(() => {
