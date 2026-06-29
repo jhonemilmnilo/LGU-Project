@@ -45,6 +45,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
         const nextStatus = transaction.status === "PAID" ? "FOR_PROCESSING" : "PAID";
         const transactionData: any = {
             status: nextStatus as any,
+            isPaid: nextStatus === "PAID" ? true : transaction.isPaid,
             updatedAt: new Date()
         };
 
@@ -151,11 +152,20 @@ export async function confirmTransactionPaymentWithReceipt(formData: FormData) {
 
         const paymentMethod = formData.get("paymentMethod") as string;
 
+        let mappedPaymentType: any = transaction.paymentType;
+        if (paymentMethod) {
+            const methodUpper = paymentMethod.toUpperCase();
+            if (methodUpper === "CASH") mappedPaymentType = "CASH";
+            else if (methodUpper === "GCASH" || methodUpper === "QR" || methodUpper === "E_PAYMENT") mappedPaymentType = "E_PAYMENT";
+            else if (methodUpper === "LANDBANK" || methodUpper === "BANK_TRANSFER") mappedPaymentType = "BANK_TRANSFER";
+        }
+
         const updatedTransaction = await prisma.transaction.update({
             where: { id: sanitizedId },
             data: {
                 status: "PAID",
-                paymentType: paymentMethod ? sanitizeString(paymentMethod) : transaction.paymentType,
+                paymentType: mappedPaymentType,
+                isPaid: true,
                 updatedAt: new Date(),
                 additionalData: updatedAdditionalData
             },

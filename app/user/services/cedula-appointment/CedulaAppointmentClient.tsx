@@ -49,7 +49,6 @@ type Step = "STATUS" | "RESIDENT" | "TAX_DECLARATION" | "DECLARATION" | "CONFIRM
 
 const STEPS: { id: Step; label: string; icon: any }[] = [
     { id: "STATUS", label: "Status", icon: Sparkles },
-    { id: "RESIDENT", label: "Identity", icon: User },
     { id: "TAX_DECLARATION", label: "Tax Declaration", icon: Calculator },
     { id: "DECLARATION", label: "Schedule", icon: Calendar },
     { id: "CONFIRM", label: "Submit", icon: CheckCircle2 },
@@ -154,7 +153,6 @@ export function CedulaAppointmentClient({
         "01:00 PM - 04:00 PM"
     ];
 
-    const contactInputRef = useRef<HTMLInputElement>(null);
     const incomeInputRef = useRef<HTMLInputElement>(null);
 
     const [idFile, setIdFile] = useState<File | null>(null);
@@ -296,13 +294,13 @@ export function CedulaAppointmentClient({
                 b.appointmentSlot === slot
             );
         }).length;
-        
+
         const isAM = slot.includes("AM") || slot.toUpperCase().includes("08:00 AM");
         const configAny = config as any;
-        const maxLimit = isAM 
-            ? (configAny.maxSlotsAM ?? 25) 
+        const maxLimit = isAM
+            ? (configAny.maxSlotsAM ?? 25)
             : (configAny.maxSlotsPM ?? 25);
-            
+
         return count < maxLimit;
     };
 
@@ -350,8 +348,6 @@ export function CedulaAppointmentClient({
         switch (stepId) {
             case "STATUS":
                 return !!activeType?.id;
-            case "RESIDENT":
-                return !!formState.contactNumber;
             case "TAX_DECLARATION":
                 return !!formState.income.trim(); // Income is now required
             case "DECLARATION":
@@ -383,9 +379,6 @@ export function CedulaAppointmentClient({
         if (!isStepValid(currentStep)) {
             if (currentStep === "STATUS") {
                 toast.error("Please select your application status.");
-            } else if (currentStep === "RESIDENT") {
-                contactInputRef.current?.focus();
-                toast.error("Please provide your contact number.");
             } else if (currentStep === "TAX_DECLARATION") {
                 setIncomeError(true);
                 incomeInputRef.current?.focus();
@@ -553,7 +546,7 @@ export function CedulaAppointmentClient({
 
             {/* Progress Stepper */}
             {currentStep !== "SUCCESS" && (
-                <div className="grid grid-cols-5 gap-1.5 md:gap-4 relative px-1 md:px-2 print:hidden">
+                <div className="grid grid-cols-4 gap-1.5 md:gap-4 relative px-1 md:px-2 print:hidden">
                     {STEPS.map((step, idx) => {
                         const isActive = currentStep === step.id;
                         const isCompleted = STEPS.findIndex(s => s.id === currentStep) > idx;
@@ -565,10 +558,7 @@ export function CedulaAppointmentClient({
                                     if (canNavigate(step.id)) {
                                         setCurrentStep(step.id);
                                     } else {
-                                        if (currentStep === "RESIDENT") {
-                                            contactInputRef.current?.focus();
-                                            toast.error("Please complete your identity details first.");
-                                        } else if (currentStep === "DECLARATION") {
+                                        if (currentStep === "DECLARATION") {
                                             toast.error("Please complete the declaration and schedule first.");
                                         } else {
                                             toast.error("Please complete the current phase first.");
@@ -686,85 +676,7 @@ export function CedulaAppointmentClient({
                                 </div>
                             )}
 
-                            {currentStep === "RESIDENT" && (
-                                <div className="space-y-6 md:space-y-8">
-                                    <div className="space-y-1">
-                                        <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-tight">Identity <span className="text-primary italic">Confirmation</span></h2>
-                                        <p className="text-[10px] md:text-xs text-slate-500 font-medium italic">Verify your personal records. Only the contact number should be provided/updated.</p>
-                                    </div>
 
-                                    <div className="space-y-4 md:space-y-6">
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</Label>
-                                                <Input value={formState.firstName} readOnly className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400 dark:bg-white/5" />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Middle Name</Label>
-                                                <Input value={formState.middleName} readOnly className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400 dark:bg-white/5" />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</Label>
-                                                <Input value={formState.lastName} readOnly className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400 dark:bg-white/5" />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Suffix</Label>
-                                                <Input value={formState.suffix} readOnly className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400 dark:bg-white/5" />
-                                            </div>
-                                        </div>
-
-                                        <Separator className="opacity-50" />
-
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Birth Date</Label>
-                                                <Input type="date" value={formState.dateOfBirth} readOnly className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400 dark:bg-white/5" />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Gender</Label>
-                                                <Input value={formState.gender} readOnly className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold text-xs md:text-sm dark:bg-white/5" />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Civil Status</Label>
-                                                <Input value={formState.civilStatus} readOnly className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold text-xs md:text-sm dark:bg-white/5" />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Citizenship</Label>
-                                                <Input value={formState.citizenship} readOnly className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400 dark:bg-white/5" />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Residential Address</Label>
-                                                <Input
-                                                    value={`${formState.houseNumber ? formState.houseNumber + ' ' : ''}${formState.street ? formState.street + ', ' : ''}${formState.barangay}, ${formState.municipality}, ${formState.province}`}
-                                                    readOnly
-                                                    className="h-10 rounded-xl border-slate-200 text-xs bg-slate-50 text-slate-400 dark:bg-white/5"
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number</Label>
-                                                <Input
-                                                    ref={contactInputRef}
-                                                    name="contactNumber"
-                                                    value={formState.contactNumber}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value.replace(/[^\d+]/g, "");
-                                                        setFormState(prev => ({ ...prev, contactNumber: val }));
-                                                    }}
-                                                    className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm"
-                                                    placeholder="09xx xxx xxxx"
-                                                    required
-                                                />
-                                                <p className="text-[9px] font-black text-amber-500 uppercase tracking-wider ml-1 animate-pulse">
-                                                    * Note: Please use your active contact number. This will be used to coordinate your appointment.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
                             {currentStep === "TAX_DECLARATION" && (
                                 <div className="space-y-8 md:space-y-12 animate-in fade-in duration-300">
@@ -805,8 +717,8 @@ export function CedulaAppointmentClient({
                                                         placeholder="0.00"
                                                         className={cn(
                                                             "h-12 md:h-16 pl-10 rounded-xl md:rounded-2xl dark:bg-white/5 text-lg md:text-xl font-black italic bg-white transition-all",
-                                                            incomeError 
-                                                                ? "border-red-500 ring-2 ring-red-500/20 dark:border-red-500" 
+                                                            incomeError
+                                                                ? "border-red-500 ring-2 ring-red-500/20 dark:border-red-500"
                                                                 : "border-slate-200 dark:border-white/10"
                                                         )}
                                                     />
@@ -893,7 +805,7 @@ export function CedulaAppointmentClient({
                                             <div className="pt-6 border-t border-white/10 relative z-10 flex justify-between items-end">
                                                 <div className="space-y-1">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic block">Estimated Total</span>
-                                                    <span className="text-[8px] font-bold text-amber-500/80 uppercase block italic">* Subject to admin evaluation</span>
+                                                    <span className="text-[8px] font-bold text-amber-500/80 uppercase block italic"></span>
                                                 </div>
                                                 <span className="text-3xl md:text-5xl font-black italic tracking-tighter text-primary">
                                                     ₱{(calcResult?.totalAmount ?? 0).toFixed(2)}
@@ -1293,14 +1205,14 @@ export function CedulaAppointmentClient({
 
                                     {/* ♿ Minimalist Priority Lane Row Checkbox (No big card borders) */}
                                     <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
-                                        <div 
+                                        <div
                                             onClick={() => setIsPriorityLane(!isPriorityLane)}
                                             className="flex items-start gap-3 md:gap-4 cursor-pointer select-none p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-colors"
                                         >
                                             <div className={cn(
                                                 "w-5 h-5 md:w-6 md:h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
-                                                isPriorityLane 
-                                                    ? "bg-primary border-primary text-white" 
+                                                isPriorityLane
+                                                    ? "bg-primary border-primary text-white"
                                                     : "border-slate-300 dark:border-white/10"
                                             )}
                                                 style={isPriorityLane ? { borderColor: themeColor, backgroundColor: themeColor } : {}}
@@ -1359,162 +1271,162 @@ export function CedulaAppointmentClient({
                             )}
 
                             {currentStep === "SUCCESS" && (
-                                        <div className="space-y-8 text-center py-6">
-                                            {/* Print queue ticket helper portal */}
-                                            {queueNumber && (
-                                                <PrintQueueTicket
-                                                    queueNumber={queueNumber}
-                                                    residentName={`${formState.firstName} ${formState.lastName}`}
-                                                    serviceName={activeType?.name || "Cedula Appointment"}
-                                                    appointmentDate={selectedDate ? new Date(selectedDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : ""}
-                                                    appointmentSlot={selectedSlot}
-                                                    isPriority={isPriorityLane}
-                                                    branding={branding}
-                                                    themeColor={themeColor}
-                                                    triggerPrint={printTriggered}
-                                                    onPrintCompleted={() => setPrintTriggered(false)}
-                                                />
-                                            )}
+                                <div className="space-y-8 text-center py-6">
+                                    {/* Print queue ticket helper portal */}
+                                    {queueNumber && (
+                                        <PrintQueueTicket
+                                            queueNumber={queueNumber}
+                                            residentName={`${formState.firstName} ${formState.lastName}`}
+                                            serviceName={activeType?.name || "Cedula Appointment"}
+                                            appointmentDate={selectedDate ? new Date(selectedDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : ""}
+                                            appointmentSlot={selectedSlot}
+                                            isPriority={isPriorityLane}
+                                            branding={branding}
+                                            themeColor={themeColor}
+                                            triggerPrint={printTriggered}
+                                            onPrintCompleted={() => setPrintTriggered(false)}
+                                        />
+                                    )}
 
-                                            <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/5">
-                                                <CheckCircle2 className="w-10 h-10 animate-in zoom-in duration-300" />
-                                            </div>
+                                    <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/5">
+                                        <CheckCircle2 className="w-10 h-10 animate-in zoom-in duration-300" />
+                                    </div>
 
-                                            <div className="space-y-2">
-                                                <h2 className="text-3xl font-black uppercase italic tracking-tight text-slate-900 dark:text-white">Appointment Scheduled!</h2>
-                                                <p className="text-xs text-slate-400 font-black uppercase tracking-widest">Your slot has been successfully registered in the system</p>
-                                            </div>
+                                    <div className="space-y-2">
+                                        <h2 className="text-3xl font-black uppercase italic tracking-tight text-slate-900 dark:text-white">Appointment Scheduled!</h2>
+                                        <p className="text-xs text-slate-400 font-black uppercase tracking-widest">Your slot has been successfully registered in the system</p>
+                                    </div>
 
-                                            {/* Dynamic queue ticket-like display layout */}
-                                            <div className="max-w-md mx-auto border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-6 bg-slate-50 dark:bg-black/10 text-left space-y-5 print:border-none print:bg-white print:text-black">
-                                                <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 dark:border-white/5">
-                                                    <span>Queue ticket details</span>
-                                                    <span className="text-slate-800 dark:text-slate-200 font-bold">#{(newTransactionId || "").slice(-8).toUpperCase()}</span>
-                                                </div>
+                                    {/* Dynamic queue ticket-like display layout */}
+                                    <div className="max-w-md mx-auto border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-6 bg-slate-50 dark:bg-black/10 text-left space-y-5 print:border-none print:bg-white print:text-black">
+                                        <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 dark:border-white/5">
+                                            <span>Queue ticket details</span>
+                                            <span className="text-slate-800 dark:text-slate-200 font-bold">#{(newTransactionId || "").slice(-8).toUpperCase()}</span>
+                                        </div>
 
-                                                {queueNumber && (
-                                                    <div className="border-2 border-dashed border-slate-200 dark:border-white/10 rounded-3xl p-5 bg-white dark:bg-[#1a1f2c]/50 flex flex-col items-center justify-center gap-3">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Your queue number</span>
-                                                        <span className="text-4xl font-black italic tracking-tighter text-slate-900 dark:text-white font-mono">
-                                                            {queueNumber}
-                                                        </span>
-                                                        
-                                                        {isPriorityLane && (
-                                                            <span className="bg-primary/10 text-primary border border-primary/20 rounded-full px-4 py-1 text-[9px] font-black uppercase tracking-widest">
-                                                                ♿ Priority Lane
-                                                            </span>
-                                                        )}
+                                        {queueNumber && (
+                                            <div className="border-2 border-dashed border-slate-200 dark:border-white/10 rounded-3xl p-5 bg-white dark:bg-[#1a1f2c]/50 flex flex-col items-center justify-center gap-3">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Your queue number</span>
+                                                <span className="text-4xl font-black italic tracking-tighter text-slate-900 dark:text-white font-mono">
+                                                    {queueNumber}
+                                                </span>
 
-                                                        <div className="w-full flex items-center justify-center mt-2">
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img 
-                                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${queueNumber}`} 
-                                                                alt="QR Ticket Code"
-                                                                className="w-24 h-24 p-2 bg-white rounded-xl border border-slate-100" 
-                                                            />
-                                                        </div>
-                                                    </div>
+                                                {isPriorityLane && (
+                                                    <span className="bg-primary/10 text-primary border border-primary/20 rounded-full px-4 py-1 text-[9px] font-black uppercase tracking-widest">
+                                                        ♿ Priority Lane
+                                                    </span>
                                                 )}
 
-                                                <div className="space-y-2.5 text-xs md:text-sm pt-2">
-                                                    <div className="flex justify-between">
-                                                        <span className="text-slate-400 font-semibold">Applicant Name:</span>
-                                                        <span className="font-bold text-slate-800 dark:text-slate-100">{formState.lastName}, {formState.firstName}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-slate-400 font-semibold">Scheduled Date:</span>
-                                                        <span className="font-bold text-slate-800 dark:text-slate-100">{selectedDate}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-slate-400 font-semibold">Time Session:</span>
-                                                        <span className="font-bold text-slate-800 dark:text-slate-100">{selectedSlot}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-slate-400 font-semibold">Fulfillment Office:</span>
-                                                        <span className="font-bold text-slate-800 dark:text-slate-100">{activeType?.pickupAddress || "Treasury Office"}</span>
-                                                    </div>
-                                                    {activeType?.processingTime && (
-                                                        <div className="flex justify-between">
-                                                            <span className="text-slate-400 font-semibold">Estimated Process Duration:</span>
-                                                            <span className="font-bold text-slate-800 dark:text-slate-100">{activeType.processingTime}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <Separator className="opacity-50" />
-
-                                                <div className="space-y-3 pt-2">
-                                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-650 dark:text-slate-350 flex items-center gap-1.5">
-                                                        <FileText className="w-4 h-4 text-blue-500" style={{ color: themeColor }} /> Requirements checklist to bring:
-                                                    </h4>
-                                                    {docs.length === 0 ? (
-                                                        <p className="text-xs text-slate-450 italic">No specific documents required.</p>
-                                                    ) : (
-                                                        <ul className="text-xs font-semibold space-y-1.5 pl-5 list-disc text-slate-500 dark:text-slate-400 leading-relaxed">
-                                                            {docs.map((doc, idx) => (
-                                                                <li key={idx}>{doc}</li>
-                                                            ))}
-                                                            <li>Cash for payment (Final taxes will be computed on-site by officers).</li>
-                                                        </ul>
-                                                    )}
+                                                <div className="w-full flex items-center justify-center mt-2">
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img
+                                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${queueNumber}`}
+                                                        alt="QR Ticket Code"
+                                                        className="w-24 h-24 p-2 bg-white rounded-xl border border-slate-100"
+                                                    />
                                                 </div>
                                             </div>
+                                        )}
 
-                                            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-6 print:hidden">
-                                                <Button onClick={printSlip} variant="outline" className="font-bold uppercase tracking-widest text-xs px-6 py-5 rounded-2xl w-full sm:w-auto">
-                                                    <Printer className="w-4 h-4 mr-2" /> Print Ticket
-                                                </Button>
-                                                <Link href="/user/services" className="w-full sm:w-auto">
-                                                    <Button className="text-white font-bold uppercase tracking-widest text-xs px-8 py-6 rounded-2xl hover:opacity-90 transition-all w-full" style={{ backgroundColor: themeColor }}>
-                                                        <Home className="w-4 h-4 mr-2" /> Finish & Exit
-                                                    </Button>
-                                                </Link>
+                                        <div className="space-y-2.5 text-xs md:text-sm pt-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400 font-semibold">Applicant Name:</span>
+                                                <span className="font-bold text-slate-800 dark:text-slate-100">{formState.lastName}, {formState.firstName}</span>
                                             </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400 font-semibold">Scheduled Date:</span>
+                                                <span className="font-bold text-slate-800 dark:text-slate-100">{selectedDate}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400 font-semibold">Time Session:</span>
+                                                <span className="font-bold text-slate-800 dark:text-slate-100">{selectedSlot}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400 font-semibold">Fulfillment Office:</span>
+                                                <span className="font-bold text-slate-800 dark:text-slate-100">{activeType?.pickupAddress || "Treasury Office"}</span>
+                                            </div>
+                                            {activeType?.processingTime && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-400 font-semibold">Estimated Process Duration:</span>
+                                                    <span className="font-bold text-slate-800 dark:text-slate-100">{activeType.processingTime}</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+
+                                        <Separator className="opacity-50" />
+
+                                        <div className="space-y-3 pt-2">
+                                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-650 dark:text-slate-350 flex items-center gap-1.5">
+                                                <FileText className="w-4 h-4 text-blue-500" style={{ color: themeColor }} /> Requirements checklist to bring:
+                                            </h4>
+                                            {docs.length === 0 ? (
+                                                <p className="text-xs text-slate-450 italic">No specific documents required.</p>
+                                            ) : (
+                                                <ul className="text-xs font-semibold space-y-1.5 pl-5 list-disc text-slate-500 dark:text-slate-400 leading-relaxed">
+                                                    {docs.map((doc, idx) => (
+                                                        <li key={idx}>{doc}</li>
+                                                    ))}
+                                                    <li>Cash for payment (Final taxes will be computed on-site by officers).</li>
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-6 print:hidden">
+                                        <Button onClick={printSlip} variant="outline" className="font-bold uppercase tracking-widest text-xs px-6 py-5 rounded-2xl w-full sm:w-auto">
+                                            <Printer className="w-4 h-4 mr-2" /> Print Ticket
+                                        </Button>
+                                        <Link href="/user/services" className="w-full sm:w-auto">
+                                            <Button className="text-white font-bold uppercase tracking-widest text-xs px-8 py-6 rounded-2xl hover:opacity-90 transition-all w-full" style={{ backgroundColor: themeColor }}>
+                                                <Home className="w-4 h-4 mr-2" /> Finish & Exit
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
                     </AnimatePresence>
                 </div>
 
                 {/* Global Navigation Footer — like cedula page */}
                 <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 dark:border-white/10 flex justify-between items-center">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => {
-                                if (currentStep === "STATUS") {
-                                    router.push("/user/services");
-                                } else {
-                                    const stepIndex = STEPS.findIndex(s => s.id === currentStep);
-                                    if (stepIndex > 0) {
-                                        setCurrentStep(STEPS[stepIndex - 1].id);
-                                    }
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                            if (currentStep === "STATUS") {
+                                router.push("/user/services");
+                            } else {
+                                const stepIndex = STEPS.findIndex(s => s.id === currentStep);
+                                if (stepIndex > 0) {
+                                    setCurrentStep(STEPS[stepIndex - 1].id);
                                 }
-                            }}
-                            className="rounded-full px-12 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest italic text-[10px] h-10 md:h-14 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 flex items-center"
-                        >
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Back
-                        </Button>
-                        <Button
-                            onClick={currentStep === "CONFIRM" ? handleSubmit : handleNext}
-                            disabled={submitting || (currentStep === "CONFIRM" && (!privacyAccepted))}
-                            className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-xl md:rounded-2xl px-8 md:px-12 h-10 md:h-14 group transition-all duration-300 active:scale-95 font-black uppercase tracking-widest italic"
-                            style={{ backgroundColor: themeColor }}
-                        >
-                            {submitting ? (
-                                <div className="flex items-center gap-2">
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>Booking Slot...</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center">
-                                    {currentStep === "CONFIRM" ? "Book Appointment" : "Next Phase"}
-                                    <ChevronRight className={cn("w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform", submitting && "hidden")} />
-                                </div>
-                            )}
-                        </Button>
-                    </div>
+                            }
+                        }}
+                        className="rounded-full px-12 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest italic text-[10px] h-10 md:h-14 bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 flex items-center"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Back
+                    </Button>
+                    <Button
+                        onClick={currentStep === "CONFIRM" ? handleSubmit : handleNext}
+                        disabled={submitting || (currentStep === "CONFIRM" && (!privacyAccepted))}
+                        className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-xl md:rounded-2xl px-8 md:px-12 h-10 md:h-14 group transition-all duration-300 active:scale-95 font-black uppercase tracking-widest italic"
+                        style={{ backgroundColor: themeColor }}
+                    >
+                        {submitting ? (
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Booking Slot...</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center">
+                                {currentStep === "CONFIRM" ? "Book Appointment" : "Next Phase"}
+                                <ChevronRight className={cn("w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform", submitting && "hidden")} />
+                            </div>
+                        )}
+                    </Button>
+                </div>
             </div>
 
             {/* Sticky Progress Bar at Bottom */}
