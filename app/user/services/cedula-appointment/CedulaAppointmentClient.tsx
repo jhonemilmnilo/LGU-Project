@@ -71,6 +71,8 @@ interface CedulaAppointmentClientProps {
         activeDays: number[];
     };
     bookedSlots: { appointmentDate: Date; appointmentSlot: string }[];
+    hasActiveIndividual: boolean;
+    hasActiveJuridical: boolean;
 }
 
 export function CedulaAppointmentClient({
@@ -79,7 +81,9 @@ export function CedulaAppointmentClient({
     themeColor,
     branding,
     config,
-    bookedSlots
+    bookedSlots,
+    hasActiveIndividual,
+    hasActiveJuridical
 }: CedulaAppointmentClientProps) {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState<Step>("STATUS");
@@ -189,17 +193,53 @@ export function CedulaAppointmentClient({
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
 
-            // Validate file type
+            // 1. Validate file extension and MIME type
             const allowedTypes = [
-                "image/jpeg", "image/png",
+                "image/jpeg", "image/png", "image/gif", "image/webp",
                 "application/pdf"
             ];
             const fileExtension = file.name.split('.').pop()?.toLowerCase() || "";
-            const allowedExtensions = ["pdf", "jpg", "jpeg", "png"];
+            const allowedExtensions = ["pdf", "jpg", "jpeg", "png", "gif", "webp"];
 
             if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-                toast.error("Invalid file type! Only standard images (PNG, JPG, JPEG) and PDFs are allowed.");
+                toast.error("Invalid file type! Only standard images (PNG, JPG, GIF, WEBP) and PDFs are allowed.");
                 e.target.value = ""; // clear file input
+                return;
+            }
+
+            // 2. Validate magic bytes (headers) on the client-side
+            try {
+                const headBuffer = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+                let hex = "";
+                for (let i = 0; i < headBuffer.length; i++) {
+                    hex += headBuffer[i].toString(16).padStart(2, "0");
+                }
+                hex = hex.toUpperCase();
+
+                let isMagicValid = false;
+                const mime = file.type.toLowerCase();
+
+                if (hex.startsWith("FFD8FF") && mime === "image/jpeg") {
+                    isMagicValid = true;
+                } else if (hex.startsWith("89504E470D0A1A0A") && mime === "image/png") {
+                    isMagicValid = true;
+                } else if ((hex.startsWith("474946383761") || hex.startsWith("474946383961")) && mime === "image/gif") {
+                    isMagicValid = true;
+                } else if (hex.startsWith("25504446") && mime === "application/pdf") {
+                    isMagicValid = true;
+                } else if (hex.startsWith("52494646") && hex.substring(16, 24) === "57454250" && mime === "image/webp") {
+                    isMagicValid = true;
+                }
+
+                if (!isMagicValid) {
+                    toast.error("Security alert: File header mismatch! The actual file content does not match its extension.");
+                    e.target.value = "";
+                    return;
+                }
+            } catch (err) {
+                console.error("Client-side file headers verification error:", err);
+                toast.error("Failed to verify file security headers.");
+                e.target.value = "";
                 return;
             }
 
@@ -347,6 +387,8 @@ export function CedulaAppointmentClient({
     const isStepValid = (stepId: Step) => {
         switch (stepId) {
             case "STATUS":
+                if (hasActiveIndividual && applicantType === "INDIVIDUAL") return false;
+                if (hasActiveJuridical && applicantType === "JURIDICAL") return false;
                 return !!activeType?.id;
             case "TAX_DECLARATION":
                 return !!formState.income.trim(); // Income is now required
@@ -378,7 +420,13 @@ export function CedulaAppointmentClient({
     const handleNext = () => {
         if (!isStepValid(currentStep)) {
             if (currentStep === "STATUS") {
-                toast.error("Please select your application status.");
+                if (hasActiveIndividual && applicantType === "INDIVIDUAL") {
+                    toast.error("You already have an active Individual Cedula request currently in progress.");
+                } else if (hasActiveJuridical && applicantType === "JURIDICAL") {
+                    toast.error("You already have an active Juridical Cedula request currently in progress.");
+                } else {
+                    toast.error("Please select your application status.");
+                }
             } else if (currentStep === "TAX_DECLARATION") {
                 setIncomeError(true);
                 incomeInputRef.current?.focus();
