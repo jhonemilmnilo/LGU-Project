@@ -283,7 +283,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         additionalTax = calc.additionalTax;
         penalty = calc.penalty;
 
-        const targetStatus = "RELEASED";
+        const targetStatus: any = "RELEASED";
 
         if (targetStatus === "FOR_PICKING") {
             try {
