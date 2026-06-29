@@ -45,7 +45,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
         const nextStatus = transaction.status === "PAID" ? "FOR_PROCESSING" : "PAID";
         const transactionData: any = {
             status: nextStatus as any,
-            isPaid: nextStatus === "PAID" ? true : transaction.isPaid,
+            isPaid: nextStatus === "PAID" ? true : (transaction as any).isPaid,
             updatedAt: new Date()
         };
 
@@ -151,6 +151,7 @@ export async function confirmTransactionPaymentWithReceipt(formData: FormData) {
         };
 
         const paymentMethod = formData.get("paymentMethod") as string;
+        const paymentReferenceInput = formData.get("paymentReference") as string;
 
         let mappedPaymentType: any = transaction.paymentType;
         if (paymentMethod) {
@@ -160,50 +161,55 @@ export async function confirmTransactionPaymentWithReceipt(formData: FormData) {
             else if (methodUpper === "LANDBANK" || methodUpper === "BANK_TRANSFER") mappedPaymentType = "BANK_TRANSFER";
         }
 
-        const updatedTransaction = await prisma.transaction.update({
+        const updatedTransaction = await (prisma.transaction.update as any)({
             where: { id: sanitizedId },
             data: {
                 status: "PAID",
                 paymentType: mappedPaymentType,
+                paymentReference: paymentReferenceInput ? sanitizeString(paymentReferenceInput) : transaction.paymentReference,
                 isPaid: true,
                 updatedAt: new Date(),
                 additionalData: updatedAdditionalData
-            },
+            } as any,
             include: { user: true, type: true }
-        });
+        }) as any;
 
-        const paymentReference =
-            currentAdditionalData.gcashReferenceNo ||
-            currentAdditionalData.referenceNo ||
-            transaction.paymentReference ||
-            (orSeriesNumber ? sanitizeString(orSeriesNumber) : null) ||
-            `manual_${sanitizedId}`;
+        const isCash = mappedPaymentType === "CASH";
+        const paymentReference = isCash
+            ? null
+            : (paymentReferenceInput ? sanitizeString(paymentReferenceInput) :
+              (currentAdditionalData.gcashReferenceNo ||
+              currentAdditionalData.referenceNo ||
+              transaction.paymentReference ||
+              `manual_${sanitizedId}`));
 
-        await prisma.payment.upsert({
+        await (prisma.payment.upsert as any)({
             where: { transactionId: sanitizedId },
             update: {
                 amount: Number(updatedTransaction.totalAmount || 0),
                 method: updatedTransaction.paymentType || "CASH",
                 status: "PAID",
-                reference: String(paymentReference),
+                reference: paymentReference ? String(paymentReference) : null,
+                orNumber: orSeriesNumber ? sanitizeString(orSeriesNumber) : undefined,
                 meta: {
                     source: "treasury_confirmation",
                     ...(treasuryReceiptUrl && { treasuryReceiptUrl }),
                     ...(orDocumentUrl && { orDocumentUrl })
                 }
-            },
+            } as any,
             create: {
                 transactionId: sanitizedId,
                 amount: Number(updatedTransaction.totalAmount || 0),
                 method: updatedTransaction.paymentType || "CASH",
                 status: "PAID",
-                reference: String(paymentReference),
+                reference: paymentReference ? String(paymentReference) : null,
+                orNumber: orSeriesNumber ? sanitizeString(orSeriesNumber) : undefined,
                 meta: {
                     source: "treasury_confirmation",
                     ...(treasuryReceiptUrl && { treasuryReceiptUrl }),
                     ...(orDocumentUrl && { orDocumentUrl })
                 }
-            }
+            } as any
         });
 
         if (updatedTransaction.user?.email) {
@@ -277,13 +283,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         additionalTax = calc.additionalTax;
         penalty = calc.penalty;
 
-        const isLcrTx = transaction.type.code.startsWith("LCR_") || transaction.type.code.startsWith("CIVIL_REGISTRY");
-        const isInitialRelease = (transaction.status as any) === "FOR_PROCESSING" || (transaction.status as any) === "PAID" || (transaction.status as any) === "FOR_REINSPECTION";
-        const targetStatus = (transaction.status as any) === "PAID"
-            ? (isLcrTx ? "FOR_REINSPECTION" : "FOR_PROCESSING")
-            : isInitialRelease
-                ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
-                : "RELEASED";
+        const targetStatus = "RELEASED";
 
         if (targetStatus === "FOR_PICKING") {
             try {

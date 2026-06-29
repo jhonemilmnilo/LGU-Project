@@ -123,6 +123,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
     } = props;
 
     const [paymentMethod, setPaymentMethod] = React.useState<'CASH' | 'GCASH' | 'LANDBANK'>('CASH');
+    const [paymentReference, setPaymentReference] = React.useState('');
 
     const isCedula = transaction.type?.code?.includes("CEDULA");
     const isJuridical = transaction.type?.code?.includes("JURIDICAL") || transaction.additionalData?.applicantType === "JURIDICAL";
@@ -680,10 +681,46 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                     )}
 
                     {/* ACTION BUTTONS — below the card, no card wrapper */}
-                    {canApprove && (
+                    {((transaction.status === "FOR_REQUESTING" || transaction.status === "EVALUATED" || transaction.status === "UNPAID") && (userRole === "TREASURY_STAFF" || userRole === "ADMIN") && !isReadOnlyAide) && (
                         <div className="space-y-3">
-                            {/* APPROVE — full width */}
-                            {transaction.status !== "PAID" && (() => {
+                            {/* If status is FOR_REQUESTING: Show Evaluation stage (Approve, Request Revision, Decline) */}
+                            {transaction.status === "FOR_REQUESTING" && (
+                                <div className="space-y-4">
+                                    <Button
+                                        onClick={handleEvaluate}
+                                        disabled={actionLoading}
+                                        className="w-full h-14 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                                    >
+                                        {actionLoading ? "Processing..." : "Approve"}
+                                    </Button>
+
+                                    {/* REVISION + REJECT — side by side */}
+                                    <div className="flex gap-3">
+                                        {transaction.revisionCount < 3 && (
+                                            <Button
+                                                onClick={() => {
+                                                    setRemarks("");
+                                                    setIsRequestingRevision(true);
+                                                }}
+                                                disabled={actionLoading}
+                                                className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[10px] rounded-2xl shadow-lg shadow-amber-500/10 active:scale-95 transition-all"
+                                            >
+                                                {transaction.status === "PAID" ? "Decline Payment Proof" : "Request Revision"}
+                                            </Button>
+                                        )}
+                                        <Button
+                                            onClick={() => { setRemarks(""); setIsRejecting(true); }}
+                                            disabled={actionLoading}
+                                            className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] rounded-2xl shadow-lg shadow-red-600/10 active:scale-95 transition-all"
+                                        >
+                                            Decline
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* If status is EVALUATED / UNPAID: Show Payment & Release stage */}
+                            {(transaction.status === "EVALUATED" || transaction.status === "UNPAID") && (() => {
                                 const hasInvalidFees = feeLineItems.some(item => {
                                     const labelEmpty = item.label.trim() === "";
                                     const amountEmpty = item.amount.trim() === "" || item.amount === "0";
@@ -716,6 +753,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                 </div>
                                             </div>
 
+                                            {/* OR Number Input */}
                                             <div className="space-y-1.5 pt-2 border-t border-slate-200/50 dark:border-white/5">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">OR Number (Official Receipt)</Label>
                                                 <Input
@@ -739,16 +777,29 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                     />
                                                 </div>
                                             )}
+
+                                            {paymentMethod !== "CASH" && (
+                                                <div className="space-y-1.5 pt-2 border-t border-slate-200/50 dark:border-white/5">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{paymentMethod} Reference Number</Label>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder={`Enter ${paymentMethod} Transaction Reference...`}
+                                                        value={paymentReference}
+                                                        onChange={(e) => setPaymentReference(e.target.value)}
+                                                        className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm font-bold"
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
                                         <Button
                                             onClick={async () => {
                                                 if (handleOnsitePayment) {
-                                                    await handleOnsitePayment(paymentMethod);
+                                                    await handleOnsitePayment(paymentMethod, undefined, paymentMethod !== "CASH" ? paymentReference : undefined);
                                                 }
                                             }}
-                                            disabled={actionLoading || hasInvalidFees || !orSeriesNumber?.trim() || (isCedula && !ctcNumber?.trim())}
-                                            title={hasInvalidFees ? "Please complete all fee descriptions and amounts before approving." : (!orSeriesNumber?.trim() ? "Official Receipt (OR) Number is required." : (isCedula && !ctcNumber?.trim() ? "CTC booklet number is required for Cedula." : undefined))}
+                                            disabled={actionLoading || hasInvalidFees || !orSeriesNumber?.trim() || (isCedula && !ctcNumber?.trim()) || (paymentMethod !== "CASH" && !paymentReference.trim())}
+                                            title={hasInvalidFees ? "Please complete all fee descriptions and amounts before approving." : (!orSeriesNumber?.trim() ? "Official Receipt (OR) Number is required." : (isCedula && !ctcNumber?.trim() ? "CTC booklet number is required for Cedula." : (paymentMethod !== "CASH" && !paymentReference.trim() ? `${paymentMethod} reference number is required.` : undefined)))}
                                             className="w-full h-14 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                                         >
                                             {actionLoading ? "Processing..." : "Mark as Paid & Released"}
@@ -766,34 +817,11 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                     {actionLoading ? "Processing..." : "Approve Payment & Start Processing"}
                                 </Button>
                             )}
-
-                            {/* REVISION + REJECT — side by side */}
-                            <div className="flex gap-3">
-                                {false && transaction.revisionCount < 3 && (
-                                    <Button
-                                        onClick={() => {
-                                            setRemarks("");
-                                            setIsRequestingRevision(true);
-                                        }}
-                                        disabled={actionLoading}
-                                        className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[10px] rounded-2xl shadow-lg shadow-amber-500/10 active:scale-95 transition-all"
-                                    >
-                                        {transaction.status === "PAID" ? "Decline Payment Proof" : "Request Revision"}
-                                    </Button>
-                                )}
-                                <Button
-                                    onClick={() => { setRemarks(""); setIsRejecting(true); }}
-                                    disabled={actionLoading}
-                                    className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] rounded-2xl shadow-lg shadow-red-600/10 active:scale-95 transition-all"
-                                >
-                                    Decline
-                                </Button>
-                            </div>
                         </div>
                     )}
 
                     {/* PENDING PAYMENT NOTE — shown when status is EVALUATED */}
-                    {transaction.status === "EVALUATED" && (
+                    {transaction.status === "EVALUATED" && (userRole !== "TREASURY_STAFF" && userRole !== "ADMIN") && (
                         <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center">
                             <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

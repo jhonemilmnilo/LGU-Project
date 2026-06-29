@@ -1123,6 +1123,7 @@ model Payment {
   method        PaymentType   @default(CASH)
   status        PaymentStatus @default(PENDING)
   reference     String?
+  orNumber      String?
   meta          Json?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
