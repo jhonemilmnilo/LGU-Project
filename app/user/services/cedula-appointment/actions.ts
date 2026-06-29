@@ -140,9 +140,7 @@ export async function submitCedulaAppointment(formData: FormData) {
                 data: {
                     userId: session.user.id,
                     typeId,
-                    status: "PENDING", 
-                    fulfillmentType: "PICK_UP", 
-                    paymentType: "CASH", 
+                    status: "FOR_REQUESTING", // Updated status to FOR_REQUESTING
                     residentSnapshot,
                     additionalData: {
                         ...updatedAdditionalData,

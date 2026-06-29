@@ -89,8 +89,8 @@ export function CedulaAppointmentClient({
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const [calcResult, setCalcResult] = useState<CedulaResult | null>(null);
-    const [newTransactionId, setNewTransactionId] = useState<string | null>(null);
-    const [queueNumber, setQueueNumber] = useState<string | null>(null);
+    const [newTransactionId] = useState<string | null>(null);
+    const [queueNumber] = useState<string | null>(null);
     const [isPriorityLane, setIsPriorityLane] = useState(false);
     const [printTriggered, setPrintTriggered] = useState(false);
 
@@ -162,6 +162,7 @@ export function CedulaAppointmentClient({
     const [existingIdUrl] = useState<string | null>(resident?.idFrontUrl || null);
     const [existingProofUrl] = useState<string | null>(null);
     const [showValidationErrors, setShowValidationErrors] = useState(false);
+    const [incomeError, setIncomeError] = useState(false);
 
     // Refs for sections (smooth scrolling)
     const idSectionRef = useRef<HTMLDivElement>(null);
@@ -352,7 +353,7 @@ export function CedulaAppointmentClient({
             case "RESIDENT":
                 return !!formState.contactNumber;
             case "TAX_DECLARATION":
-                return true; // Always valid (default/zero input permitted)
+                return !!formState.income.trim(); // Income is now required
             case "DECLARATION":
                 const isJur = applicantType === "JURIDICAL";
                 const hasSchedule = !!selectedDate && !!selectedSlot;
@@ -385,6 +386,11 @@ export function CedulaAppointmentClient({
             } else if (currentStep === "RESIDENT") {
                 contactInputRef.current?.focus();
                 toast.error("Please provide your contact number.");
+            } else if (currentStep === "TAX_DECLARATION") {
+                setIncomeError(true);
+                incomeInputRef.current?.focus();
+                incomeInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                toast.error("Please declare your Annual Gross Income to compute the estimated tax.");
             } else if (currentStep === "DECLARATION") {
                 if (applicantType === "JURIDICAL" && !formState.businessName.trim()) {
                     toast.error("Please declare your Business Name.");
@@ -462,11 +468,8 @@ export function CedulaAppointmentClient({
 
             const response = await submitCedulaAppointment(submitData);
             if (response.success && response.data) {
-                const resData = response.data as any;
-                setNewTransactionId(resData.id);
-                setQueueNumber(resData.queueNumber); // Save generated queue ticket number
                 toast.success("Appointment booked successfully!");
-                setCurrentStep("SUCCESS");
+                router.push("/user/services/requests");
             } else {
                 toast.error(response.error || "Failed to book appointment.");
             }
@@ -476,6 +479,7 @@ export function CedulaAppointmentClient({
             setSubmitting(false);
         }
     };
+
 
     const printSlip = () => {
         setPrintTriggered(true);
@@ -796,9 +800,15 @@ export function CedulaAppointmentClient({
                                                             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
                                                             const formatted = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0];
                                                             setFormState(p => ({ ...p, income: formatted }));
+                                                            if (incomeError) setIncomeError(false); // Reset error state on change
                                                         }}
                                                         placeholder="0.00"
-                                                        className="h-12 md:h-16 pl-10 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-lg md:text-xl font-black italic bg-white"
+                                                        className={cn(
+                                                            "h-12 md:h-16 pl-10 rounded-xl md:rounded-2xl dark:bg-white/5 text-lg md:text-xl font-black italic bg-white transition-all",
+                                                            incomeError 
+                                                                ? "border-red-500 ring-2 ring-red-500/20 dark:border-red-500" 
+                                                                : "border-slate-200 dark:border-white/10"
+                                                        )}
                                                     />
                                                 </div>
                                             </div>
@@ -1063,43 +1073,6 @@ export function CedulaAppointmentClient({
                                                                 </button>
                                                             );
                                                         })}
-
-                                                        {/* ♿ Priority Lane Toggle card */}
-                                                        <div 
-                                                            onClick={() => setIsPriorityLane(!isPriorityLane)}
-                                                            className={cn(
-                                                                "p-5 border rounded-[2rem] flex flex-col gap-2 text-left transition-all duration-300 shadow-sm relative overflow-hidden cursor-pointer select-none",
-                                                                isPriorityLane 
-                                                                    ? "border-primary bg-primary/[0.04] dark:bg-primary/[0.08]" 
-                                                                    : "border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02] hover:border-slate-350"
-                                                            )}
-                                                        >
-                                                            <div className="flex items-center gap-4">
-                                                                <div className={cn(
-                                                                    "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0",
-                                                                    isPriorityLane 
-                                                                        ? "bg-primary border-primary text-white" 
-                                                                        : "border-slate-300 dark:border-white/20 bg-white dark:bg-black/20"
-                                                                )}
-                                                                    style={isPriorityLane ? { borderColor: themeColor, backgroundColor: themeColor } : {}}
-                                                                >
-                                                                    {isPriorityLane && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                                                                </div>
-                                                                <div className="space-y-0.5">
-                                                                    <span className="font-black text-xs md:text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                                                                        ♿ Apply for Priority Lane
-                                                                    </span>
-                                                                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
-                                                                        For Senior Citizens, PWDs, and Pregnant Applicants
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            {isPriorityLane && (
-                                                                <p className="text-[9px] font-black text-amber-500 uppercase tracking-wide ml-9 animate-in slide-in-from-top-1 duration-200">
-                                                                    * Please present your valid Senior Citizen or PWD ID at the counter for validation.
-                                                                </p>
-                                                            )}
-                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
@@ -1318,8 +1291,35 @@ export function CedulaAppointmentClient({
                                         </div>
                                     )}
 
+                                    {/* ♿ Minimalist Priority Lane Row Checkbox (No big card borders) */}
+                                    <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
+                                        <div 
+                                            onClick={() => setIsPriorityLane(!isPriorityLane)}
+                                            className="flex items-start gap-3 md:gap-4 cursor-pointer select-none p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-colors"
+                                        >
+                                            <div className={cn(
+                                                "w-5 h-5 md:w-6 md:h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
+                                                isPriorityLane 
+                                                    ? "bg-primary border-primary text-white" 
+                                                    : "border-slate-300 dark:border-white/10"
+                                            )}
+                                                style={isPriorityLane ? { borderColor: themeColor, backgroundColor: themeColor } : {}}
+                                            >
+                                                {isPriorityLane && <Check className="w-3.5 h-3.5" />}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-xs md:text-sm font-black italic uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                    ♿ Request Priority lane service
+                                                </p>
+                                                <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
+                                                    Check this if you are a Senior Citizen, PWD, or Pregnant applicant. Please present your valid ID counter for validation.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Privacy — full width, below upload grid */}
-                                    <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5" ref={privacySectionRef}>
+                                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5" ref={privacySectionRef}>
                                         <div
                                             onClick={() => {
                                                 if (privacyAccepted) {
@@ -1477,8 +1477,7 @@ export function CedulaAppointmentClient({
                 </div>
 
                 {/* Global Navigation Footer — like cedula page */}
-                {currentStep !== "SUCCESS" && (
-                    <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 dark:border-white/10 flex justify-between items-center">
+                <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 dark:border-white/10 flex justify-between items-center">
                         <Button
                             type="button"
                             variant="ghost"
@@ -1516,7 +1515,6 @@ export function CedulaAppointmentClient({
                             )}
                         </Button>
                     </div>
-                )}
             </div>
 
             {/* Sticky Progress Bar at Bottom */}
