@@ -156,25 +156,41 @@ export default function CedulaApplicationPage() {
     useEffect(() => {
         async function init() {
             try {
-                // Ensure service types exist in DB
-                await ensureCedulaTransactionTypes();
+                // Fetch Types, User Transactions, and Resident concurrently
+                let [typesRes, txsRes, residentRes] = await Promise.all([
+                    getTransactionTypes(),
+                    getUserTransactions(),
+                    getCurrentUserResident()
+                ]);
 
-                // Fetch Types
-                let defaultTypeId = "";
-                const typesRes = await getTransactionTypes();
                 let fetchedTypes: any[] = [];
                 if (typesRes.success) {
                     fetchedTypes = typesRes.data?.filter((t: any) => t.code.startsWith("CEDULA")) || [];
-                    setCedulaTypes(fetchedTypes);
-                    if (fetchedTypes.length > 0) {
-                        const individualType = fetchedTypes.find((t: any) => t.code === "CEDULA_IND") || fetchedTypes[0];
-                        defaultTypeId = individualType.id;
-                        setFormData(prev => ({ ...prev, typeId: individualType.id }));
+                }
+
+                // Self-healing check: If Cedula types do not exist in the database, seed them and re-fetch
+                const hasInd = fetchedTypes.some((t: any) => t.code === "CEDULA_IND");
+                const hasJur = fetchedTypes.some((t: any) => t.code === "CEDULA_JUR");
+                if (!hasInd || !hasJur) {
+                    await ensureCedulaTransactionTypes();
+                    const refetchedTypesRes = await getTransactionTypes();
+                    if (refetchedTypesRes.success) {
+                        fetchedTypes = refetchedTypesRes.data?.filter((t: any) => t.code.startsWith("CEDULA")) || [];
                     }
                 }
 
-                // Fetch User Transactions to verify pending requests for CEDULA_IND and CEDULA_JUR
-                const txsRes = await getUserTransactions();
+                // Set Cedula Types in state
+                setCedulaTypes(fetchedTypes);
+
+                // Set default typeId in formData
+                let defaultTypeId = "";
+                if (fetchedTypes.length > 0) {
+                    const individualType = fetchedTypes.find((t: any) => t.code === "CEDULA_IND") || fetchedTypes[0];
+                    defaultTypeId = individualType.id;
+                    setFormData(prev => ({ ...prev, typeId: individualType.id }));
+                }
+
+                // Process User Transactions to verify pending requests
                 if (txsRes.success && txsRes.data) {
                     const activeCedula = txsRes.data.some((tx: any) =>
                         tx.type?.code === "CEDULA_IND" &&
@@ -195,8 +211,6 @@ export default function CedulaApplicationPage() {
                 const urlParams = new URLSearchParams(window.location.search);
                 const revId = urlParams.get("revisionId");
 
-                // Fetch Resident
-                const residentRes = await getCurrentUserResident();
                 const resident = residentRes.data;
 
                 if (revId) {
